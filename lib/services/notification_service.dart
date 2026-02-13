@@ -27,18 +27,26 @@ class NotificationService {
 
     final androidPlugin = _plugin.resolvePlatformSpecificImplementation<
         AndroidFlutterLocalNotificationsPlugin>();
-    final darwinPlugin = _plugin
-        .resolvePlatformSpecificImplementation<DarwinFlutterLocalNotificationsPlugin>();
+    final iosPlugin = _plugin
+        .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>();
+    final macosPlugin = _plugin
+        .resolvePlatformSpecificImplementation<MacOSFlutterLocalNotificationsPlugin>();
 
     final androidAllowed =
         await androidPlugin?.requestNotificationsPermission() ?? true;
-    final darwinAllowed = await darwinPlugin?.requestPermissions(
+    final iosAllowed = await iosPlugin?.requestPermissions(
           alert: true,
           badge: true,
           sound: true,
         ) ??
         true;
-    _permissionGranted = androidAllowed && darwinAllowed;
+    final macosAllowed = await macosPlugin?.requestPermissions(
+          alert: true,
+          badge: true,
+          sound: true,
+        ) ??
+        true;
+    _permissionGranted = androidAllowed && iosAllowed && macosAllowed;
 
     _initialized = true;
   }
@@ -145,8 +153,8 @@ class NotificationService {
 
     await _plugin.zonedSchedule(
       9999,
-      'Peringatan ${prayerName}',
-      'Ini peringatan snooze ${minutes} minit untuk ${prayerName}.',
+      'Peringatan $prayerName',
+      'Ini peringatan snooze $minutes minit untuk $prayerName.',
       scheduleDate,
       details,
       androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,

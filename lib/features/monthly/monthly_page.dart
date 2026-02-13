@@ -32,11 +32,9 @@ class MonthlyPage extends StatelessWidget {
                   onPressed: () async {
                     final csv = controller.exportMonthlyAsCsv();
                     if (csv.isEmpty) return;
-                    await SharePlus.instance.share(
-                      ShareParams(
-                        text: csv,
-                        subject: 'Jadual Waktu Solat Bulanan',
-                      ),
+                    await Share.share(
+                      csv,
+                      subject: 'Jadual Waktu Solat Bulanan',
                     );
                   },
                   icon: const Icon(Icons.ios_share),

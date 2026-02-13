@@ -45,7 +45,7 @@ class TasbihPage extends StatelessWidget {
               const SizedBox(height: 18),
               Card(
                 elevation: 0,
-                color: Colors.white.withOpacity(0.82),
+                color: Colors.white.withValues(alpha: 0.82),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(22),
                 ),
@@ -97,14 +97,14 @@ class TasbihPage extends StatelessWidget {
                     child: Ink(
                       width: 210,
                       height: 210,
-                      decoration: BoxDecoration(
+                      decoration: const BoxDecoration(
                         shape: BoxShape.circle,
-                        gradient: const LinearGradient(
+                        gradient: LinearGradient(
                           colors: <Color>[Color(0xFF0D8C7B), Color(0xFF0A6A60)],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
-                        boxShadow: const <BoxShadow>[
+                        boxShadow: <BoxShadow>[
                           BoxShadow(
                             color: Color(0x33000000),
                             blurRadius: 24,

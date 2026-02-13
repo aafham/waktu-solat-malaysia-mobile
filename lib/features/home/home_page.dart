@@ -44,7 +44,7 @@ class HomePage extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'API berjaya: ${controller.apiSuccessCount}  •  Gagal: ${controller.apiFailureCount}  •  Cache: ${controller.cacheHitCount}',
+              'API berjaya: ${controller.apiSuccessCount} | Gagal: ${controller.apiFailureCount} | Cache: ${controller.cacheHitCount}',
               style: Theme.of(context).textTheme.bodySmall,
             ),
             const SizedBox(height: 20),
@@ -158,9 +158,9 @@ class HomePage extends StatelessWidget {
                     label: const Text('Masjid berdekatan'),
                   ),
                   if (!controller.exactAlarmAllowed)
-                    Chip(
+                    const Chip(
                       avatar: const Icon(Icons.warning_amber, size: 16),
-                      label: const Text('Exact alarm mungkin diblok'),
+                      label: Text('Exact alarm mungkin diblok'),
                     ),
                 ],
               ),
