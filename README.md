@@ -89,8 +89,8 @@ Lokasi APK:
 - `lib/features/settings/settings_page.dart` - tetapan app
 
 ## Sumber API
-- `https://api.solat.my/v2/locations`
-- `https://api.solat.my/v2/times/{ZONE_CODE}`
+- `https://solat.my/api/locations`
+- `https://solat.my/api/daily/{ZONE_CODE}`
 
 ## Nota teknikal
 - Timezone notifikasi diset ke `Asia/Kuala_Lumpur`.
