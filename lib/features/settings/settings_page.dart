@@ -35,7 +35,7 @@ class SettingsPage extends StatelessWidget {
           const SizedBox(height: 8),
           if (!controller.autoLocation)
             DropdownButtonFormField<String>(
-              value: zones.any((z) => z.code == controller.manualZoneCode)
+              initialValue: zones.any((z) => z.code == controller.manualZoneCode)
                   ? controller.manualZoneCode
                   : null,
               items: zones

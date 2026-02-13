@@ -1,15 +1,15 @@
 import 'package:flutter/material.dart';
 
-import 'package:waktu_solat_malaysia_mobile/features/home/home_page.dart';
-import 'package:waktu_solat_malaysia_mobile/features/qibla/qibla_page.dart';
-import 'package:waktu_solat_malaysia_mobile/features/settings/settings_page.dart';
-import 'package:waktu_solat_malaysia_mobile/features/tasbih/tasbih_page.dart';
-import 'package:waktu_solat_malaysia_mobile/services/location_service.dart';
-import 'package:waktu_solat_malaysia_mobile/services/notification_service.dart';
-import 'package:waktu_solat_malaysia_mobile/services/prayer_service.dart';
-import 'package:waktu_solat_malaysia_mobile/services/qibla_service.dart';
-import 'package:waktu_solat_malaysia_mobile/services/tasbih_store.dart';
-import 'package:waktu_solat_malaysia_mobile/state/app_controller.dart';
+import 'features/home/home_page.dart';
+import 'features/qibla/qibla_page.dart';
+import 'features/settings/settings_page.dart';
+import 'features/tasbih/tasbih_page.dart';
+import 'services/location_service.dart';
+import 'services/notification_service.dart';
+import 'services/prayer_service.dart';
+import 'services/qibla_service.dart';
+import 'services/tasbih_store.dart';
+import 'state/app_controller.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
