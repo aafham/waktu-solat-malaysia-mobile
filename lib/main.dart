@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 import 'features/home/home_page.dart';
-import 'features/qibla/qibla_page.dart';
+import 'qibla_page.dart';
 import 'features/settings/settings_page.dart';
 import 'features/tasbih/tasbih_page.dart';
 import 'services/location_service.dart';
