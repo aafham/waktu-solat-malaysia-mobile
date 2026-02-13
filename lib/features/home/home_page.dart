@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../models/prayer_models.dart';
@@ -51,6 +52,36 @@ class HomePage extends StatelessWidget {
               'API berjaya: ${controller.apiSuccessCount} | Gagal: ${controller.apiFailureCount} | Cache: ${controller.cacheHitCount}',
               style: Theme.of(context).textTheme.bodySmall,
             ),
+            const SizedBox(height: 8),
+            Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+              decoration: BoxDecoration(
+                color: controller.isUsingCachedPrayerData
+                    ? Colors.amber.shade50
+                    : Colors.green.shade50,
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: Row(
+                children: [
+                  Icon(
+                    controller.isUsingCachedPrayerData
+                        ? Icons.cloud_off
+                        : Icons.cloud_done,
+                    size: 16,
+                    color: controller.isUsingCachedPrayerData
+                        ? Colors.orange.shade700
+                        : Colors.green.shade700,
+                  ),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      controller.prayerDataFreshnessLabel,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
+                ],
+              ),
+            ),
             const SizedBox(height: 20),
             if (controller.isLoading)
               const Center(child: CircularProgressIndicator())
@@ -72,6 +103,14 @@ class HomePage extends StatelessWidget {
                         icon: const Icon(Icons.refresh),
                         label: const Text('Cuba semula'),
                       ),
+                      if (controller.errorActionLabel != null) ...[
+                        const SizedBox(height: 8),
+                        OutlinedButton.icon(
+                          onPressed: controller.runErrorAction,
+                          icon: const Icon(Icons.settings),
+                          label: Text(controller.errorActionLabel!),
+                        ),
+                      ],
                     ],
                   ),
                 ),
@@ -116,7 +155,7 @@ class HomePage extends StatelessWidget {
                       Text(
                         nextPrayer == null
                             ? '-'
-                            : '${DateFormat('HH:mm').format(nextPrayer.time)} • ${_formatCountdown(countdown)}',
+                            : '${DateFormat('HH:mm').format(nextPrayer.time)} | ${_formatCountdown(countdown)}',
                         style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                               color: Colors.white,
                               fontWeight: FontWeight.w700,
@@ -219,6 +258,22 @@ class HomePage extends StatelessWidget {
                     icon: const Icon(Icons.refresh),
                     label: const Text('Refresh'),
                   ),
+                  FilledButton.tonalIcon(
+                    onPressed: () async {
+                      final text = _buildTodayShareText(
+                        zoneLabel: controller.activeZone?.label ?? '-',
+                        nextPrayer: nextPrayer,
+                        countdown: countdown,
+                        prayers: prayers,
+                      );
+                      await Share.share(
+                        text,
+                        subject: 'Waktu Solat Hari Ini',
+                      );
+                    },
+                    icon: const Icon(Icons.ios_share),
+                    label: const Text('Share hari ini'),
+                  ),
                   OutlinedButton.icon(
                     onPressed: () async {
                       final url = controller.nearbyMosqueMapUrl();
@@ -293,5 +348,27 @@ class HomePage extends StatelessWidget {
     final h = duration.inHours;
     final m = duration.inMinutes.remainder(60);
     return '${h.toString().padLeft(2, '0')}:${m.toString().padLeft(2, '0')}';
+  }
+
+  String _buildTodayShareText({
+    required String zoneLabel,
+    required PrayerTimeEntry? nextPrayer,
+    required Duration? countdown,
+    required List<PrayerTimeEntry> prayers,
+  }) {
+    final buffer = StringBuffer();
+    buffer.writeln('Waktu Solat Malaysia');
+    buffer.writeln(zoneLabel);
+    buffer.writeln('');
+    if (nextPrayer != null) {
+      buffer.writeln(
+        'Seterusnya: ${nextPrayer.name} ${DateFormat('HH:mm').format(nextPrayer.time)} (${_formatCountdown(countdown)})',
+      );
+      buffer.writeln('');
+    }
+    for (final p in prayers) {
+      buffer.writeln('${p.name}: ${DateFormat('HH:mm').format(p.time)}');
+    }
+    return buffer.toString();
   }
 }

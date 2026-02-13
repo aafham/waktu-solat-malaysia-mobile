@@ -33,6 +33,9 @@ class AppController extends ChangeNotifier {
   bool isLoading = true;
   bool isMonthlyLoading = false;
   String? errorMessage;
+  String _lastErrorRaw = '';
+  DateTime? lastPrayerDataUpdatedAt;
+  String lastPrayerDataSource = 'unknown';
 
   List<PrayerZone> zones = <PrayerZone>[];
   PrayerZone? activeZone;
@@ -66,6 +69,17 @@ class AppController extends ChangeNotifier {
   int get apiSuccessCount => _prayerService.apiSuccessCount;
   int get apiFailureCount => _prayerService.apiFailureCount;
   int get cacheHitCount => _prayerService.cacheHitCount;
+  bool get isUsingCachedPrayerData => lastPrayerDataSource == 'cache';
+  String get prayerDataFreshnessLabel {
+    final updatedAt = lastPrayerDataUpdatedAt;
+    if (updatedAt == null) {
+      return 'Belum dikemas kini';
+    }
+    final age = DateTime.now().difference(updatedAt);
+    final ageText = age.inMinutes <= 0 ? 'baru sahaja' : '${age.inMinutes} min lalu';
+    final source = isUsingCachedPrayerData ? 'Data cache' : 'Data live';
+    return '$source | $ageText';
+  }
 
   Future<void> initialize() async {
     isLoading = true;
@@ -115,6 +129,9 @@ class AppController extends ChangeNotifier {
     notifyListeners();
 
     try {
+      final successBefore = _prayerService.apiSuccessCount;
+      final cacheBefore = _prayerService.cacheHitCount;
+
       if (autoLocation) {
         position = await _locationService.getCurrentPosition();
         activeZone = _prayerService.nearestZone(
@@ -144,6 +161,15 @@ class AppController extends ChangeNotifier {
 
       dailyPrayerTimes = await _prayerService.fetchDailyPrayerTimes(zoneCode);
       _pushHealthLog('daily_ok:$zoneCode');
+      lastPrayerDataUpdatedAt = DateTime.now();
+      if (_prayerService.apiSuccessCount > successBefore) {
+        lastPrayerDataSource = 'live';
+      } else if (_prayerService.cacheHitCount > cacheBefore) {
+        lastPrayerDataSource = 'cache';
+      } else {
+        lastPrayerDataSource = 'unknown';
+      }
+      _lastErrorRaw = '';
 
       final lat = position?.latitude ?? activeZone?.latitude;
       final lng = position?.longitude ?? activeZone?.longitude;
@@ -168,6 +194,7 @@ class AppController extends ChangeNotifier {
       }
     } catch (e) {
       _pushHealthLog('daily_err:${e.runtimeType}');
+      _lastErrorRaw = e.toString().toLowerCase();
       errorMessage = _friendlyError(e);
     } finally {
       isLoading = false;
@@ -220,6 +247,15 @@ class AppController extends ChangeNotifier {
 
   Future<void> incrementTasbih() async {
     tasbihCount += 1;
+    await _tasbihStore.saveCount(tasbihCount);
+    notifyListeners();
+  }
+
+  Future<void> addTasbihBatch(int count) async {
+    if (count <= 0) {
+      return;
+    }
+    tasbihCount += count;
     await _tasbihStore.saveCount(tasbihCount);
     notifyListeners();
   }
@@ -435,6 +471,41 @@ class AppController extends ChangeNotifier {
       return 'Data belum tersedia dari server. Data cache akan digunakan bila ada.';
     }
     return 'Tidak dapat memuat data sekarang. Sila cuba semula sekejap lagi.';
+  }
+
+  String? get errorActionLabel {
+    if (errorMessage == null) {
+      return null;
+    }
+    if (_lastErrorRaw.contains('location') || _lastErrorRaw.contains('lokasi')) {
+      return 'Buka tetapan lokasi';
+    }
+    if (_lastErrorRaw.contains('notification') || _lastErrorRaw.contains('notifikasi')) {
+      return 'Buka tetapan app';
+    }
+    if (_lastErrorRaw.contains('server') || _lastErrorRaw.contains('timeout')) {
+      return 'Guna zon manual';
+    }
+    return null;
+  }
+
+  Future<void> runErrorAction() async {
+    final label = errorActionLabel;
+    if (label == null) {
+      return;
+    }
+    if (label == 'Buka tetapan lokasi') {
+      await Geolocator.openLocationSettings();
+      return;
+    }
+    if (label == 'Buka tetapan app') {
+      await Geolocator.openAppSettings();
+      return;
+    }
+    if (label == 'Guna zon manual') {
+      await setAutoLocation(false);
+      return;
+    }
   }
 
   void _pushHealthLog(String event) {

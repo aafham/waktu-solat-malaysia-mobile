@@ -14,6 +14,13 @@ class TasbihPage extends StatefulWidget {
 
 class _TasbihPageState extends State<TasbihPage> {
   bool focusMode = false;
+  final Map<String, int> _presets = const {
+    'Subhanallah': 33,
+    'Alhamdulillah': 33,
+    'Allahu Akbar': 34,
+    'Istighfar': 100,
+  };
+  String _activePreset = 'Subhanallah';
 
   @override
   Widget build(BuildContext context) {
@@ -22,6 +29,8 @@ class _TasbihPageState extends State<TasbihPage> {
     final cycle = count ~/ cycleTarget;
     final inCycle = count % cycleTarget;
     final progress = inCycle / cycleTarget;
+    final presetTarget = _presets[_activePreset] ?? 33;
+    final presetCount = count % presetTarget;
 
     return SafeArea(
       child: Container(
@@ -68,6 +77,24 @@ class _TasbihPageState extends State<TasbihPage> {
                             color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
                     ),
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: _presets.entries
+                          .map(
+                            (entry) => ChoiceChip(
+                              label: Text('${entry.key} (${entry.value})'),
+                              selected: _activePreset == entry.key,
+                              onSelected: (_) {
+                                setState(() {
+                                  _activePreset = entry.key;
+                                });
+                              },
+                            ),
+                          )
+                          .toList(),
+                    ),
                     const SizedBox(height: 18),
                     Card(
                       elevation: 0,
@@ -96,6 +123,14 @@ class _TasbihPageState extends State<TasbihPage> {
                               children: [
                                 Text('Pusingan: $cycle'),
                                 Text('$inCycle/$cycleTarget'),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text('Preset: $_activePreset'),
+                                Text('$presetCount/$presetTarget'),
                               ],
                             ),
                             const SizedBox(height: 8),
@@ -139,17 +174,29 @@ class _TasbihPageState extends State<TasbihPage> {
                         const SizedBox(width: 10),
                         Expanded(
                           child: OutlinedButton.icon(
-                            onPressed: count == 0
-                                ? null
-                                : () => _confirmReset(context),
-                            icon: const Icon(Icons.restart_alt),
+                            onPressed: () async {
+                              await HapticFeedback.selectionClick();
+                              await widget.controller.addTasbihBatch(
+                                _presets[_activePreset] ?? 0,
+                              );
+                            },
+                            icon: const Icon(Icons.bolt),
                             style: OutlinedButton.styleFrom(
                               minimumSize: const Size.fromHeight(54),
                             ),
-                            label: const Text('Reset'),
+                            label: Text('+$presetTarget'),
                           ),
                         ),
                       ],
+                    ),
+                    const SizedBox(height: 10),
+                    OutlinedButton.icon(
+                      onPressed: count == 0 ? null : () => _confirmReset(context),
+                      icon: const Icon(Icons.delete_outline),
+                      style: OutlinedButton.styleFrom(
+                        minimumSize: const Size.fromHeight(50),
+                      ),
+                      label: const Text('Reset kiraan'),
                     ),
                     const SizedBox(height: 8),
                     Text(
