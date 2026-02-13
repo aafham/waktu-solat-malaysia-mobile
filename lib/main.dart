@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 
 import 'features/home/home_page.dart';
 import 'features/monthly/monthly_page.dart';
+import 'features/onboarding/onboarding_page.dart';
 import 'features/qibla/qibla_page.dart';
 import 'features/settings/settings_page.dart';
 import 'features/tasbih/tasbih_page.dart';
@@ -32,6 +33,7 @@ class _WaktuSolatAppState extends State<WaktuSolatApp> {
   late final AppController controller;
   int tabIndex = 0;
   bool showSplash = true;
+  bool dismissedOnboarding = false;
 
   @override
   void initState() {
@@ -204,28 +206,43 @@ class _WaktuSolatAppState extends State<WaktuSolatApp> {
                 ];
 
                 return Scaffold(
-                  body: MediaQuery(
-                    data: MediaQuery.of(context).copyWith(
-                      textScaler: TextScaler.linear(controller.textScale),
-                    ),
-                    child: pages[tabIndex],
-                  ),
-                  bottomNavigationBar: NavigationBar(
-                    height: 72,
-                    selectedIndex: tabIndex,
-                    onDestinationSelected: (idx) {
-                      setState(() {
-                        tabIndex = idx;
-                      });
-                    },
-                    destinations: const [
-                      NavigationDestination(icon: Icon(Icons.access_time), label: 'Waktu'),
-                      NavigationDestination(icon: Icon(Icons.calendar_month), label: 'Bulanan'),
-                      NavigationDestination(icon: Icon(Icons.explore), label: 'Kiblat'),
-                      NavigationDestination(icon: Icon(Icons.touch_app), label: 'Tasbih'),
-                      NavigationDestination(icon: Icon(Icons.settings), label: 'Tetapan'),
-                    ],
-                  ),
+                  body: controller.isLoading
+                      ? const Center(child: CircularProgressIndicator())
+                      : !controller.onboardingSeen && !dismissedOnboarding
+                      ? OnboardingPage(
+                          onSelesai: () async {
+                            await controller.completeOnboarding();
+                            setState(() {
+                              dismissedOnboarding = true;
+                            });
+                          },
+                        )
+                      : MediaQuery(
+                          data: MediaQuery.of(context).copyWith(
+                            textScaler: TextScaler.linear(controller.textScale),
+                          ),
+                          child: pages[tabIndex],
+                        ),
+                  bottomNavigationBar: controller.isLoading
+                      ? null
+                      : !controller.onboardingSeen && !dismissedOnboarding
+                          ? null
+                          : NavigationBar(
+                              height: 72,
+                              selectedIndex: tabIndex,
+                              onDestinationSelected: (idx) {
+                                setState(() {
+                                  tabIndex = idx;
+                                });
+                              },
+                              destinations: const [
+                                NavigationDestination(icon: Icon(Icons.access_time), label: 'Waktu'),
+                                NavigationDestination(icon: Icon(Icons.calendar_month), label: 'Bulanan'),
+                                NavigationDestination(icon: Icon(Icons.explore), label: 'Kiblat'),
+                                NavigationDestination(icon: Icon(Icons.touch_app), label: 'Tasbih'),
+                                NavigationDestination(icon: Icon(Icons.settings), label: 'Tetapan'),
+                              ],
+                            ),
                 );
               },
             ),

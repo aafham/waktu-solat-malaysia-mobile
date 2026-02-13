@@ -286,6 +286,20 @@ class HomePage extends StatelessWidget {
                   ),
                   OutlinedButton.icon(
                     onPressed: () async {
+                      final ics = controller.exportTodayAsIcs();
+                      if (ics.isEmpty) {
+                        return;
+                      }
+                      await Share.share(
+                        ics,
+                        subject: 'Kalendar Waktu Solat Hari Ini (.ics)',
+                      );
+                    },
+                    icon: const Icon(Icons.event),
+                    label: const Text('Kongsi iCal'),
+                  ),
+                  OutlinedButton.icon(
+                    onPressed: () async {
                       final url = controller.nearbyMosqueMapUrl();
                       if (url == null) return;
                       await launchUrl(

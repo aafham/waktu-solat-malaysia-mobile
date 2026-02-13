@@ -98,30 +98,44 @@ class _SettingsPageState extends State<SettingsPage> {
                 ...controller.prayerNotificationToggles.keys.map(
                   (name) => Padding(
                     padding: const EdgeInsets.only(bottom: 8),
-                    child: DropdownButtonFormField<String>(
-                      initialValue:
-                          controller.prayerSoundProfiles[name] ?? 'default',
-                      decoration: InputDecoration(
-                        labelText: 'Bunyi $name',
-                        border: const OutlineInputBorder(),
-                      ),
-                      items: const [
-                        DropdownMenuItem(
-                          value: 'default',
-                          child: Text('Biasa'),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: DropdownButtonFormField<String>(
+                            initialValue:
+                                controller.prayerSoundProfiles[name] ?? 'default',
+                            decoration: InputDecoration(
+                              labelText: 'Bunyi $name',
+                              border: const OutlineInputBorder(),
+                            ),
+                            items: const [
+                              DropdownMenuItem(
+                                value: 'default',
+                                child: Text('Biasa'),
+                              ),
+                              DropdownMenuItem(
+                                value: 'silent',
+                                child: Text('Senyap'),
+                              ),
+                            ],
+                            onChanged: controller.notifyEnabled
+                                ? (value) {
+                                    if (value != null) {
+                                      controller.setPrayerSoundProfile(name, value);
+                                    }
+                                  }
+                                : null,
+                          ),
                         ),
-                        DropdownMenuItem(
-                          value: 'silent',
-                          child: Text('Senyap'),
+                        const SizedBox(width: 8),
+                        IconButton.filledTonal(
+                          tooltip: 'Pratonton bunyi',
+                          onPressed: controller.notifyEnabled
+                              ? () => controller.previewPrayerSound(name)
+                              : null,
+                          icon: const Icon(Icons.play_arrow),
                         ),
                       ],
-                      onChanged: controller.notifyEnabled
-                          ? (value) {
-                              if (value != null) {
-                                controller.setPrayerSoundProfile(name, value);
-                              }
-                            }
-                          : null,
                     ),
                   ),
                 ),
@@ -135,6 +149,30 @@ class _SettingsPageState extends State<SettingsPage> {
                       ),
                     ),
                   ),
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    'Peringatan puasa sunat',
+                    style: Theme.of(context).textTheme.titleSmall,
+                  ),
+                ),
+                SwitchListTile(
+                  title: const Text('Isnin & Khamis'),
+                  subtitle: const Text('Peringatan malam dan hampir Imsak'),
+                  value: controller.fastingMondayThursdayEnabled,
+                  onChanged: controller.notifyEnabled
+                      ? controller.setFastingMondayThursdayEnabled
+                      : null,
+                ),
+                SwitchListTile(
+                  title: const Text('Ayyamul Bidh (13-15 Hijrah)'),
+                  subtitle: const Text('Peringatan puasa bulanan hijrah'),
+                  value: controller.fastingAyyamulBidhEnabled,
+                  onChanged: controller.notifyEnabled
+                      ? controller.setFastingAyyamulBidhEnabled
+                      : null,
+                ),
               ],
             ),
           ),
@@ -148,6 +186,14 @@ class _SettingsPageState extends State<SettingsPage> {
                   title: const Text('Kesan lokasi automatik'),
                   value: controller.autoLocation,
                   onChanged: controller.setAutoLocation,
+                ),
+                SwitchListTile(
+                  title: const Text('Travel mode (auto tukar zon)'),
+                  subtitle: const Text('Semak lokasi berkala bila anda bergerak'),
+                  value: controller.travelModeEnabled,
+                  onChanged: controller.autoLocation
+                      ? controller.setTravelModeEnabled
+                      : null,
                 ),
                 _buildZoneShortcutChips(controller, zones),
                 const SizedBox(height: 8),

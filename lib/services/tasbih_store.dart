@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import 'package:shared_preferences/shared_preferences.dart';
 
 class TasbihStore {
@@ -13,6 +15,11 @@ class TasbihStore {
   static const _highContrastKey = 'high_contrast';
   static const _ramadhanModeKey = 'ramadhan_mode';
   static const _prayerSoundPrefix = 'prayer_sound_';
+  static const _onboardingSeenKey = 'onboarding_seen';
+  static const _travelModeKey = 'travel_mode_enabled';
+  static const _fastingMonThuKey = 'fasting_mon_thu_enabled';
+  static const _fastingAyyamulBidhKey = 'fasting_ayyamul_bidh_enabled';
+  static const _tasbihDailyStatsKey = 'tasbih_daily_stats_json';
 
   Future<int> loadCount() async {
     final prefs = await SharedPreferences.getInstance();
@@ -153,5 +160,67 @@ class TasbihStore {
   Future<void> savePrayerSoundProfile(String prayerName, String profile) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('$_prayerSoundPrefix$prayerName', profile);
+  }
+
+  Future<bool> loadOnboardingSeen() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_onboardingSeenKey) ?? false;
+  }
+
+  Future<void> saveOnboardingSeen(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_onboardingSeenKey, value);
+  }
+
+  Future<bool> loadTravelModeEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_travelModeKey) ?? true;
+  }
+
+  Future<void> saveTravelModeEnabled(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_travelModeKey, value);
+  }
+
+  Future<bool> loadFastingMonThuEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_fastingMonThuKey) ?? false;
+  }
+
+  Future<void> saveFastingMonThuEnabled(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_fastingMonThuKey, value);
+  }
+
+  Future<bool> loadFastingAyyamulBidhEnabled() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_fastingAyyamulBidhKey) ?? false;
+  }
+
+  Future<void> saveFastingAyyamulBidhEnabled(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_fastingAyyamulBidhKey, value);
+  }
+
+  Future<Map<String, int>> loadTasbihDailyStats() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_tasbihDailyStatsKey);
+    if (raw == null || raw.isEmpty) {
+      return <String, int>{};
+    }
+    try {
+      final parsed = jsonDecode(raw);
+      if (parsed is! Map<String, dynamic>) {
+        return <String, int>{};
+      }
+      return parsed.map((k, v) => MapEntry(k, (v as num?)?.toInt() ?? 0));
+    } catch (_) {
+      return <String, int>{};
+    }
+  }
+
+  Future<void> saveTasbihDailyStats(Map<String, int> stats) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_tasbihDailyStatsKey, jsonEncode(stats));
   }
 }

@@ -6,21 +6,35 @@ Aplikasi mudah alih untuk pengguna Malaysia yang memaparkan waktu solat, kompas 
 - Waktu solat harian mengikut zon Malaysia.
 - Jadual bulanan dengan penapis `Semua / Subuh / Maghrib`.
 - Pengesanan lokasi automatik (GPS) + pilihan zon manual.
+- `Travel mode` untuk tukar zon automatik bila lokasi berubah.
 - Kompas kiblat dengan paparan arah, status aktif, dan bacaan darjah.
+- Panduan kalibrasi kompas dalam aplikasi.
 - Tasbih digital dengan preset zikir, mod fokus, haptic, dan kiraan batch.
-- Notifikasi waktu solat dengan tetapan per-waktu, profil bunyi, dan tunda 5/10 minit.
+- Analitik tasbih: kiraan hari ini, 7 hari, streak, dan rekod terbaik.
+- Notifikasi waktu solat dengan tetapan per-waktu, profil bunyi, tunda 5/10 minit, dan action lock-screen.
+- Pratonton bunyi notifikasi per waktu terus dari tetapan.
+- Peringatan puasa sunat (Isnin/Khamis dan Ayyamul Bidh).
 - Cache setempat untuk sokongan rangkaian tidak stabil.
 - Tetapan aksesibiliti: skala teks dan mod kontras tinggi.
 - Sandaran/pulih tetapan melalui JSON.
+- Eksport jadual ke format iCal (`.ics`) untuk integrasi kalendar.
+- Onboarding ringkas untuk pengguna kali pertama.
+- Widget Android paparan `next prayer + countdown + tasbih`.
 
 ## Kemaskini Terkini
 - Tema aplikasi diseragamkan (warna, kad, butang, input, navigation bar, snackbar).
 - Semua teks UI dikonsistenkan ke Bahasa Melayu.
+- Onboarding baharu (3 skrin) untuk flow awal pengguna.
 - Skrin `Waktu` diperkemas dengan hierarchy seksyen lebih jelas dan kad info yang kemas.
+- Skrin `Waktu` ditambah action kongsi iCal harian.
 - Skrin `Bulanan` ditambah ringkasan bulan (Subuh terawal, Maghrib terlewat, jumlah hari).
+- Skrin `Bulanan` ditambah action kongsi iCal bulanan.
 - Skrin `Kiblat` ditambah bacaan `Arah semasa` dan `Ralat` dalam darjah.
+- Skrin `Kiblat` ditambah wizard kalibrasi sensor.
 - Skrin `Tasbih` ditambah progress khusus preset selain progress pusingan 33.
+- Skrin `Tasbih` ditambah statistik harian/mingguan/streak.
 - Skrin `Tetapan` diperkemas dengan tajuk berikon dan struktur lebih teratur.
+- Tetapan notifikasi kini sokong pratonton bunyi, reminder puasa, dan travel mode.
 
 ## Prasyarat
 - Flutter SDK
@@ -105,6 +119,7 @@ Receiver widget homescreen:
 - `lib/services/prayer_service.dart` - API waktu solat, parser, retry, cache
 - `lib/services/location_service.dart` - GPS dan permission
 - `lib/services/notification_service.dart` - jadual notifikasi, tunda
+- `lib/features/onboarding/onboarding_page.dart` - onboarding pengguna kali pertama
 - `lib/services/qibla_service.dart` - kiraan arah kiblat
 - `lib/services/tasbih_store.dart` - simpanan kiraan/tetapan
 - `lib/features/home/home_page.dart` - dashboard waktu + countdown + quick actions
@@ -124,6 +139,7 @@ Receiver widget homescreen:
 - Timezone notifikasi: `Asia/Kuala_Lumpur`.
 - Data zon/waktu disimpan dalam `SharedPreferences` untuk fallback.
 - Refresh auto ketika hari bertukar.
+- Cache bulanan dipanaskan untuk bulan semasa + bulan seterusnya.
 
 ## Troubleshooting Ringkas
 - `flutter`/`dart` tidak dijumpai: semak PATH dan restart terminal.
@@ -134,6 +150,6 @@ Receiver widget homescreen:
 - Data lambat/tiada: tarik ke bawah untuk muat semula.
 
 ## Limitasi Semasa
-- Export bulanan masih format CSV (belum PDF/PNG native).
-- Widget homescreen masih fokus pada tasbih.
+- iCal dikongsi sebagai teks `.ics` (belum export fail fizikal `.ics`).
+- Widget homescreen refresh ikut kitaran widget Android (bukan real-time per saat).
 - Telemetri masih setempat (belum integrasi backend observability).

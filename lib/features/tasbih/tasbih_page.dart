@@ -107,6 +107,41 @@ class _TasbihPageState extends State<TasbihPage> {
                     SizedBox(height: compact ? 12 : 18),
                     Card(
                       elevation: 0,
+                      color: Colors.white.withValues(alpha: 0.72),
+                      child: Padding(
+                        padding: const EdgeInsets.all(12),
+                        child: Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            Chip(
+                              avatar: const Icon(Icons.today, size: 16),
+                              label:
+                                  Text('Hari ini ${widget.controller.tasbihTodayCount}'),
+                            ),
+                            Chip(
+                              avatar: const Icon(Icons.view_week, size: 16),
+                              label: Text(
+                                '7 hari ${widget.controller.tasbihWeekCount}',
+                              ),
+                            ),
+                            Chip(
+                              avatar: const Icon(Icons.local_fire_department, size: 16),
+                              label:
+                                  Text('Streak ${widget.controller.tasbihStreakDays}'),
+                            ),
+                            Chip(
+                              avatar: const Icon(Icons.emoji_events, size: 16),
+                              label:
+                                  Text('Terbaik ${widget.controller.tasbihBestDay}'),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: compact ? 12 : 18),
+                    Card(
+                      elevation: 0,
                       color: Colors.white.withValues(alpha: 0.82),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(22),

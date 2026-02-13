@@ -67,6 +67,18 @@ class _MonthlyPageState extends State<MonthlyPage> {
                   icon: const Icon(Icons.copy),
                   label: const Text('Salin CSV'),
                 ),
+                OutlinedButton.icon(
+                  onPressed: () async {
+                    final ics = widget.controller.exportMonthlyAsIcs();
+                    if (ics.isEmpty) return;
+                    await Share.share(
+                      ics,
+                      subject: 'Kalendar Waktu Solat Bulanan (.ics)',
+                    );
+                  },
+                  icon: const Icon(Icons.event_available),
+                  label: const Text('Kongsi iCal'),
+                ),
               ],
             ),
             const SizedBox(height: 8),

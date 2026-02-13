@@ -42,8 +42,15 @@ class TasbihWidgetProvider : AppWidgetProvider() {
         val views = RemoteViews(context.packageName, R.layout.tasbih_widget)
         val prefs = context.getSharedPreferences("FlutterSharedPreferences", Context.MODE_PRIVATE)
         val tasbih = prefs.getLong("flutter.tasbih_count", 0L)
+        val title = prefs.getString("flutter.widget_title", "Waktu Solat") ?: "Waktu Solat"
+        val subtitle = prefs.getString("flutter.widget_subtitle", "Seterusnya --") ?: "Seterusnya --"
+        val countdown = prefs.getString("flutter.widget_countdown", "--:--:--") ?: "--:--:--"
+        val tasbihText = prefs.getString("flutter.widget_tasbih", tasbih.toString()) ?: tasbih.toString()
 
-        views.setTextViewText(R.id.widgetCount, tasbih.toString())
+        views.setTextViewText(R.id.widgetTitle, title)
+        views.setTextViewText(R.id.widgetSubtitle, subtitle)
+        views.setTextViewText(R.id.widgetCountdown, countdown)
+        views.setTextViewText(R.id.widgetCount, "Tasbih $tasbihText")
 
         val launchIntent = Intent(context, MainActivity::class.java)
         val pendingIntent = PendingIntent.getActivity(
@@ -54,6 +61,7 @@ class TasbihWidgetProvider : AppWidgetProvider() {
         )
         views.setOnClickPendingIntent(R.id.widgetTitle, pendingIntent)
         views.setOnClickPendingIntent(R.id.widgetSubtitle, pendingIntent)
+        views.setOnClickPendingIntent(R.id.widgetCountdown, pendingIntent)
         views.setOnClickPendingIntent(R.id.widgetCount, pendingIntent)
 
         manager.updateAppWidget(widgetId, views)

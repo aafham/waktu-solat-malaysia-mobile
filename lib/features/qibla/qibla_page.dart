@@ -88,25 +88,62 @@ class _QiblaPageState extends State<QiblaPage> {
                     ],
                   ),
                   const SizedBox(height: 12),
-                  FilledButton(
-                    onPressed: hasQibla
-                        ? () {
-                            setState(() {
-                              _enabled = true;
-                            });
-                          }
-                        : null,
-                    style: FilledButton.styleFrom(
-                      backgroundColor: const Color(0xFF57CC99),
-                      foregroundColor: const Color(0xFF083326),
-                      minimumSize: const Size.fromHeight(48),
-                    ),
-                    child: const Text(
-                      'Aktifkan Kompas',
-                      style: TextStyle(fontWeight: FontWeight.w700),
-                    ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: FilledButton(
+                          onPressed: hasQibla
+                              ? () {
+                                  setState(() {
+                                    _enabled = true;
+                                  });
+                                }
+                              : null,
+                          style: FilledButton.styleFrom(
+                            backgroundColor: const Color(0xFF57CC99),
+                            foregroundColor: const Color(0xFF083326),
+                            minimumSize: const Size.fromHeight(48),
+                          ),
+                          child: const Text(
+                            'Aktifkan Kompas',
+                            style: TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      OutlinedButton(
+                        onPressed: () => _showCalibrationGuide(context),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFFCDEBE3),
+                          side: const BorderSide(color: Color(0xFF5F8078)),
+                        ),
+                        child: const Text('Kalibrasi'),
+                      ),
+                    ],
                   ),
                   const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0D1F1C),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFF2A4A42)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.tune, size: 16, color: Color(0xFF89D5BF)),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Ketepatan disaran: ralat bawah 10 darjah.',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: const Color(0xFFC8E2DB),
+                                ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
                   Text(
                     'Cara guna: Pastikan telefon rata. Anak panah menunjuk ke arah Kaabah.',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
@@ -251,6 +288,36 @@ class _QiblaPageState extends State<QiblaPage> {
           ),
         ),
       ),
+    );
+  }
+
+  Future<void> _showCalibrationGuide(BuildContext context) async {
+    await showDialog<void>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Panduan Kalibrasi Kompas'),
+          content: const Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('1. Pegang telefon dalam posisi rata.'),
+              SizedBox(height: 6),
+              Text('2. Gerakkan telefon bentuk angka 8 sebanyak 5-10 kali.'),
+              SizedBox(height: 6),
+              Text('3. Jauhkan telefon daripada magnet atau casing bermagnet.'),
+              SizedBox(height: 6),
+              Text('4. Tunggu bacaan stabil sebelum ikut arah anak panah.'),
+            ],
+          ),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Faham'),
+            ),
+          ],
+        );
+      },
     );
   }
 }
