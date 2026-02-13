@@ -31,22 +31,30 @@ class _TasbihPageState extends State<TasbihPage> {
     final progress = inCycle / cycleTarget;
     final presetTarget = _presets[_activePreset] ?? 33;
     final presetCount = count % presetTarget;
+    final compact = MediaQuery.sizeOf(context).height < 760;
+    final orbSize = compact ? 170.0 : 210.0;
 
     return SafeArea(
-      child: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: <Color>[Color(0xFFF4F7F6), Color(0xFFE7EFEC)],
-          ),
-        ),
-        child: focusMode
-            ? _buildFocusMode(context, count)
-            : Padding(
-                padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
-                child: Column(
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: <Color>[Color(0xFFF4F7F6), Color(0xFFE7EFEC)],
+                  ),
+                ),
+                child: focusMode
+                    ? _buildFocusMode(context, count)
+                    : Padding(
+                        padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
+                        child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
+                  mainAxisSize: MainAxisSize.min,
                   children: [
                     Row(
                       children: [
@@ -95,7 +103,7 @@ class _TasbihPageState extends State<TasbihPage> {
                           )
                           .toList(),
                     ),
-                    const SizedBox(height: 18),
+                    SizedBox(height: compact ? 12 : 18),
                     Card(
                       elevation: 0,
                       color: Colors.white.withValues(alpha: 0.82),
@@ -148,14 +156,15 @@ class _TasbihPageState extends State<TasbihPage> {
                         ),
                       ),
                     ),
-                    const Spacer(),
+                    SizedBox(height: compact ? 14 : 22),
                     _TapOrb(
+                      size: orbSize,
                       onTap: () async {
                         await HapticFeedback.lightImpact();
                         await widget.controller.incrementTasbih();
                       },
                     ),
-                    const Spacer(),
+                    SizedBox(height: compact ? 14 : 22),
                     Row(
                       children: [
                         Expanded(
@@ -189,7 +198,7 @@ class _TasbihPageState extends State<TasbihPage> {
                         ),
                       ],
                     ),
-                    const SizedBox(height: 10),
+                    SizedBox(height: compact ? 8 : 10),
                     OutlinedButton.icon(
                       onPressed: count == 0 ? null : () => _confirmReset(context),
                       icon: const Icon(Icons.delete_outline),
@@ -198,7 +207,7 @@ class _TasbihPageState extends State<TasbihPage> {
                       ),
                       label: const Text('Reset kiraan'),
                     ),
-                    const SizedBox(height: 8),
+                    SizedBox(height: compact ? 4 : 8),
                     Text(
                       'Petua: biasanya satu set zikir = 33 kiraan',
                       textAlign: TextAlign.center,
@@ -208,8 +217,12 @@ class _TasbihPageState extends State<TasbihPage> {
                           ),
                     ),
                   ],
-                ),
+                        ),
+                      ),
               ),
+            ),
+          );
+        },
       ),
     );
   }
