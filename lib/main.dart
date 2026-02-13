@@ -99,6 +99,7 @@ class _WaktuSolatAppState extends State<WaktuSolatApp> {
                     child: pages[tabIndex],
                   ),
                   bottomNavigationBar: NavigationBar(
+                    height: 72,
                     selectedIndex: tabIndex,
                     onDestinationSelected: (idx) {
                       setState(() {
@@ -110,7 +111,7 @@ class _WaktuSolatAppState extends State<WaktuSolatApp> {
                       NavigationDestination(icon: Icon(Icons.calendar_month), label: 'Bulanan'),
                       NavigationDestination(icon: Icon(Icons.explore), label: 'Kiblat'),
                       NavigationDestination(icon: Icon(Icons.touch_app), label: 'Tasbih'),
-                      NavigationDestination(icon: Icon(Icons.settings), label: 'Settings'),
+                      NavigationDestination(icon: Icon(Icons.settings), label: 'Tetapan'),
                     ],
                   ),
                 );

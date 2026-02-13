@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:share_plus/share_plus.dart';
@@ -36,50 +38,62 @@ class HomePage extends StatelessWidget {
       child: RefreshIndicator(
         onRefresh: controller.refreshPrayerData,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
           children: [
-            Text(
-              'Waktu Solat Malaysia',
-              style: Theme.of(context).textTheme.headlineSmall,
+            _SectionTitle(
+              title: 'Waktu Solat Malaysia',
+              subtitle: controller.activeZone?.label ?? 'Zon belum ditentukan',
             ),
-            const SizedBox(height: 8),
-            Text(
-              controller.activeZone?.label ?? 'Zon belum ditentukan',
-              style: Theme.of(context).textTheme.bodyMedium,
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'API berjaya: ${controller.apiSuccessCount} | Gagal: ${controller.apiFailureCount} | Cache: ${controller.cacheHitCount}',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
-            const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-              decoration: BoxDecoration(
-                color: controller.isUsingCachedPrayerData
-                    ? Colors.amber.shade50
-                    : Colors.green.shade50,
-                borderRadius: BorderRadius.circular(10),
-              ),
-              child: Row(
-                children: [
-                  Icon(
-                    controller.isUsingCachedPrayerData
-                        ? Icons.cloud_off
-                        : Icons.cloud_done,
-                    size: 16,
-                    color: controller.isUsingCachedPrayerData
-                        ? Colors.orange.shade700
-                        : Colors.green.shade700,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Text(
-                      controller.prayerDataFreshnessLabel,
-                      style: Theme.of(context).textTheme.bodySmall,
+            const SizedBox(height: 10),
+            Card(
+              elevation: 0,
+              color: Colors.white.withValues(alpha: 0.75),
+              child: Padding(
+                padding: const EdgeInsets.all(12),
+                child: Column(
+                  children: [
+                    Row(
+                      children: [
+                        Expanded(
+                          child: Text(
+                            'API berjaya: ${controller.apiSuccessCount} | Gagal: ${controller.apiFailureCount} | Cache: ${controller.cacheHitCount}',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                ],
+                    const SizedBox(height: 8),
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                      decoration: BoxDecoration(
+                        color: controller.isUsingCachedPrayerData
+                            ? Colors.amber.shade50
+                            : Colors.green.shade50,
+                        borderRadius: BorderRadius.circular(10),
+                      ),
+                      child: Row(
+                        children: [
+                          Icon(
+                            controller.isUsingCachedPrayerData
+                                ? Icons.cloud_off
+                                : Icons.cloud_done,
+                            size: 16,
+                            color: controller.isUsingCachedPrayerData
+                                ? Colors.orange.shade700
+                                : Colors.green.shade700,
+                          ),
+                          const SizedBox(width: 8),
+                          Expanded(
+                            child: Text(
+                              controller.prayerDataFreshnessLabel,
+                              style: Theme.of(context).textTheme.bodySmall,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 20),
@@ -116,10 +130,7 @@ class HomePage extends StatelessWidget {
                 ),
               )
             else ...[
-              Text(
-                'Seterusnya',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
+              Text('Seterusnya', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
               Container(
                 decoration: BoxDecoration(
@@ -140,40 +151,17 @@ class HomePage extends StatelessWidget {
                 child: Padding(
                   padding: const EdgeInsets.all(16),
                   child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text(
-                        nextPrayer == null
-                            ? 'Tiada waktu seterusnya hari ini'
-                            : nextPrayer.name,
-                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
-                            ),
+                      _NextPrayerCountdownCard(
+                        nextPrayer: nextPrayer,
+                        currentPrayer: currentPrayer,
                       ),
-                      const SizedBox(height: 6),
-                      Text(
-                        nextPrayer == null
-                            ? '-'
-                            : '${DateFormat('HH:mm').format(nextPrayer.time)} | ${_formatCountdown(countdown)}',
-                        style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
-                            ),
-                      ),
-                      const SizedBox(height: 10),
-                      if (currentPrayer != null)
-                        Text(
-                          'Sedang berjalan: ${currentPrayer.name}',
-                          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                                color: Colors.white.withValues(alpha: 0.9),
-                              ),
-                        ),
                       const SizedBox(height: 12),
-                      Wrap(
+                      OverflowBar(
                         spacing: 8,
+                        overflowSpacing: 8,
                         children: [
-                          OutlinedButton(
+                          OutlinedButton.icon(
                             onPressed: nextPrayer == null
                                 ? null
                                 : () => controller.snoozeNextPrayer(5),
@@ -181,9 +169,10 @@ class HomePage extends StatelessWidget {
                               foregroundColor: Colors.white,
                               side: const BorderSide(color: Colors.white70),
                             ),
-                            child: const Text('Snooze 5 min'),
+                            icon: const Icon(Icons.alarm, size: 16),
+                            label: const Text('5 min'),
                           ),
-                          OutlinedButton(
+                          OutlinedButton.icon(
                             onPressed: nextPrayer == null
                                 ? null
                                 : () => controller.snoozeNextPrayer(10),
@@ -191,7 +180,8 @@ class HomePage extends StatelessWidget {
                               foregroundColor: Colors.white,
                               side: const BorderSide(color: Colors.white70),
                             ),
-                            child: const Text('Snooze 10 min'),
+                            icon: const Icon(Icons.alarm, size: 16),
+                            label: const Text('10 min'),
                           ),
                         ],
                       ),
@@ -200,10 +190,7 @@ class HomePage extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 12),
-              Text(
-                'Hari Ini',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
+              Text('Hari Ini', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
@@ -244,14 +231,11 @@ class HomePage extends StatelessWidget {
                 ),
               ],
               const SizedBox(height: 12),
-              Text(
-                'Quick Actions',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
+              Text('Quick Actions', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
-              Wrap(
+              OverflowBar(
                 spacing: 8,
-                runSpacing: 8,
+                overflowSpacing: 8,
                 children: [
                   FilledButton.icon(
                     onPressed: controller.refreshPrayerData,
@@ -289,13 +273,12 @@ class HomePage extends StatelessWidget {
                 ],
               ),
               const SizedBox(height: 12),
-              Text(
-                'Jadual',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
+              Text('Jadual', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
               ...prayers.map(
                 (item) => Card(
+                  elevation: 0,
+                  color: Colors.white.withValues(alpha: 0.65),
                   child: ListTile(
                     leading: const Icon(Icons.schedule),
                     title: Text(item.name),
@@ -370,5 +353,166 @@ class HomePage extends StatelessWidget {
       buffer.writeln('${p.name}: ${DateFormat('HH:mm').format(p.time)}');
     }
     return buffer.toString();
+  }
+}
+
+class _SectionTitle extends StatelessWidget {
+  const _SectionTitle({
+    required this.title,
+    required this.subtitle,
+  });
+
+  final String title;
+  final String subtitle;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          title,
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          subtitle,
+          style: Theme.of(context).textTheme.bodyMedium,
+        ),
+      ],
+    );
+  }
+}
+
+class _NextPrayerCountdownCard extends StatefulWidget {
+  const _NextPrayerCountdownCard({
+    required this.nextPrayer,
+    required this.currentPrayer,
+  });
+
+  final PrayerTimeEntry? nextPrayer;
+  final PrayerTimeEntry? currentPrayer;
+
+  @override
+  State<_NextPrayerCountdownCard> createState() =>
+      _NextPrayerCountdownCardState();
+}
+
+class _NextPrayerCountdownCardState extends State<_NextPrayerCountdownCard> {
+  Timer? _ticker;
+  Duration _remaining = Duration.zero;
+
+  @override
+  void initState() {
+    super.initState();
+    _updateRemaining();
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      setState(_updateRemaining);
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant _NextPrayerCountdownCard oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.nextPrayer?.time != widget.nextPrayer?.time) {
+      _updateRemaining();
+    }
+  }
+
+  @override
+  void dispose() {
+    _ticker?.cancel();
+    super.dispose();
+  }
+
+  void _updateRemaining() {
+    final next = widget.nextPrayer;
+    if (next == null) {
+      _remaining = Duration.zero;
+      return;
+    }
+    final diff = next.time.difference(DateTime.now());
+    _remaining = diff.isNegative ? Duration.zero : diff;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final next = widget.nextPrayer;
+    final timeLabel = next == null ? '-' : DateFormat('HH:mm').format(next.time);
+
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                'NEXT PRAYER',
+                style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                      color: Colors.white.withValues(alpha: 0.88),
+                      letterSpacing: 1.1,
+                    ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                next?.name ?? 'Tiada lagi',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+              const SizedBox(height: 4),
+              Text(
+                timeLabel,
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: Colors.white.withValues(alpha: 0.95),
+                    ),
+              ),
+              if (widget.currentPrayer != null) ...[
+                const SizedBox(height: 8),
+                Text(
+                  'Sedang: ${widget.currentPrayer!.name}',
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: Colors.white.withValues(alpha: 0.9),
+                      ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        const SizedBox(width: 12),
+        Column(
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            Text(
+              'COUNTDOWN',
+              style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                    color: Colors.white.withValues(alpha: 0.88),
+                    letterSpacing: 1.1,
+                  ),
+            ),
+            const SizedBox(height: 4),
+            Text(
+              _formatHms(_remaining),
+              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                  ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  String _formatHms(Duration d) {
+    final h = d.inHours.toString().padLeft(2, '0');
+    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '$h:$m:$s';
   }
 }

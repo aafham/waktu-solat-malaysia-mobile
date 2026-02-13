@@ -29,7 +29,7 @@ class _MonthlyPageState extends State<MonthlyPage> {
       child: RefreshIndicator(
         onRefresh: widget.controller.refreshMonthlyData,
         child: ListView(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
           children: [
             Text(
               'Jadual Bulanan',
@@ -85,6 +85,7 @@ class _MonthlyPageState extends State<MonthlyPage> {
               )
             else ...[
               Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Expanded(
                     child: Text(
@@ -92,27 +93,32 @@ class _MonthlyPageState extends State<MonthlyPage> {
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                   ),
-                  SegmentedButton<MonthlyFilter>(
-                    segments: const [
-                      ButtonSegment(
-                        value: MonthlyFilter.all,
-                        label: Text('Semua'),
+                  Expanded(
+                    child: Align(
+                      alignment: Alignment.centerRight,
+                      child: SegmentedButton<MonthlyFilter>(
+                        segments: const [
+                          ButtonSegment(
+                            value: MonthlyFilter.all,
+                            label: Text('Semua'),
+                          ),
+                          ButtonSegment(
+                            value: MonthlyFilter.subuh,
+                            label: Text('Subuh'),
+                          ),
+                          ButtonSegment(
+                            value: MonthlyFilter.maghrib,
+                            label: Text('Maghrib'),
+                          ),
+                        ],
+                        selected: <MonthlyFilter>{filter},
+                        onSelectionChanged: (selection) {
+                          setState(() {
+                            filter = selection.first;
+                          });
+                        },
                       ),
-                      ButtonSegment(
-                        value: MonthlyFilter.subuh,
-                        label: Text('Subuh'),
-                      ),
-                      ButtonSegment(
-                        value: MonthlyFilter.maghrib,
-                        label: Text('Maghrib'),
-                      ),
-                    ],
-                    selected: <MonthlyFilter>{filter},
-                    onSelectionChanged: (selection) {
-                      setState(() {
-                        filter = selection.first;
-                      });
-                    },
+                    ),
                   ),
                 ],
               ),
@@ -144,7 +150,7 @@ class _MonthlyPageState extends State<MonthlyPage> {
       }
       final subuh = day.entries.firstWhere((e) => e.name == 'Subuh');
       final maghrib = day.entries.firstWhere((e) => e.name == 'Maghrib');
-      return 'Subuh ${DateFormat('HH:mm').format(subuh.time)} • Maghrib ${DateFormat('HH:mm').format(maghrib.time)}';
+      return 'Subuh ${DateFormat('HH:mm').format(subuh.time)} | Maghrib ${DateFormat('HH:mm').format(maghrib.time)}';
     }
 
     return Card(
@@ -186,7 +192,7 @@ class _HeatMap extends StatelessWidget {
 
         return Tooltip(
           message:
-              '${DateFormat('dd MMM').format(days[idx].date)} • ${_formatMinutes(v)}',
+              '${DateFormat('dd MMM').format(days[idx].date)} | ${_formatMinutes(v)}',
           child: Container(
             width: 14,
             height: 14,
