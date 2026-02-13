@@ -159,7 +159,7 @@ class HomePage extends StatelessWidget {
                   ),
                   if (!controller.exactAlarmAllowed)
                     const Chip(
-                      avatar: const Icon(Icons.warning_amber, size: 16),
+                      avatar: Icon(Icons.warning_amber, size: 16),
                       label: Text('Exact alarm mungkin diblok'),
                     ),
                 ],
