@@ -6,14 +6,10 @@ Aplikasi Android (APK) untuk pengguna Malaysia dengan ciri:
 - Kompas kiblat
 - Tasbih digital
 - Notifikasi masuk waktu (bunyi default + vibrate)
+- Splash screen semasa app dibuka
 
 ## Status projek
-Kod Flutter utama sudah ada dalam repo ini:
-- `lib/`
-- `pubspec.yaml`
-- `analysis_options.yaml`
-
-Folder platform (`android/`, `ios/`, `web/`) belum wujud sehingga anda jalankan `flutter create .`.
+Project Flutter ini sudah lengkap dengan struktur utama termasuk folder platform Android.
 
 ## Prasyarat
 Pastikan mesin anda ada:
@@ -35,7 +31,6 @@ Jika command `flutter` tak dikenali, tambah Flutter ke PATH (Windows):
 Jalankan command berikut di root project:
 
 ```bash
-flutter create .
 flutter pub get
 flutter run
 ```
@@ -81,7 +76,7 @@ Lokasi APK:
 - `build/app/outputs/flutter-apk/app-release.apk`
 
 ## Struktur kod ringkas
-- `lib/main.dart` - entry app + bottom navigation
+- `lib/main.dart` - entry app + splash screen + bottom navigation
 - `lib/state/app_controller.dart` - state utama app
 - `lib/services/prayer_service.dart` - API waktu solat + pemilihan zon
 - `lib/services/location_service.dart` - GPS/permission lokasi
@@ -89,7 +84,7 @@ Lokasi APK:
 - `lib/services/qibla_service.dart` - kiraan arah kiblat
 - `lib/services/tasbih_store.dart` - simpanan tasbih + settings
 - `lib/features/home/home_page.dart` - paparan waktu solat
-- `lib/features/qibla/qibla_page.dart` - kompas kiblat
+- `lib/qibla_page.dart` - kompas kiblat
 - `lib/features/tasbih/tasbih_page.dart` - tasbih digital
 - `lib/features/settings/settings_page.dart` - tetapan app
 
