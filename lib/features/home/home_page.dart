@@ -29,6 +29,11 @@ class HomePage extends StatelessWidget {
               controller.activeZone?.label ?? 'Zon belum ditentukan',
               style: Theme.of(context).textTheme.bodyMedium,
             ),
+            const SizedBox(height: 8),
+            Text(
+              'API berjaya: ${controller.apiSuccessCount}  •  Gagal: ${controller.apiFailureCount}  •  Cache: ${controller.cacheHitCount}',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
             const SizedBox(height: 20),
             if (controller.isLoading)
               const Center(child: CircularProgressIndicator())
@@ -37,7 +42,21 @@ class HomePage extends StatelessWidget {
                 color: Colors.red.shade50,
                 child: Padding(
                   padding: const EdgeInsets.all(16),
-                  child: Text(controller.errorMessage!),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        controller.errorMessage!,
+                        style: const TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(height: 10),
+                      FilledButton.icon(
+                        onPressed: controller.refreshPrayerData,
+                        icon: const Icon(Icons.refresh),
+                        label: const Text('Cuba semula'),
+                      ),
+                    ],
+                  ),
                 ),
               )
             else ...[
@@ -57,6 +76,24 @@ class HomePage extends StatelessWidget {
                             ? '-'
                             : '${DateFormat('HH:mm').format(nextPrayer.time)} (${_formatCountdown(countdown)})',
                         style: Theme.of(context).textTheme.headlineSmall,
+                      ),
+                      const SizedBox(height: 10),
+                      Wrap(
+                        spacing: 8,
+                        children: [
+                          OutlinedButton(
+                            onPressed: nextPrayer == null
+                                ? null
+                                : () => controller.snoozeNextPrayer(5),
+                            child: const Text('Snooze 5 min'),
+                          ),
+                          OutlinedButton(
+                            onPressed: nextPrayer == null
+                                ? null
+                                : () => controller.snoozeNextPrayer(10),
+                            child: const Text('Snooze 10 min'),
+                          ),
+                        ],
                       ),
                     ],
                   ),

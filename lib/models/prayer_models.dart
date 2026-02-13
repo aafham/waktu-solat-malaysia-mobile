@@ -44,3 +44,15 @@ class DailyPrayerTimes {
   final DateTime date;
   final List<PrayerTimeEntry> entries;
 }
+
+class MonthlyPrayerTimes {
+  const MonthlyPrayerTimes({
+    required this.zone,
+    required this.month,
+    required this.days,
+  });
+
+  final String zone;
+  final DateTime month;
+  final List<DailyPrayerTimes> days;
+}

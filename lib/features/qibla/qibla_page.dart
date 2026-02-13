@@ -1,4 +1,4 @@
-import 'dart:math';
+ï»¿import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_compass/flutter_compass.dart';
@@ -23,7 +23,17 @@ class QiblaPage extends StatelessWidget {
             Text(
               controller.qiblaBearing == null
                   ? 'Arah kiblat belum tersedia.'
-                  : 'Arah kiblat: ${controller.qiblaBearing!.toStringAsFixed(1)}° dari utara',
+                  : 'Arah kiblat: ${controller.qiblaBearing!.toStringAsFixed(1)} darjah dari utara',
+            ),
+            const SizedBox(height: 8),
+            Card(
+              color: Colors.amber.shade50,
+              child: const Padding(
+                padding: EdgeInsets.all(12),
+                child: Text(
+                  'Jika kompas tidak stabil, gerakkan telefon bentuk angka 8 selama 5-10 saat untuk kalibrasi. Elakkan magnet atau casing bermagnet.',
+                ),
+              ),
             ),
             const SizedBox(height: 24),
             Expanded(
@@ -46,7 +56,7 @@ class QiblaPage extends StatelessWidget {
                           child: const Icon(Icons.navigation, size: 180, color: Colors.teal),
                         ),
                         const SizedBox(height: 16),
-                        Text('Heading: ${heading.toStringAsFixed(1)}°'),
+                        Text('Heading: ${heading.toStringAsFixed(1)} darjah'),
                       ],
                     );
                   },

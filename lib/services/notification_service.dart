@@ -29,6 +29,7 @@ class NotificationService {
     required List<PrayerTimeEntry> prayers,
     required bool enableNotification,
     required bool enableVibration,
+    Set<String>? enabledPrayerNames,
   }) async {
     await initialize();
     await _plugin.cancelAll();
@@ -41,6 +42,11 @@ class NotificationService {
     var id = 100;
 
     for (final prayer in prayers) {
+      if (enabledPrayerNames != null &&
+          !enabledPrayerNames.contains(prayer.name)) {
+        continue;
+      }
+
       if (prayer.time.isBefore(now)) {
         continue;
       }
@@ -70,5 +76,38 @@ class NotificationService {
             UILocalNotificationDateInterpretation.absoluteTime,
       );
     }
+  }
+
+  Future<void> scheduleSnoozeReminder({
+    required String prayerName,
+    required int minutes,
+    required bool enableVibration,
+  }) async {
+    await initialize();
+    final scheduleDate =
+        tz.TZDateTime.now(tz.local).add(Duration(minutes: minutes));
+
+    final details = NotificationDetails(
+      android: AndroidNotificationDetails(
+        'prayer_snooze',
+        'Snooze Waktu Solat',
+        channelDescription: 'Peringatan snooze waktu solat',
+        importance: Importance.max,
+        priority: Priority.high,
+        playSound: true,
+        enableVibration: enableVibration,
+      ),
+    );
+
+    await _plugin.zonedSchedule(
+      9999,
+      'Peringatan ${prayerName}',
+      'Ini peringatan snooze ${minutes} minit untuk ${prayerName}.',
+      scheduleDate,
+      details,
+      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+    );
   }
 }

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
 
 import 'features/home/home_page.dart';
-import 'qibla_page.dart';
+import 'features/monthly/monthly_page.dart';
+import 'features/qibla/qibla_page.dart';
 import 'features/settings/settings_page.dart';
 import 'features/tasbih/tasbih_page.dart';
 import 'services/location_service.dart';
@@ -56,13 +57,27 @@ class _WaktuSolatAppState extends State<WaktuSolatApp> {
 
   @override
   Widget build(BuildContext context) {
+    final baseTheme = ThemeData(
+      colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF00695C)),
+      useMaterial3: true,
+    );
+    final highContrastTheme = ThemeData(
+      colorScheme: const ColorScheme.light(
+        primary: Colors.black,
+        onPrimary: Colors.white,
+        secondary: Colors.black,
+        onSecondary: Colors.white,
+        surface: Colors.white,
+        onSurface: Colors.black,
+      ),
+      scaffoldBackgroundColor: Colors.white,
+      useMaterial3: true,
+    );
+
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       title: 'Waktu Solat Malaysia',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF00695C)),
-        useMaterial3: true,
-      ),
+      theme: controller.highContrast ? highContrastTheme : baseTheme,
       home: showSplash
           ? const SplashScreen()
           : AnimatedBuilder(
@@ -70,13 +85,19 @@ class _WaktuSolatAppState extends State<WaktuSolatApp> {
               builder: (context, _) {
                 final pages = <Widget>[
                   HomePage(controller: controller),
+                  MonthlyPage(controller: controller),
                   QiblaPage(controller: controller),
                   TasbihPage(controller: controller),
                   SettingsPage(controller: controller),
                 ];
 
                 return Scaffold(
-                  body: pages[tabIndex],
+                  body: MediaQuery(
+                    data: MediaQuery.of(context).copyWith(
+                      textScaler: TextScaler.linear(controller.textScale),
+                    ),
+                    child: pages[tabIndex],
+                  ),
                   bottomNavigationBar: NavigationBar(
                     selectedIndex: tabIndex,
                     onDestinationSelected: (idx) {
@@ -86,6 +107,7 @@ class _WaktuSolatAppState extends State<WaktuSolatApp> {
                     },
                     destinations: const [
                       NavigationDestination(icon: Icon(Icons.access_time), label: 'Waktu'),
+                      NavigationDestination(icon: Icon(Icons.calendar_month), label: 'Bulanan'),
                       NavigationDestination(icon: Icon(Icons.explore), label: 'Kiblat'),
                       NavigationDestination(icon: Icon(Icons.touch_app), label: 'Tasbih'),
                       NavigationDestination(icon: Icon(Icons.settings), label: 'Settings'),
