@@ -275,16 +275,9 @@ class HomePage extends StatelessWidget {
               const SizedBox(height: 12),
               Text('Jadual', style: Theme.of(context).textTheme.titleMedium),
               const SizedBox(height: 8),
-              ...prayers.map(
-                (item) => Card(
-                  elevation: 0,
-                  color: Colors.white.withValues(alpha: 0.65),
-                  child: ListTile(
-                    leading: const Icon(Icons.schedule),
-                    title: Text(item.name),
-                    trailing: Text(DateFormat('HH:mm').format(item.time)),
-                  ),
-                ),
+              _PrayerGrid(
+                prayers: prayers,
+                nextPrayerName: nextPrayer?.name,
               ),
             ],
           ],
@@ -382,6 +375,110 @@ class _SectionTitle extends StatelessWidget {
           style: Theme.of(context).textTheme.bodyMedium,
         ),
       ],
+    );
+  }
+}
+
+class _PrayerGrid extends StatelessWidget {
+  const _PrayerGrid({
+    required this.prayers,
+    required this.nextPrayerName,
+  });
+
+  final List<PrayerTimeEntry> prayers;
+  final String? nextPrayerName;
+
+  @override
+  Widget build(BuildContext context) {
+    final order = <String>[
+      'Subuh',
+      'Syuruk',
+      'Zohor',
+      'Asar',
+      'Maghrib',
+      'Isyak',
+    ];
+    final labels = <String, String>{
+      'Subuh': 'Fajr',
+      'Syuruk': 'Sunrise',
+      'Zohor': 'Dhuhr',
+      'Asar': 'Asr',
+      'Maghrib': 'Maghrib',
+      'Isyak': 'Isha',
+    };
+
+    final visible = <PrayerTimeEntry>[];
+    for (final key in order) {
+      for (final p in prayers) {
+        if (p.name == key) {
+          visible.add(p);
+          break;
+        }
+      }
+    }
+
+    if (visible.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return GridView.builder(
+      shrinkWrap: true,
+      physics: const NeverScrollableScrollPhysics(),
+      itemCount: visible.length,
+      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+        crossAxisCount: 2,
+        crossAxisSpacing: 10,
+        mainAxisSpacing: 10,
+        childAspectRatio: 1.55,
+      ),
+      itemBuilder: (context, index) {
+        final item = visible[index];
+        final active = item.name == nextPrayerName;
+        return Container(
+          padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(16),
+            gradient: const LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFF0A1616), Color(0xFF101D1C)],
+            ),
+            border: Border.all(
+              color: active ? const Color(0xFF38C28E) : const Color(0xFF273837),
+              width: active ? 1.6 : 1.0,
+            ),
+            boxShadow: active
+                ? const [
+                    BoxShadow(
+                      color: Color(0x3347D49A),
+                      blurRadius: 14,
+                      offset: Offset(0, 6),
+                    ),
+                  ]
+                : null,
+          ),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  labels[item.name] ?? item.name,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+              ),
+              Text(
+                '${DateFormat('HH:mm').format(item.time)}:00',
+                style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w800,
+                    ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 }
