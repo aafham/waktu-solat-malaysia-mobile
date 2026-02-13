@@ -26,6 +26,7 @@ class WaktuSolatApp extends StatefulWidget {
 class _WaktuSolatAppState extends State<WaktuSolatApp> {
   late final AppController controller;
   int tabIndex = 0;
+  bool showSplash = true;
 
   @override
   void initState() {
@@ -38,6 +39,13 @@ class _WaktuSolatAppState extends State<WaktuSolatApp> {
       tasbihStore: TasbihStore(),
     );
     controller.initialize();
+
+    Future.delayed(const Duration(seconds: 2), () {
+      if (!mounted) return;
+      setState(() {
+        showSplash = false;
+      });
+    });
   }
 
   @override
@@ -55,34 +63,66 @@ class _WaktuSolatAppState extends State<WaktuSolatApp> {
         colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF00695C)),
         useMaterial3: true,
       ),
-      home: AnimatedBuilder(
-        animation: controller,
-        builder: (context, _) {
-          final pages = <Widget>[
-            HomePage(controller: controller),
-            QiblaPage(controller: controller),
-            TasbihPage(controller: controller),
-            SettingsPage(controller: controller),
-          ];
+      home: showSplash
+          ? const SplashScreen()
+          : AnimatedBuilder(
+              animation: controller,
+              builder: (context, _) {
+                final pages = <Widget>[
+                  HomePage(controller: controller),
+                  QiblaPage(controller: controller),
+                  TasbihPage(controller: controller),
+                  SettingsPage(controller: controller),
+                ];
 
-          return Scaffold(
-            body: pages[tabIndex],
-            bottomNavigationBar: NavigationBar(
-              selectedIndex: tabIndex,
-              onDestinationSelected: (idx) {
-                setState(() {
-                  tabIndex = idx;
-                });
+                return Scaffold(
+                  body: pages[tabIndex],
+                  bottomNavigationBar: NavigationBar(
+                    selectedIndex: tabIndex,
+                    onDestinationSelected: (idx) {
+                      setState(() {
+                        tabIndex = idx;
+                      });
+                    },
+                    destinations: const [
+                      NavigationDestination(icon: Icon(Icons.access_time), label: 'Waktu'),
+                      NavigationDestination(icon: Icon(Icons.explore), label: 'Kiblat'),
+                      NavigationDestination(icon: Icon(Icons.touch_app), label: 'Tasbih'),
+                      NavigationDestination(icon: Icon(Icons.settings), label: 'Settings'),
+                    ],
+                  ),
+                );
               },
-              destinations: const [
-                NavigationDestination(icon: Icon(Icons.access_time), label: 'Waktu'),
-                NavigationDestination(icon: Icon(Icons.explore), label: 'Kiblat'),
-                NavigationDestination(icon: Icon(Icons.touch_app), label: 'Tasbih'),
-                NavigationDestination(icon: Icon(Icons.settings), label: 'Settings'),
-              ],
             ),
-          );
-        },
+    );
+  }
+}
+
+class SplashScreen extends StatelessWidget {
+  const SplashScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return const Scaffold(
+      backgroundColor: Color(0xFF00695C),
+      body: Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.mosque, size: 84, color: Colors.white),
+            SizedBox(height: 20),
+            Text(
+              'Waktu Solat Malaysia',
+              style: TextStyle(
+                color: Colors.white,
+                fontSize: 24,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            SizedBox(height: 12),
+            CircularProgressIndicator(color: Colors.white),
+          ],
+        ),
       ),
     );
   }
