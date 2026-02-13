@@ -76,15 +76,26 @@ class _WaktuSolatAppState extends State<WaktuSolatApp> {
         onSurface: Color(0xFF1A2A27),
       ),
       scaffoldBackgroundColor: surfaceBg,
+      dividerColor: const Color(0xFFD0DFDB),
+      appBarTheme: const AppBarTheme(
+        backgroundColor: Colors.transparent,
+        foregroundColor: Color(0xFF1A2A27),
+        elevation: 0,
+        scrolledUnderElevation: 0,
+      ),
       cardTheme: const CardThemeData(
         color: cardBg,
         elevation: 0,
         margin: EdgeInsets.zero,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(16)),
+        ),
       ),
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           backgroundColor: primary,
           foregroundColor: Colors.white,
+          minimumSize: const Size(0, 48),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(999),
           ),
@@ -93,11 +104,31 @@ class _WaktuSolatAppState extends State<WaktuSolatApp> {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           foregroundColor: const Color(0xFF0A6358),
+          minimumSize: const Size(0, 48),
           side: const BorderSide(color: Color(0xFF8AAEA8)),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(999),
           ),
         ),
+      ),
+      listTileTheme: const ListTileThemeData(
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.all(Radius.circular(12)),
+        ),
+      ),
+      switchTheme: SwitchThemeData(
+        thumbColor: MaterialStateProperty.resolveWith((states) {
+          if (states.contains(MaterialState.selected)) {
+            return const Color(0xFF0A7E70);
+          }
+          return const Color(0xFFE1EAE7);
+        }),
+        trackColor: MaterialStateProperty.resolveWith((states) {
+          if (states.contains(MaterialState.selected)) {
+            return const Color(0xFF97CFC5);
+          }
+          return const Color(0xFFC8D6D2);
+        }),
       ),
       chipTheme: ChipThemeData(
         backgroundColor: const Color(0xFFD4E7E2),

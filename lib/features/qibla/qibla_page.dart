@@ -126,10 +126,15 @@ class _QiblaPageState extends State<QiblaPage> {
                         }
                         final turn =
                             ((widget.controller.qiblaBearing! - heading) / 360);
+                        final delta = _normalizeDelta(
+                          widget.controller.qiblaBearing! - heading,
+                        ).abs();
                         return _buildActiveCompass(
                           context,
                           turn: turn,
                           degrees: widget.controller.qiblaBearing!,
+                          heading: heading,
+                          delta: delta,
                         );
                       },
                     ),
@@ -180,6 +185,8 @@ class _QiblaPageState extends State<QiblaPage> {
     BuildContext context, {
     required double turn,
     required double degrees,
+    required double heading,
+    required double delta,
   }) {
     return Column(
       children: [
@@ -187,6 +194,14 @@ class _QiblaPageState extends State<QiblaPage> {
           child: Stack(
             alignment: Alignment.center,
             children: [
+              Container(
+                width: 210,
+                height: 210,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0xFF2F4A45)),
+                ),
+              ),
               Transform.rotate(
                 angle: 2 * pi * turn,
                 child: const Icon(
@@ -210,6 +225,14 @@ class _QiblaPageState extends State<QiblaPage> {
                 fontWeight: FontWeight.w800,
               ),
         ),
+        const SizedBox(height: 4),
+        Text(
+          'Arah semasa: ${heading.toStringAsFixed(0)} darjah | Ralat: ${delta.toStringAsFixed(0)} darjah',
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: const Color(0xFFC7DED8),
+              ),
+        ),
       ],
     );
   }
@@ -230,6 +253,16 @@ class _QiblaPageState extends State<QiblaPage> {
       ),
     );
   }
+}
+
+double _normalizeDelta(double value) {
+  var result = value % 360;
+  if (result > 180) {
+    result -= 360;
+  } else if (result < -180) {
+    result += 360;
+  }
+  return result;
 }
 
 class _CompassFrame extends StatelessWidget {

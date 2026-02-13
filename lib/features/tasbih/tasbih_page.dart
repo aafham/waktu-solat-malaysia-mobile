@@ -31,6 +31,7 @@ class _TasbihPageState extends State<TasbihPage> {
     final progress = inCycle / cycleTarget;
     final presetTarget = _presets[_activePreset] ?? 33;
     final presetCount = count % presetTarget;
+    final presetProgress = presetCount / presetTarget;
     final compact = MediaQuery.sizeOf(context).height < 760;
     final orbSize = compact ? 170.0 : 210.0;
 
@@ -129,7 +130,7 @@ class _TasbihPageState extends State<TasbihPage> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text('Pusingan: $cycle'),
+                                Text('Pusingan 33: $cycle'),
                                 Text('$inCycle/$cycleTarget'),
                               ],
                             ),
@@ -150,6 +151,28 @@ class _TasbihPageState extends State<TasbihPage> {
                                 backgroundColor: Theme.of(context)
                                     .colorScheme
                                     .surfaceContainerHighest,
+                              ),
+                            ),
+                            const SizedBox(height: 10),
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text('Kemajuan $_activePreset'),
+                                Text('$presetCount/$presetTarget'),
+                              ],
+                            ),
+                            const SizedBox(height: 6),
+                            ClipRRect(
+                              borderRadius: BorderRadius.circular(999),
+                              child: LinearProgressIndicator(
+                                minHeight: 8,
+                                value: presetProgress,
+                                backgroundColor: Theme.of(context)
+                                    .colorScheme
+                                    .surfaceContainerHighest,
+                                valueColor: const AlwaysStoppedAnimation<Color>(
+                                  Color(0xFF2B9C8D),
+                                ),
                               ),
                             ),
                           ],
@@ -176,6 +199,9 @@ class _TasbihPageState extends State<TasbihPage> {
                             icon: const Icon(Icons.add),
                             style: FilledButton.styleFrom(
                               minimumSize: const Size.fromHeight(54),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
                             ),
                             label: const Text('Tambah'),
                           ),
@@ -192,6 +218,9 @@ class _TasbihPageState extends State<TasbihPage> {
                             icon: const Icon(Icons.bolt),
                             style: OutlinedButton.styleFrom(
                               minimumSize: const Size.fromHeight(54),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(16),
+                              ),
                             ),
                             label: Text('+$presetTarget'),
                           ),
@@ -204,6 +233,9 @@ class _TasbihPageState extends State<TasbihPage> {
                       icon: const Icon(Icons.delete_outline),
                       style: OutlinedButton.styleFrom(
                         minimumSize: const Size.fromHeight(50),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
                       ),
                       label: const Text('Tetapkan semula kiraan'),
                     ),

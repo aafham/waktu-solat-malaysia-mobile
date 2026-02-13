@@ -36,8 +36,16 @@ class _SettingsPageState extends State<SettingsPage> {
         padding: const EdgeInsets.all(16),
         children: [
           Text('Tetapan', style: Theme.of(context).textTheme.headlineSmall),
+          const SizedBox(height: 4),
+          Text(
+            'Urus notifikasi, lokasi, paparan dan sandaran data.',
+            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+          ),
           const SizedBox(height: 12),
           _SectionCard(
+            icon: Icons.notifications_active_outlined,
             title: 'Notifikasi',
             child: Column(
               children: [
@@ -132,6 +140,7 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           const SizedBox(height: 10),
           _SectionCard(
+            icon: Icons.place_outlined,
             title: 'Lokasi',
             child: Column(
               children: [
@@ -220,6 +229,7 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           const SizedBox(height: 10),
           _SectionCard(
+            icon: Icons.palette_outlined,
             title: 'Paparan',
             child: Column(
               children: [
@@ -244,6 +254,7 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           const SizedBox(height: 10),
           _SectionCard(
+            icon: Icons.storage_outlined,
             title: 'Data & Sandaran',
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -413,10 +424,12 @@ class _SettingsPageState extends State<SettingsPage> {
 
 class _SectionCard extends StatelessWidget {
   const _SectionCard({
+    required this.icon,
     required this.title,
     required this.child,
   });
 
+  final IconData icon;
   final String title;
   final Widget child;
 
@@ -428,11 +441,17 @@ class _SectionCard extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Text(
-              title,
-              style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.w700,
-                  ),
+            Row(
+              children: [
+                Icon(icon, size: 18, color: Theme.of(context).colorScheme.primary),
+                const SizedBox(width: 8),
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+              ],
             ),
             const SizedBox(height: 6),
             child,

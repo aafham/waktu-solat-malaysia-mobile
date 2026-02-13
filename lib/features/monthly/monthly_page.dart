@@ -85,6 +85,8 @@ class _MonthlyPageState extends State<MonthlyPage> {
                 ),
               )
             else ...[
+              _MonthlySummary(days: days),
+              const SizedBox(height: 10),
               Row(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -153,8 +155,74 @@ class _MonthlyPageState extends State<MonthlyPage> {
 
     return Card(
       child: ListTile(
+        leading: const Icon(Icons.calendar_today_outlined, size: 18),
         title: Text(DateFormat('EEE, dd MMM', _msLocale).format(day.date)),
         subtitle: Text(pickSummary()),
+        trailing: const Icon(Icons.chevron_right),
+      ),
+    );
+  }
+}
+
+class _MonthlySummary extends StatelessWidget {
+  const _MonthlySummary({required this.days});
+
+  final List<DailyPrayerTimes> days;
+
+  @override
+  Widget build(BuildContext context) {
+    if (days.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    int minutesOf(String prayer, DailyPrayerTimes day) {
+      final entry = day.entries.firstWhere((e) => e.name == prayer);
+      return entry.time.hour * 60 + entry.time.minute;
+    }
+
+    var earliestSubuh = 24 * 60;
+    var latestMaghrib = 0;
+    for (final day in days) {
+      final subuh = minutesOf('Subuh', day);
+      final maghrib = minutesOf('Maghrib', day);
+      if (subuh < earliestSubuh) {
+        earliestSubuh = subuh;
+      }
+      if (maghrib > latestMaghrib) {
+        latestMaghrib = maghrib;
+      }
+    }
+
+    String fmt(int totalMinutes) {
+      final h = (totalMinutes ~/ 60).toString().padLeft(2, '0');
+      final m = (totalMinutes % 60).toString().padLeft(2, '0');
+      return '$h:$m';
+    }
+
+    return Container(
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.82),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: const Color(0xFFD0DFDB)),
+      ),
+      child: Wrap(
+        spacing: 8,
+        runSpacing: 8,
+        children: [
+          Chip(
+            avatar: const Icon(Icons.wb_twilight, size: 16),
+            label: Text('Subuh terawal ${fmt(earliestSubuh)}'),
+          ),
+          Chip(
+            avatar: const Icon(Icons.brightness_3, size: 16),
+            label: Text('Maghrib terlewat ${fmt(latestMaghrib)}'),
+          ),
+          Chip(
+            avatar: const Icon(Icons.event_note, size: 16),
+            label: Text('${days.length} hari'),
+          ),
+        ],
       ),
     );
   }
