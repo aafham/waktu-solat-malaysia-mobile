@@ -273,6 +273,7 @@ class PrayerService {
 
   DailyPrayerTimes _mapDaily(String zoneCode, Map<String, dynamic> item) {
     final date = _parseDate((item['date'] ?? '').toString());
+    final hijri = _formatHijri((item['hijri'] ?? '').toString());
 
     DateTime parseTime(List<String> keys, String label) {
       for (final key in keys) {
@@ -298,6 +299,7 @@ class PrayerService {
     return DailyPrayerTimes(
       zone: zoneCode,
       date: date,
+      hijriDate: hijri,
       entries: <PrayerTimeEntry>[
         PrayerTimeEntry(name: 'Imsak', time: parseTime(<String>['imsak'], 'imsak')),
         PrayerTimeEntry(name: 'Subuh', time: parseTime(<String>['fajr', 'subuh'], 'subuh')),
@@ -308,6 +310,44 @@ class PrayerService {
         PrayerTimeEntry(name: 'Isyak', time: parseTime(<String>['isha', 'isyak'], 'isyak')),
       ],
     );
+  }
+
+  String? _formatHijri(String value) {
+    final raw = value.trim();
+    if (raw.isEmpty) {
+      return null;
+    }
+    final parts = raw.split('-');
+    if (parts.length != 3) {
+      return raw;
+    }
+
+    final year = int.tryParse(parts[0]);
+    final month = int.tryParse(parts[1]);
+    final day = int.tryParse(parts[2]);
+    if (year == null || month == null || day == null) {
+      return raw;
+    }
+
+    const monthNames = <int, String>{
+      1: 'Muharam',
+      2: 'Safar',
+      3: 'Rabiulawal',
+      4: 'Rabiulakhir',
+      5: 'Jamadilawal',
+      6: 'Jamadilakhir',
+      7: 'Rejab',
+      8: 'Syaaban',
+      9: 'Ramadan',
+      10: 'Syawal',
+      11: 'Zulkaedah',
+      12: 'Zulhijjah',
+    };
+    final monthName = monthNames[month];
+    if (monthName == null) {
+      return raw;
+    }
+    return '$day $monthName $year H';
   }
 
   DateTime _parseDate(String value) {

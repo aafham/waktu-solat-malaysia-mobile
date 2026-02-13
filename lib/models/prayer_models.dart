@@ -38,11 +38,13 @@ class DailyPrayerTimes {
     required this.zone,
     required this.date,
     required this.entries,
+    this.hijriDate,
   });
 
   final String zone;
   final DateTime date;
   final List<PrayerTimeEntry> entries;
+  final String? hijriDate;
 }
 
 class MonthlyPrayerTimes {

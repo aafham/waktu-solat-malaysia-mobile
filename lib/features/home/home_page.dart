@@ -45,6 +45,10 @@ class HomePage extends StatelessWidget {
               subtitle: controller.activeZone?.label ?? 'Zon belum ditentukan',
             ),
             const SizedBox(height: 10),
+            _DateClockCard(
+              hijriDate: controller.dailyPrayerTimes?.hijriDate,
+            ),
+            const SizedBox(height: 10),
             Card(
               elevation: 0,
               color: Colors.white.withValues(alpha: 0.75),
@@ -375,6 +379,196 @@ class _SectionTitle extends StatelessWidget {
           style: Theme.of(context).textTheme.bodyMedium,
         ),
       ],
+    );
+  }
+}
+
+class _DateClockCard extends StatefulWidget {
+  const _DateClockCard({
+    required this.hijriDate,
+  });
+
+  final String? hijriDate;
+
+  @override
+  State<_DateClockCard> createState() => _DateClockCardState();
+}
+
+class _DateClockCardState extends State<_DateClockCard> {
+  Timer? _ticker;
+  DateTime _now = DateTime.now();
+
+  @override
+  void initState() {
+    super.initState();
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      setState(() {
+        _now = DateTime.now();
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    _ticker?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final gDate = DateFormat('EEEE, d MMMM yyyy').format(_now);
+    final clock = DateFormat('HH:mm:ss').format(_now);
+    final hijri = widget.hijriDate ?? '--';
+
+    return Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(18),
+        gradient: const LinearGradient(
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          colors: [Color(0xFF0D2524), Color(0xFF142D2A)],
+        ),
+        border: Border.all(color: const Color(0xFF2F4A46)),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'GREGORIAN DATE',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: const Color(0xFF9EC2BC),
+                          letterSpacing: 1.1,
+                        ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    gDate,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'HIJRI DATE',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: const Color(0xFF9EC2BC),
+                          letterSpacing: 1.1,
+                        ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    hijri,
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    clock,
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          color: const Color(0xFF6BE0B7),
+                          fontWeight: FontWeight.w800,
+                        ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 10),
+            _AnalogClock(now: _now),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AnalogClock extends StatelessWidget {
+  const _AnalogClock({required this.now});
+
+  final DateTime now;
+
+  @override
+  Widget build(BuildContext context) {
+    final minuteAngle = (2 * 3.141592653589793) * (now.minute / 60);
+    final hourAngle =
+        (2 * 3.141592653589793) * ((now.hour % 12) / 12 + now.minute / 720);
+
+    return Container(
+      width: 110,
+      height: 110,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        color: Colors.white.withValues(alpha: 0.06),
+        border: Border.all(color: const Color(0xFF2E4945)),
+      ),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          _tick(Alignment.topCenter),
+          _tick(Alignment.centerLeft),
+          _tick(Alignment.centerRight),
+          _tick(Alignment.bottomCenter),
+          Transform.rotate(
+            angle: hourAngle,
+            child: Container(
+              width: 3.2,
+              height: 32,
+              margin: const EdgeInsets.only(bottom: 24),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(999),
+              ),
+            ),
+          ),
+          Transform.rotate(
+            angle: minuteAngle,
+            child: Container(
+              width: 2.4,
+              height: 42,
+              margin: const EdgeInsets.only(bottom: 30),
+              decoration: BoxDecoration(
+                color: const Color(0xFF6BE0B7),
+                borderRadius: BorderRadius.circular(999),
+              ),
+            ),
+          ),
+          Container(
+            width: 9,
+            height: 9,
+            decoration: const BoxDecoration(
+              shape: BoxShape.circle,
+              color: Color(0xFF6BE0B7),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _tick(Alignment alignment) {
+    return Align(
+      alignment: alignment,
+      child: Container(
+        width: alignment == Alignment.topCenter || alignment == Alignment.bottomCenter
+            ? 3
+            : 10,
+        height: alignment == Alignment.topCenter || alignment == Alignment.bottomCenter
+            ? 10
+            : 3,
+        margin: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: const Color(0xFFC5DEDA),
+          borderRadius: BorderRadius.circular(999),
+        ),
+      ),
     );
   }
 }
