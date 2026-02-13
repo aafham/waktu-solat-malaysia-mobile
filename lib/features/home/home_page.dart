@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:url_launcher/url_launcher.dart';
 
+import '../../models/prayer_models.dart';
 import '../../state/app_controller.dart';
 
 class HomePage extends StatelessWidget {
@@ -13,6 +15,17 @@ class HomePage extends StatelessWidget {
     final prayers = controller.dailyPrayerTimes?.entries ?? [];
     final nextPrayer = controller.nextPrayer;
     final countdown = controller.timeToNextPrayer;
+    PrayerTimeEntry? findPrayer(String name) {
+      for (final p in prayers) {
+        if (p.name == name) {
+          return p;
+        }
+      }
+      return null;
+    }
+
+    final maghrib = findPrayer('Maghrib');
+    final imsak = findPrayer('Imsak');
 
     return SafeArea(
       child: RefreshIndicator(
@@ -95,11 +108,63 @@ class HomePage extends StatelessWidget {
                           ),
                         ],
                       ),
+                      const SizedBox(height: 10),
+                      if (maghrib != null || imsak != null)
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 8,
+                          children: [
+                            if (maghrib != null)
+                              Chip(
+                                label: Text(
+                                  'Berbuka ${DateFormat('HH:mm').format(maghrib.time)}',
+                                ),
+                              ),
+                            if (imsak != null)
+                              Chip(
+                                label: Text(
+                                  'Imsak ${DateFormat('HH:mm').format(imsak.time)}',
+                                ),
+                              ),
+                          ],
+                        ),
                     ],
                   ),
                 ),
               ),
+              if (controller.ramadhanMode)
+                Card(
+                  color: Colors.amber.shade50,
+                  child: Padding(
+                    padding: const EdgeInsets.all(14),
+                    child: Text(
+                      'Mod Ramadhan aktif: fokus pada Imsak dan Maghrib untuk jadual puasa harian.',
+                      style: Theme.of(context).textTheme.bodyMedium,
+                    ),
+                  ),
+                ),
               const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  OutlinedButton.icon(
+                    onPressed: () async {
+                      final url = controller.nearbyMosqueMapUrl();
+                      if (url == null) return;
+                      await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
+                    },
+                    icon: const Icon(Icons.map),
+                    label: const Text('Masjid berdekatan'),
+                  ),
+                  if (!controller.exactAlarmAllowed)
+                    Chip(
+                      avatar: const Icon(Icons.warning_amber, size: 16),
+                      label: const Text('Exact alarm mungkin diblok'),
+                    ),
+                ],
+              ),
+              const SizedBox(height: 8),
               ...prayers.map(
                 (item) => Card(
                   child: ListTile(

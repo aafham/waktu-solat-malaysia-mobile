@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'package:share_plus/share_plus.dart';
 
 import '../../state/app_controller.dart';
 
@@ -21,6 +23,40 @@ class MonthlyPage extends StatelessWidget {
             Text(
               'Jadual Bulanan',
               style: Theme.of(context).textTheme.headlineSmall,
+            ),
+            const SizedBox(height: 8),
+            Wrap(
+              spacing: 8,
+              children: [
+                OutlinedButton.icon(
+                  onPressed: () async {
+                    final csv = controller.exportMonthlyAsCsv();
+                    if (csv.isEmpty) return;
+                    await SharePlus.instance.share(
+                      ShareParams(
+                        text: csv,
+                        subject: 'Jadual Waktu Solat Bulanan',
+                      ),
+                    );
+                  },
+                  icon: const Icon(Icons.ios_share),
+                  label: const Text('Share CSV'),
+                ),
+                OutlinedButton.icon(
+                  onPressed: () async {
+                    final csv = controller.exportMonthlyAsCsv();
+                    if (csv.isEmpty) return;
+                    await Clipboard.setData(ClipboardData(text: csv));
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(content: Text('CSV disalin ke clipboard')),
+                      );
+                    }
+                  },
+                  icon: const Icon(Icons.copy),
+                  label: const Text('Copy CSV'),
+                ),
+              ],
             ),
             const SizedBox(height: 8),
             Text(

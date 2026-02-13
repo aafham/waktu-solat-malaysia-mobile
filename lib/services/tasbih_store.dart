@@ -11,6 +11,8 @@ class TasbihStore {
   static const _prayerTogglePrefix = 'notify_prayer_';
   static const _textScaleKey = 'text_scale';
   static const _highContrastKey = 'high_contrast';
+  static const _ramadhanModeKey = 'ramadhan_mode';
+  static const _prayerSoundPrefix = 'prayer_sound_';
 
   Future<int> loadCount() async {
     final prefs = await SharedPreferences.getInstance();
@@ -118,5 +120,38 @@ class TasbihStore {
   Future<void> saveHighContrast(bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_highContrastKey, value);
+  }
+
+  Future<bool> loadRamadhanMode() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_ramadhanModeKey) ?? false;
+  }
+
+  Future<void> saveRamadhanMode(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_ramadhanModeKey, value);
+  }
+
+  Future<Map<String, String>> loadPrayerSoundProfiles() async {
+    final prefs = await SharedPreferences.getInstance();
+    final names = <String>[
+      'Imsak',
+      'Subuh',
+      'Syuruk',
+      'Zohor',
+      'Asar',
+      'Maghrib',
+      'Isyak',
+    ];
+    final result = <String, String>{};
+    for (final name in names) {
+      result[name] = prefs.getString('$_prayerSoundPrefix$name') ?? 'default';
+    }
+    return result;
+  }
+
+  Future<void> savePrayerSoundProfile(String prayerName, String profile) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString('$_prayerSoundPrefix$prayerName', profile);
   }
 }

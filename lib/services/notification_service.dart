@@ -9,6 +9,7 @@ class NotificationService {
       FlutterLocalNotificationsPlugin();
 
   bool _initialized = false;
+  bool _permissionGranted = true;
 
   Future<void> initialize() async {
     if (_initialized) {
@@ -19,9 +20,26 @@ class NotificationService {
     tz.setLocalLocation(tz.getLocation('Asia/Kuala_Lumpur'));
 
     const android = AndroidInitializationSettings('@mipmap/ic_launcher');
-    const settings = InitializationSettings(android: android);
+    const darwin = DarwinInitializationSettings();
+    const settings = InitializationSettings(android: android, iOS: darwin);
 
     await _plugin.initialize(settings);
+
+    final androidPlugin = _plugin.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
+    final darwinPlugin = _plugin
+        .resolvePlatformSpecificImplementation<DarwinFlutterLocalNotificationsPlugin>();
+
+    final androidAllowed =
+        await androidPlugin?.requestNotificationsPermission() ?? true;
+    final darwinAllowed = await darwinPlugin?.requestPermissions(
+          alert: true,
+          badge: true,
+          sound: true,
+        ) ??
+        true;
+    _permissionGranted = androidAllowed && darwinAllowed;
+
     _initialized = true;
   }
 
@@ -30,11 +48,15 @@ class NotificationService {
     required bool enableNotification,
     required bool enableVibration,
     Set<String>? enabledPrayerNames,
+    Map<String, String>? prayerSoundProfiles,
   }) async {
     await initialize();
     await _plugin.cancelAll();
 
     if (!enableNotification) {
+      return;
+    }
+    if (!_permissionGranted) {
       return;
     }
 
@@ -52,15 +74,23 @@ class NotificationService {
       }
 
       final scheduleDate = tz.TZDateTime.from(prayer.time, tz.local);
+      final soundProfile = prayerSoundProfiles?[prayer.name] ?? 'default';
+      final isSilent = soundProfile == 'silent';
+      final rawResource = soundProfile.startsWith('raw:')
+          ? soundProfile.substring(4)
+          : null;
 
       final details = NotificationDetails(
         android: AndroidNotificationDetails(
-          'prayer_times',
-          'Waktu Solat',
+          'prayer_times_${prayer.name.toLowerCase()}',
+          'Waktu Solat ${prayer.name}',
           channelDescription: 'Notifikasi waktu solat harian',
           importance: Importance.max,
           priority: Priority.high,
-          playSound: true,
+          playSound: !isSilent,
+          sound: rawResource == null
+              ? null
+              : RawResourceAndroidNotificationSound(rawResource),
           enableVibration: enableVibration,
         ),
       );
@@ -75,6 +105,20 @@ class NotificationService {
         uiLocalNotificationDateInterpretation:
             UILocalNotificationDateInterpretation.absoluteTime,
       );
+    }
+  }
+
+  Future<bool> canScheduleExactAlarms() async {
+    final androidPlugin = _plugin.resolvePlatformSpecificImplementation<
+        AndroidFlutterLocalNotificationsPlugin>();
+    if (androidPlugin == null) {
+      return true;
+    }
+    try {
+      final result = await androidPlugin.canScheduleExactNotifications();
+      return result ?? true;
+    } catch (_) {
+      return true;
     }
   }
 

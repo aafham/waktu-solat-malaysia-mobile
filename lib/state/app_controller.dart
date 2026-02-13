@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
@@ -49,10 +50,14 @@ class AppController extends ChangeNotifier {
   String manualZoneCode = 'SGR01';
   double textScale = 1.0;
   bool highContrast = false;
+  bool ramadhanMode = false;
+  bool exactAlarmAllowed = true;
 
   Map<String, bool> prayerNotificationToggles = <String, bool>{};
+  Map<String, String> prayerSoundProfiles = <String, String>{};
   List<String> favoriteZones = <String>[];
   List<String> recentZones = <String>[];
+  final List<String> healthLogs = <String>[];
 
   Timer? _refreshTimer;
   DateTime _lastDayCheck = DateTime.now();
@@ -73,13 +78,16 @@ class AppController extends ChangeNotifier {
     manualZoneCode = await _tasbihStore.loadManualZone();
     textScale = await _tasbihStore.loadTextScale();
     highContrast = await _tasbihStore.loadHighContrast();
+    ramadhanMode = await _tasbihStore.loadRamadhanMode();
     prayerNotificationToggles =
         await _tasbihStore.loadPrayerNotificationToggles();
+    prayerSoundProfiles = await _tasbihStore.loadPrayerSoundProfiles();
     favoriteZones = await _tasbihStore.loadFavoriteZones();
     recentZones = await _tasbihStore.loadRecentZones();
 
     zones = await _prayerService.fetchZones();
     await _notificationService.initialize();
+    exactAlarmAllowed = await _notificationService.canScheduleExactAlarms();
 
     await refreshPrayerData();
     await refreshMonthlyData();
@@ -135,6 +143,7 @@ class AppController extends ChangeNotifier {
       await _pushRecentZone(zoneCode);
 
       dailyPrayerTimes = await _prayerService.fetchDailyPrayerTimes(zoneCode);
+      _pushHealthLog('daily_ok:$zoneCode');
 
       final lat = position?.latitude ?? activeZone?.latitude;
       final lng = position?.longitude ?? activeZone?.longitude;
@@ -143,16 +152,22 @@ class AppController extends ChangeNotifier {
             _qiblaService.getQiblaBearing(latitude: lat, longitude: lng);
       }
 
-      await _notificationService.schedulePrayerNotifications(
-        prayers: dailyPrayerTimes?.entries ?? <PrayerTimeEntry>[],
-        enableNotification: notifyEnabled,
-        enableVibration: vibrateEnabled,
+      try {
+        await _notificationService.schedulePrayerNotifications(
+          prayers: dailyPrayerTimes?.entries ?? <PrayerTimeEntry>[],
+          enableNotification: notifyEnabled,
+          enableVibration: vibrateEnabled,
         enabledPrayerNames: prayerNotificationToggles.entries
             .where((entry) => entry.value)
             .map((entry) => entry.key)
             .toSet(),
-      );
+          prayerSoundProfiles: prayerSoundProfiles,
+        );
+      } catch (_) {
+        // Non-critical: data waktu solat sudah berjaya diambil.
+      }
     } catch (e) {
+      _pushHealthLog('daily_err:${e.runtimeType}');
       errorMessage = _friendlyError(e);
     } finally {
       isLoading = false;
@@ -170,8 +185,10 @@ class AppController extends ChangeNotifier {
         zoneCode,
         month: DateTime.now(),
       );
+      _pushHealthLog('monthly_ok:$zoneCode');
     } catch (_) {
       // Monthly data is optional.
+      _pushHealthLog('monthly_err');
     } finally {
       isMonthlyLoading = false;
       notifyListeners();
@@ -270,6 +287,18 @@ class AppController extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> setRamadhanMode(bool value) async {
+    ramadhanMode = value;
+    await _tasbihStore.saveRamadhanMode(value);
+    notifyListeners();
+  }
+
+  Future<void> setPrayerSoundProfile(String prayerName, String profile) async {
+    prayerSoundProfiles[prayerName] = profile;
+    await _tasbihStore.savePrayerSoundProfile(prayerName, profile);
+    await refreshPrayerData();
+  }
+
   Future<void> snoozeNextPrayer(int minutes) async {
     final next = nextPrayer;
     if (!notifyEnabled || next == null) {
@@ -280,6 +309,105 @@ class AppController extends ChangeNotifier {
       minutes: minutes,
       enableVibration: vibrateEnabled,
     );
+  }
+
+  String exportSettingsJson() {
+    return jsonEncode(<String, dynamic>{
+      'notifyEnabled': notifyEnabled,
+      'vibrateEnabled': vibrateEnabled,
+      'autoLocation': autoLocation,
+      'manualZoneCode': manualZoneCode,
+      'textScale': textScale,
+      'highContrast': highContrast,
+      'ramadhanMode': ramadhanMode,
+      'prayerNotificationToggles': prayerNotificationToggles,
+      'prayerSoundProfiles': prayerSoundProfiles,
+      'favoriteZones': favoriteZones,
+      'recentZones': recentZones,
+    });
+  }
+
+  Future<void> importSettingsJson(String raw) async {
+    final parsed = jsonDecode(raw) as Map<String, dynamic>;
+    notifyEnabled = parsed['notifyEnabled'] as bool? ?? notifyEnabled;
+    vibrateEnabled = parsed['vibrateEnabled'] as bool? ?? vibrateEnabled;
+    autoLocation = parsed['autoLocation'] as bool? ?? autoLocation;
+    manualZoneCode = parsed['manualZoneCode'] as String? ?? manualZoneCode;
+    textScale = (parsed['textScale'] as num?)?.toDouble() ?? textScale;
+    highContrast = parsed['highContrast'] as bool? ?? highContrast;
+    ramadhanMode = parsed['ramadhanMode'] as bool? ?? ramadhanMode;
+
+    final toggles = parsed['prayerNotificationToggles'];
+    if (toggles is Map<String, dynamic>) {
+      prayerNotificationToggles =
+          toggles.map((k, v) => MapEntry(k, v == true));
+    }
+
+    final sounds = parsed['prayerSoundProfiles'];
+    if (sounds is Map<String, dynamic>) {
+      prayerSoundProfiles = sounds.map(
+        (k, v) => MapEntry(k, (v ?? 'default').toString()),
+      );
+    }
+
+    final fav = parsed['favoriteZones'];
+    if (fav is List) {
+      favoriteZones = fav.map((e) => e.toString()).toList();
+    }
+    final rec = parsed['recentZones'];
+    if (rec is List) {
+      recentZones = rec.map((e) => e.toString()).toList();
+    }
+
+    await _tasbihStore.saveNotifyEnabled(notifyEnabled);
+    await _tasbihStore.saveVibrateEnabled(vibrateEnabled);
+    await _tasbihStore.saveAutoLocation(autoLocation);
+    await _tasbihStore.saveManualZone(manualZoneCode);
+    await _tasbihStore.saveTextScale(textScale);
+    await _tasbihStore.saveHighContrast(highContrast);
+    await _tasbihStore.saveRamadhanMode(ramadhanMode);
+    await _tasbihStore.saveFavoriteZones(favoriteZones);
+    await _tasbihStore.saveRecentZones(recentZones);
+    for (final entry in prayerNotificationToggles.entries) {
+      await _tasbihStore.savePrayerNotificationToggle(entry.key, entry.value);
+    }
+    for (final entry in prayerSoundProfiles.entries) {
+      await _tasbihStore.savePrayerSoundProfile(entry.key, entry.value);
+    }
+
+    await refreshPrayerData();
+    await refreshMonthlyData();
+    notifyListeners();
+  }
+
+  String exportMonthlyAsCsv() {
+    final monthly = monthlyPrayerTimes;
+    if (monthly == null) {
+      return '';
+    }
+    final rows = <String>[
+      'Date,Imsak,Subuh,Syuruk,Zohor,Asar,Maghrib,Isyak',
+    ];
+    for (final day in monthly.days) {
+      String findTime(String name) {
+        final entry = day.entries.firstWhere((e) => e.name == name);
+        return '${entry.time.hour.toString().padLeft(2, '0')}:${entry.time.minute.toString().padLeft(2, '0')}';
+      }
+
+      final d =
+          '${day.date.year}-${day.date.month.toString().padLeft(2, '0')}-${day.date.day.toString().padLeft(2, '0')}';
+      rows.add('$d,${findTime('Imsak')},${findTime('Subuh')},${findTime('Syuruk')},${findTime('Zohor')},${findTime('Asar')},${findTime('Maghrib')},${findTime('Isyak')}');
+    }
+    return rows.join('\n');
+  }
+
+  String? nearbyMosqueMapUrl() {
+    final lat = position?.latitude ?? activeZone?.latitude;
+    final lng = position?.longitude ?? activeZone?.longitude;
+    if (lat == null || lng == null) {
+      return null;
+    }
+    return 'https://www.google.com/maps/search/?api=1&query=masjid%20near%20$lat,$lng';
   }
 
   Future<void> _pushRecentZone(String zoneCode) async {
@@ -307,6 +435,16 @@ class AppController extends ChangeNotifier {
       return 'Data belum tersedia dari server. Data cache akan digunakan bila ada.';
     }
     return 'Tidak dapat memuat data sekarang. Sila cuba semula sekejap lagi.';
+  }
+
+  void _pushHealthLog(String event) {
+    final now = DateTime.now();
+    final ts =
+        '${now.year}-${now.month.toString().padLeft(2, '0')}-${now.day.toString().padLeft(2, '0')} ${now.hour.toString().padLeft(2, '0')}:${now.minute.toString().padLeft(2, '0')}';
+    healthLogs.insert(0, '$ts $event');
+    if (healthLogs.length > 40) {
+      healthLogs.removeLast();
+    }
   }
 
   @override

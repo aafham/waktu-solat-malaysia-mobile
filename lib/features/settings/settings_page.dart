@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 import '../../models/prayer_models.dart';
 import '../../state/app_controller.dart';
@@ -51,6 +52,12 @@ class _SettingsPageState extends State<SettingsPage> {
             title: const Text('Auto detect lokasi'),
             value: controller.autoLocation,
             onChanged: controller.setAutoLocation,
+          ),
+          SwitchListTile(
+            title: const Text('Ramadhan mode'),
+            subtitle: const Text('Fokus paparan Imsak & Maghrib'),
+            value: controller.ramadhanMode,
+            onChanged: controller.setRamadhanMode,
           ),
           const SizedBox(height: 8),
           _buildZoneShortcutChips(controller, zones),
@@ -142,6 +149,35 @@ class _SettingsPageState extends State<SettingsPage> {
                   : null,
             ),
           ),
+          const SizedBox(height: 4),
+          Text(
+            'Bunyi notifikasi per-waktu',
+            style: Theme.of(context).textTheme.titleMedium,
+          ),
+          const SizedBox(height: 6),
+          ...controller.prayerNotificationToggles.keys.map(
+            (name) => Padding(
+              padding: const EdgeInsets.only(bottom: 8),
+              child: DropdownButtonFormField<String>(
+                initialValue: controller.prayerSoundProfiles[name] ?? 'default',
+                decoration: InputDecoration(
+                  labelText: '$name sound',
+                  border: const OutlineInputBorder(),
+                ),
+                items: const [
+                  DropdownMenuItem(value: 'default', child: Text('Default')),
+                  DropdownMenuItem(value: 'silent', child: Text('Silent')),
+                ],
+                onChanged: controller.notifyEnabled
+                    ? (value) {
+                        if (value != null) {
+                          controller.setPrayerSoundProfile(name, value);
+                        }
+                      }
+                    : null,
+              ),
+            ),
+          ),
           const SizedBox(height: 8),
           Text(
             'Saiz teks',
@@ -161,12 +197,65 @@ class _SettingsPageState extends State<SettingsPage> {
             onChanged: controller.setHighContrast,
           ),
           const SizedBox(height: 16),
+          if (!controller.exactAlarmAllowed)
+            Card(
+              color: Colors.orange.shade50,
+              child: const Padding(
+                padding: EdgeInsets.all(12),
+                child: Text(
+                  'Exact alarm mungkin diblok oleh sistem. Semak Settings telefon: Apps > Waktu Solat > Alarms & reminders dan benarkan.',
+                ),
+              ),
+            ),
+          const SizedBox(height: 8),
           FilledButton.icon(
             onPressed: controller.refreshPrayerData,
             icon: const Icon(Icons.refresh),
             label: const Text('Refresh data sekarang'),
           ),
+          const SizedBox(height: 10),
+          Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              OutlinedButton.icon(
+                onPressed: () async {
+                  final jsonText = controller.exportSettingsJson();
+                  await Clipboard.setData(ClipboardData(text: jsonText));
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Backup JSON disalin ke clipboard')),
+                    );
+                  }
+                },
+                icon: const Icon(Icons.download),
+                label: const Text('Backup Settings'),
+              ),
+              OutlinedButton.icon(
+                onPressed: () => _showImportDialog(context, controller),
+                icon: const Icon(Icons.upload),
+                label: const Text('Restore Settings'),
+              ),
+            ],
+          ),
           const SizedBox(height: 24),
+          ExpansionTile(
+            title: const Text('Health logs (local)'),
+            subtitle: const Text('Ringkas untuk semak stability app'),
+            children: controller.healthLogs
+                .take(20)
+                .map(
+                  (line) => ListTile(
+                    dense: true,
+                    title: Text(
+                      line,
+                      style: Theme.of(context).textTheme.bodySmall,
+                    ),
+                  ),
+                )
+                .toList(),
+          ),
+          const SizedBox(height: 8),
           Card(
             child: Padding(
               padding: const EdgeInsets.all(12),
@@ -179,6 +268,56 @@ class _SettingsPageState extends State<SettingsPage> {
         ],
       ),
     );
+  }
+
+  Future<void> _showImportDialog(
+    BuildContext context,
+    AppController controller,
+  ) async {
+    final input = TextEditingController();
+    await showDialog<void>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Restore Settings JSON'),
+          content: TextField(
+            controller: input,
+            maxLines: 8,
+            decoration: const InputDecoration(
+              hintText: 'Paste JSON backup di sini',
+              border: OutlineInputBorder(),
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Batal'),
+            ),
+            FilledButton(
+              onPressed: () async {
+                try {
+                  await controller.importSettingsJson(input.text.trim());
+                  if (context.mounted) {
+                    Navigator.pop(context);
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Settings berjaya dipulihkan')),
+                    );
+                  }
+                } catch (_) {
+                  if (context.mounted) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      const SnackBar(content: Text('Format JSON tidak sah')),
+                    );
+                  }
+                }
+              },
+              child: const Text('Restore'),
+            ),
+          ],
+        );
+      },
+    );
+    input.dispose();
   }
 
   Widget _buildZoneShortcutChips(
