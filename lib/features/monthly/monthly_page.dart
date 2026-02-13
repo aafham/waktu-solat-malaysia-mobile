@@ -7,6 +7,7 @@ import '../../models/prayer_models.dart';
 import '../../state/app_controller.dart';
 
 enum MonthlyFilter { all, subuh, maghrib }
+const _msLocale = 'ms_MY';
 
 class MonthlyPage extends StatefulWidget {
   const MonthlyPage({super.key, required this.controller});
@@ -50,7 +51,7 @@ class _MonthlyPageState extends State<MonthlyPage> {
                     );
                   },
                   icon: const Icon(Icons.ios_share),
-                  label: const Text('Share CSV'),
+                  label: const Text('Kongsi CSV'),
                 ),
                 OutlinedButton.icon(
                   onPressed: () async {
@@ -59,12 +60,12 @@ class _MonthlyPageState extends State<MonthlyPage> {
                     await Clipboard.setData(ClipboardData(text: csv));
                     if (context.mounted) {
                       ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(content: Text('CSV disalin ke clipboard')),
+                        const SnackBar(content: Text('CSV disalin ke papan klip')),
                       );
                     }
                   },
                   icon: const Icon(Icons.copy),
-                  label: const Text('Copy CSV'),
+                  label: const Text('Salin CSV'),
                 ),
               ],
             ),
@@ -80,7 +81,7 @@ class _MonthlyPageState extends State<MonthlyPage> {
               const Card(
                 child: Padding(
                   padding: EdgeInsets.all(16),
-                  child: Text('Jadual bulanan belum tersedia. Tarik untuk refresh.'),
+                  child: Text('Jadual bulanan belum tersedia. Tarik untuk muat semula.'),
                 ),
               )
             else ...[
@@ -89,7 +90,7 @@ class _MonthlyPageState extends State<MonthlyPage> {
                 children: [
                   Expanded(
                     child: Text(
-                      DateFormat('MMMM yyyy').format(monthly.month),
+                      DateFormat('MMMM yyyy', _msLocale).format(monthly.month),
                       style: Theme.of(context).textTheme.titleMedium,
                     ),
                   ),
@@ -123,10 +124,7 @@ class _MonthlyPageState extends State<MonthlyPage> {
                 ],
               ),
               const SizedBox(height: 10),
-              Text(
-                'Heatmap Waktu',
-                style: Theme.of(context).textTheme.titleSmall,
-              ),
+              Text('Peta Haba Waktu', style: Theme.of(context).textTheme.titleSmall),
               const SizedBox(height: 8),
               _HeatMap(days: days, filter: filter),
               const SizedBox(height: 12),
@@ -142,20 +140,20 @@ class _MonthlyPageState extends State<MonthlyPage> {
     String pickSummary() {
       if (filter == MonthlyFilter.subuh) {
         final subuh = day.entries.firstWhere((e) => e.name == 'Subuh');
-        return 'Subuh ${DateFormat('HH:mm').format(subuh.time)}';
+        return 'Subuh ${DateFormat('HH:mm', _msLocale).format(subuh.time)}';
       }
       if (filter == MonthlyFilter.maghrib) {
         final maghrib = day.entries.firstWhere((e) => e.name == 'Maghrib');
-        return 'Maghrib ${DateFormat('HH:mm').format(maghrib.time)}';
+        return 'Maghrib ${DateFormat('HH:mm', _msLocale).format(maghrib.time)}';
       }
       final subuh = day.entries.firstWhere((e) => e.name == 'Subuh');
       final maghrib = day.entries.firstWhere((e) => e.name == 'Maghrib');
-      return 'Subuh ${DateFormat('HH:mm').format(subuh.time)} | Maghrib ${DateFormat('HH:mm').format(maghrib.time)}';
+      return 'Subuh ${DateFormat('HH:mm', _msLocale).format(subuh.time)} | Maghrib ${DateFormat('HH:mm', _msLocale).format(maghrib.time)}';
     }
 
     return Card(
       child: ListTile(
-        title: Text(DateFormat('EEE, dd MMM').format(day.date)),
+        title: Text(DateFormat('EEE, dd MMM', _msLocale).format(day.date)),
         subtitle: Text(pickSummary()),
       ),
     );
@@ -192,7 +190,7 @@ class _HeatMap extends StatelessWidget {
 
         return Tooltip(
           message:
-              '${DateFormat('dd MMM').format(days[idx].date)} | ${_formatMinutes(v)}',
+              '${DateFormat('dd MMM', _msLocale).format(days[idx].date)} | ${_formatMinutes(v)}',
           child: Container(
             width: 14,
             height: 14,

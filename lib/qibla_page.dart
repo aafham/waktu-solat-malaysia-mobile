@@ -23,7 +23,7 @@ class QiblaPage extends StatelessWidget {
             Text(
               controller.qiblaBearing == null
                   ? 'Arah kiblat belum tersedia.'
-                  : 'Arah kiblat: ${controller.qiblaBearing!.toStringAsFixed(1)} deg dari utara',
+                  : 'Arah kiblat: ${controller.qiblaBearing!.toStringAsFixed(1)} darjah dari utara',
             ),
             const SizedBox(height: 24),
             Expanded(
@@ -46,7 +46,7 @@ class QiblaPage extends StatelessWidget {
                           child: const Icon(Icons.navigation, size: 180, color: Colors.teal),
                         ),
                         const SizedBox(height: 16),
-                        Text('Heading: ${heading.toStringAsFixed(1)} deg'),
+                        Text('Arah semasa: ${heading.toStringAsFixed(1)} darjah'),
                       ],
                     );
                   },

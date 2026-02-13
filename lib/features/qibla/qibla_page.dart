@@ -1,4 +1,4 @@
-import 'dart:math';
+﻿import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_compass/flutter_compass.dart';
@@ -41,7 +41,7 @@ class _QiblaPageState extends State<QiblaPage> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'QIBLA COMPASS',
+                    'KOMPAS KIBLAT',
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
                           color: const Color(0xFFA4C7BF),
                           letterSpacing: 1.2,
@@ -49,7 +49,7 @@ class _QiblaPageState extends State<QiblaPage> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Direction to Kaaba',
+                    'Arah ke Kaabah',
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                           color: Colors.white,
                           fontWeight: FontWeight.w700,
@@ -58,8 +58,8 @@ class _QiblaPageState extends State<QiblaPage> {
                   const SizedBox(height: 8),
                   Text(
                     hasQibla
-                        ? 'Qibla direction calculated from your location.'
-                        : 'Qibla direction unavailable. Please enable location first.',
+                        ? 'Arah kiblat telah dikira berdasarkan lokasi semasa anda.'
+                        : 'Arah kiblat belum tersedia. Sila aktifkan lokasi dahulu.',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: const Color(0xFFD4E8E1),
                         ),
@@ -79,7 +79,7 @@ class _QiblaPageState extends State<QiblaPage> {
                       ),
                       const SizedBox(width: 8),
                       Text(
-                        _enabled && hasQibla ? 'Active' : 'Inactive',
+                        _enabled && hasQibla ? 'Aktif' : 'Tidak aktif',
                         style: Theme.of(context).textTheme.bodySmall?.copyWith(
                               color: const Color(0xFFE3F1ED),
                               fontWeight: FontWeight.w600,
@@ -102,13 +102,13 @@ class _QiblaPageState extends State<QiblaPage> {
                       minimumSize: const Size.fromHeight(48),
                     ),
                     child: const Text(
-                      'Enable Compass',
+                      'Aktifkan Kompas',
                       style: TextStyle(fontWeight: FontWeight.w700),
                     ),
                   ),
                   const SizedBox(height: 6),
                   Text(
-                    'How to use: Keep your phone flat. The arrow points to the Kaaba.',
+                    'Cara guna: Pastikan telefon rata. Anak panah menunjuk ke arah Kaabah.',
                     style: Theme.of(context).textTheme.bodySmall?.copyWith(
                           color: const Color(0xFFB9D4CC),
                         ),
@@ -157,7 +157,7 @@ class _QiblaPageState extends State<QiblaPage> {
         _CompassFrame(
           child: Center(
             child: Text(
-              'Compass not active',
+              'Kompas belum aktif',
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: const Color(0xFFA7C2BA),
                   ),
@@ -195,16 +195,16 @@ class _QiblaPageState extends State<QiblaPage> {
                   color: Color(0xFF57CC99),
                 ),
               ),
-              _directionLabel('N', Alignment.topCenter),
-              _directionLabel('E', Alignment.centerRight),
+              _directionLabel('U', Alignment.topCenter),
+              _directionLabel('T', Alignment.centerRight),
               _directionLabel('S', Alignment.bottomCenter),
-              _directionLabel('W', Alignment.centerLeft),
+              _directionLabel('B', Alignment.centerLeft),
             ],
           ),
         ),
         const SizedBox(height: 10),
         Text(
-          '${degrees.toStringAsFixed(0)}°',
+          '${degrees.toStringAsFixed(0)} darjah',
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
                 color: const Color(0xFFE3F1ED),
                 fontWeight: FontWeight.w800,

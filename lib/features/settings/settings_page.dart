@@ -35,7 +35,7 @@ class _SettingsPageState extends State<SettingsPage> {
       child: ListView(
         padding: const EdgeInsets.all(16),
         children: [
-          Text('Settings', style: Theme.of(context).textTheme.headlineSmall),
+          Text('Tetapan', style: Theme.of(context).textTheme.headlineSmall),
           const SizedBox(height: 12),
           _SectionCard(
             title: 'Notifikasi',
@@ -47,14 +47,14 @@ class _SettingsPageState extends State<SettingsPage> {
                   onChanged: controller.setNotifyEnabled,
                 ),
                 SwitchListTile(
-                  title: const Text('Aktifkan vibrate notifikasi'),
+                  title: const Text('Aktifkan getaran notifikasi'),
                   value: controller.vibrateEnabled,
                   onChanged: controller.notifyEnabled
                       ? controller.setVibrateEnabled
                       : null,
                 ),
                 SwitchListTile(
-                  title: const Text('Ramadhan mode'),
+                  title: const Text('Mod Ramadan'),
                   subtitle: const Text('Fokus paparan Imsak & Maghrib'),
                   value: controller.ramadhanMode,
                   onChanged: controller.setRamadhanMode,
@@ -82,7 +82,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 Align(
                   alignment: Alignment.centerLeft,
                   child: Text(
-                    'Bunyi notifikasi per-waktu',
+                    'Bunyi notifikasi ikut waktu',
                     style: Theme.of(context).textTheme.titleSmall,
                   ),
                 ),
@@ -94,17 +94,17 @@ class _SettingsPageState extends State<SettingsPage> {
                       initialValue:
                           controller.prayerSoundProfiles[name] ?? 'default',
                       decoration: InputDecoration(
-                        labelText: '$name sound',
+                        labelText: 'Bunyi $name',
                         border: const OutlineInputBorder(),
                       ),
                       items: const [
                         DropdownMenuItem(
                           value: 'default',
-                          child: Text('Default'),
+                          child: Text('Biasa'),
                         ),
                         DropdownMenuItem(
                           value: 'silent',
-                          child: Text('Silent'),
+                          child: Text('Senyap'),
                         ),
                       ],
                       onChanged: controller.notifyEnabled
@@ -123,7 +123,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     child: const Padding(
                       padding: EdgeInsets.all(12),
                       child: Text(
-                        'Exact alarm mungkin diblok. Semak Settings telefon > Alarms & reminders.',
+                        'Penggera tepat mungkin disekat. Semak Tetapan telefon > Penggera & peringatan.',
                       ),
                     ),
                   ),
@@ -136,7 +136,7 @@ class _SettingsPageState extends State<SettingsPage> {
             child: Column(
               children: [
                 SwitchListTile(
-                  title: const Text('Auto detect lokasi'),
+                  title: const Text('Kesan lokasi automatik'),
                   value: controller.autoLocation,
                   onChanged: controller.setAutoLocation,
                 ),
@@ -199,7 +199,7 @@ class _SettingsPageState extends State<SettingsPage> {
                           dense: true,
                           title: Text(zone.label),
                           trailing: IconButton(
-                            tooltip: 'Favorite',
+                            tooltip: 'Kegemaran',
                             onPressed: () =>
                                 controller.toggleFavoriteZone(zone.code),
                             icon: Icon(
@@ -235,7 +235,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                 ),
                 SwitchListTile(
-                  title: const Text('High contrast mode'),
+                  title: const Text('Mod kontras tinggi'),
                   value: controller.highContrast,
                   onChanged: controller.setHighContrast,
                 ),
@@ -244,14 +244,14 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           const SizedBox(height: 10),
           _SectionCard(
-            title: 'Data & Backup',
+            title: 'Data & Sandaran',
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 FilledButton.icon(
                   onPressed: controller.refreshPrayerData,
                   icon: const Icon(Icons.refresh),
-                  label: const Text('Refresh data sekarang'),
+                  label: const Text('Muat semula data sekarang'),
                 ),
                 const SizedBox(height: 10),
                 Wrap(
@@ -265,25 +265,25 @@ class _SettingsPageState extends State<SettingsPage> {
                         if (context.mounted) {
                           ScaffoldMessenger.of(context).showSnackBar(
                             const SnackBar(
-                              content: Text('Backup JSON disalin ke clipboard'),
+                              content: Text('Sandaran JSON disalin ke papan klip'),
                             ),
                           );
                         }
                       },
                       icon: const Icon(Icons.download),
-                      label: const Text('Backup'),
+                      label: const Text('Sandaran'),
                     ),
                     OutlinedButton.icon(
                       onPressed: () => _showImportDialog(context, controller),
                       icon: const Icon(Icons.upload),
-                      label: const Text('Restore'),
+                      label: const Text('Pulih'),
                     ),
                   ],
                 ),
                 const SizedBox(height: 12),
                 ExpansionTile(
-                  title: const Text('Health logs (local)'),
-                  subtitle: const Text('Ringkas untuk semak stability app'),
+                  title: const Text('Log kesihatan (setempat)'),
+                  subtitle: const Text('Ringkas untuk semak kestabilan aplikasi'),
                   children: controller.healthLogs
                       .take(20)
                       .map(
@@ -305,7 +305,7 @@ class _SettingsPageState extends State<SettingsPage> {
             child: Padding(
               padding: const EdgeInsets.all(12),
               child: Text(
-                'Nota: Untuk azan custom, letak fail audio di android/app/src/main/res/raw dan konfigurasi channel sound Android.',
+                'Nota: Untuk azan kustom, letak fail audio di android/app/src/main/res/raw dan konfigurasi saluran bunyi Android.',
                 style: Theme.of(context).textTheme.bodySmall,
               ),
             ),
@@ -324,12 +324,12 @@ class _SettingsPageState extends State<SettingsPage> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Restore Settings JSON'),
+          title: const Text('Pulihkan Tetapan JSON'),
           content: TextField(
             controller: input,
             maxLines: 8,
             decoration: const InputDecoration(
-              hintText: 'Paste JSON backup di sini',
+              hintText: 'Tampal JSON sandaran di sini',
               border: OutlineInputBorder(),
             ),
           ),
@@ -345,7 +345,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   if (context.mounted) {
                     Navigator.pop(context);
                     ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Settings berjaya dipulihkan')),
+                      const SnackBar(content: Text('Tetapan berjaya dipulihkan')),
                     );
                   }
                 } catch (_) {
@@ -356,7 +356,7 @@ class _SettingsPageState extends State<SettingsPage> {
                   }
                 }
               },
-              child: const Text('Restore'),
+              child: const Text('Pulihkan'),
             ),
           ],
         );

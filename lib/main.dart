@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:intl/date_symbol_data_local.dart';
+import 'package:intl/intl.dart';
 
 import 'features/home/home_page.dart';
 import 'features/monthly/monthly_page.dart';
@@ -12,8 +14,10 @@ import 'services/qibla_service.dart';
 import 'services/tasbih_store.dart';
 import 'state/app_controller.dart';
 
-void main() {
+Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  await initializeDateFormatting('ms_MY');
+  Intl.defaultLocale = 'ms_MY';
   runApp(const WaktuSolatApp());
 }
 
@@ -57,8 +61,85 @@ class _WaktuSolatAppState extends State<WaktuSolatApp> {
 
   @override
   Widget build(BuildContext context) {
+    const surfaceBg = Color(0xFFE7EEEC);
+    const cardBg = Color(0xFFF2F6F5);
+    const primary = Color(0xFF0A7E70);
+    const secondary = Color(0xFF7FBEB3);
+
     final baseTheme = ThemeData(
-      colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF00695C)),
+      colorScheme: const ColorScheme.light(
+        primary: primary,
+        onPrimary: Colors.white,
+        secondary: secondary,
+        onSecondary: Color(0xFF12312C),
+        surface: cardBg,
+        onSurface: Color(0xFF1A2A27),
+      ),
+      scaffoldBackgroundColor: surfaceBg,
+      cardTheme: const CardThemeData(
+        color: cardBg,
+        elevation: 0,
+        margin: EdgeInsets.zero,
+      ),
+      filledButtonTheme: FilledButtonThemeData(
+        style: FilledButton.styleFrom(
+          backgroundColor: primary,
+          foregroundColor: Colors.white,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(999),
+          ),
+        ),
+      ),
+      outlinedButtonTheme: OutlinedButtonThemeData(
+        style: OutlinedButton.styleFrom(
+          foregroundColor: const Color(0xFF0A6358),
+          side: const BorderSide(color: Color(0xFF8AAEA8)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(999),
+          ),
+        ),
+      ),
+      chipTheme: ChipThemeData(
+        backgroundColor: const Color(0xFFD4E7E2),
+        selectedColor: const Color(0xFFB5D8D0),
+        side: const BorderSide(color: Color(0xFF9ABCB5)),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+      navigationBarTheme: const NavigationBarThemeData(
+        backgroundColor: Color(0xFFDDE9E6),
+        indicatorColor: Color(0xFFC0DFD8),
+        surfaceTintColor: Colors.transparent,
+        iconTheme: MaterialStatePropertyAll(
+          IconThemeData(color: Color(0xFF4B5855)),
+        ),
+        labelTextStyle: MaterialStatePropertyAll(
+          TextStyle(
+            color: Color(0xFF2F3E3B),
+            fontWeight: FontWeight.w600,
+          ),
+        ),
+      ),
+      inputDecorationTheme: InputDecorationTheme(
+        filled: true,
+        fillColor: const Color(0xFFF1F6F4),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFFB7CBC6)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Color(0xFFB7CBC6)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: primary, width: 1.4),
+        ),
+      ),
+      snackBarTheme: const SnackBarThemeData(
+        behavior: SnackBarBehavior.floating,
+        backgroundColor: Color(0xFF163D36),
+        contentTextStyle: TextStyle(color: Colors.white),
+      ),
       useMaterial3: true,
     );
     final highContrastTheme = ThemeData(

@@ -68,7 +68,7 @@ class _TasbihPageState extends State<TasbihPage> {
                           ),
                         ),
                         IconButton(
-                          tooltip: 'Focus mode',
+                          tooltip: 'Mod fokus',
                           onPressed: () {
                             setState(() {
                               focusMode = true;
@@ -80,7 +80,7 @@ class _TasbihPageState extends State<TasbihPage> {
                     ),
                     const SizedBox(height: 6),
                     Text(
-                      'Tap bulatan untuk tambah kiraan',
+                      'Sentuh bulatan untuk tambah kiraan',
                       style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                             color: Theme.of(context).colorScheme.onSurfaceVariant,
                           ),
@@ -137,7 +137,7 @@ class _TasbihPageState extends State<TasbihPage> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
                               children: [
-                                Text('Preset: $_activePreset'),
+                                Text('Zikir: $_activePreset'),
                                 Text('$presetCount/$presetTarget'),
                               ],
                             ),
@@ -205,7 +205,7 @@ class _TasbihPageState extends State<TasbihPage> {
                       style: OutlinedButton.styleFrom(
                         minimumSize: const Size.fromHeight(50),
                       ),
-                      label: const Text('Reset kiraan'),
+                      label: const Text('Tetapkan semula kiraan'),
                     ),
                     SizedBox(height: compact ? 4 : 8),
                     Text(
@@ -235,7 +235,7 @@ class _TasbihPageState extends State<TasbihPage> {
           Row(
             children: [
               Text(
-                'Focus Mode',
+                'Mod Fokus',
                 style: Theme.of(context)
                     .textTheme
                     .titleLarge
@@ -243,7 +243,7 @@ class _TasbihPageState extends State<TasbihPage> {
               ),
               const Spacer(),
               IconButton(
-                tooltip: 'Keluar focus mode',
+                tooltip: 'Keluar mod fokus',
                 onPressed: () {
                   setState(() {
                     focusMode = false;
@@ -273,7 +273,7 @@ class _TasbihPageState extends State<TasbihPage> {
           FilledButton.icon(
             onPressed: count == 0 ? null : () => _confirmReset(context),
             icon: const Icon(Icons.restart_alt),
-            label: const Text('Reset kiraan'),
+            label: const Text('Tetapkan semula kiraan'),
           ),
           const SizedBox(height: 6),
         ],
@@ -286,7 +286,7 @@ class _TasbihPageState extends State<TasbihPage> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Reset kiraan tasbih?'),
+          title: const Text('Tetapkan semula kiraan tasbih?'),
           content: const Text('Kiraan akan kembali ke 0.'),
           actions: [
             TextButton(
@@ -295,7 +295,7 @@ class _TasbihPageState extends State<TasbihPage> {
             ),
             FilledButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Reset'),
+              child: const Text('Tetapkan semula'),
             ),
           ],
         );
@@ -347,7 +347,7 @@ class _TapOrb extends StatelessWidget {
             ),
             child: const Center(
               child: Text(
-                'TAP\n+1',
+                'SENTUH\n+1',
                 textAlign: TextAlign.center,
                 style: TextStyle(
                   color: Colors.white,

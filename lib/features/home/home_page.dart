@@ -8,6 +8,8 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../models/prayer_models.dart';
 import '../../state/app_controller.dart';
 
+const _msLocale = 'ms_MY';
+
 class HomePage extends StatelessWidget {
   const HomePage({super.key, required this.controller});
 
@@ -51,17 +53,28 @@ class HomePage extends StatelessWidget {
             const SizedBox(height: 10),
             Card(
               elevation: 0,
-              color: Colors.white.withValues(alpha: 0.75),
+              color: Colors.white.withValues(alpha: 0.82),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(18),
+              ),
               child: Padding(
                 padding: const EdgeInsets.all(12),
                 child: Column(
                   children: [
                     Row(
                       children: [
+                        Icon(
+                          Icons.analytics_outlined,
+                          size: 18,
+                          color: Theme.of(context).colorScheme.primary,
+                        ),
+                        const SizedBox(width: 8),
                         Expanded(
                           child: Text(
-                            'API berjaya: ${controller.apiSuccessCount} | Gagal: ${controller.apiFailureCount} | Cache: ${controller.cacheHitCount}',
-                            style: Theme.of(context).textTheme.bodySmall,
+                            'API berjaya: ${controller.apiSuccessCount} | Gagal: ${controller.apiFailureCount} | Simpanan: ${controller.cacheHitCount}',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  fontWeight: FontWeight.w600,
+                                ),
                           ),
                         ),
                       ],
@@ -134,7 +147,10 @@ class HomePage extends StatelessWidget {
                 ),
               )
             else ...[
-              Text('Seterusnya', style: Theme.of(context).textTheme.titleMedium),
+              _SectionLabel(
+                icon: Icons.schedule,
+                text: 'Seterusnya',
+              ),
               const SizedBox(height: 8),
               Container(
                 decoration: BoxDecoration(
@@ -174,7 +190,7 @@ class HomePage extends StatelessWidget {
                               side: const BorderSide(color: Colors.white70),
                             ),
                             icon: const Icon(Icons.alarm, size: 16),
-                            label: const Text('5 min'),
+                            label: const Text('Tunda 5 min'),
                           ),
                           OutlinedButton.icon(
                             onPressed: nextPrayer == null
@@ -185,7 +201,7 @@ class HomePage extends StatelessWidget {
                               side: const BorderSide(color: Colors.white70),
                             ),
                             icon: const Icon(Icons.alarm, size: 16),
-                            label: const Text('10 min'),
+                            label: const Text('Tunda 10 min'),
                           ),
                         ],
                       ),
@@ -194,7 +210,10 @@ class HomePage extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 12),
-              Text('Hari Ini', style: Theme.of(context).textTheme.titleMedium),
+              _SectionLabel(
+                icon: Icons.today,
+                text: 'Hari Ini',
+              ),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
@@ -204,20 +223,20 @@ class HomePage extends StatelessWidget {
                     Chip(
                       avatar: const Icon(Icons.restaurant, size: 16),
                       label: Text(
-                        'Berbuka ${DateFormat('HH:mm').format(maghrib.time)}',
+                        'Berbuka ${DateFormat('HH:mm', _msLocale).format(maghrib.time)}',
                       ),
                     ),
                   if (imsak != null)
                     Chip(
                       avatar: const Icon(Icons.nights_stay, size: 16),
                       label: Text(
-                        'Imsak ${DateFormat('HH:mm').format(imsak.time)}',
+                        'Imsak ${DateFormat('HH:mm', _msLocale).format(imsak.time)}',
                       ),
                     ),
                   if (!controller.exactAlarmAllowed)
                     const Chip(
                       avatar: Icon(Icons.warning_amber, size: 16),
-                      label: Text('Exact alarm mungkin diblok'),
+                      label: Text('Penggera tepat mungkin disekat'),
                     ),
                 ],
               ),
@@ -228,14 +247,17 @@ class HomePage extends StatelessWidget {
                   child: Padding(
                     padding: const EdgeInsets.all(14),
                     child: Text(
-                      'Mod Ramadhan aktif: fokus pada Imsak dan Maghrib untuk jadual puasa harian.',
+                      'Mod Ramadan aktif: fokus pada Imsak dan Maghrib untuk jadual puasa harian.',
                       style: Theme.of(context).textTheme.bodyMedium,
                     ),
                   ),
                 ),
               ],
               const SizedBox(height: 12),
-              Text('Quick Actions', style: Theme.of(context).textTheme.titleMedium),
+              _SectionLabel(
+                icon: Icons.flash_on,
+                text: 'Tindakan Pantas',
+              ),
               const SizedBox(height: 8),
               OverflowBar(
                 spacing: 8,
@@ -244,7 +266,7 @@ class HomePage extends StatelessWidget {
                   FilledButton.icon(
                     onPressed: controller.refreshPrayerData,
                     icon: const Icon(Icons.refresh),
-                    label: const Text('Refresh'),
+                    label: const Text('Muat semula'),
                   ),
                   FilledButton.tonalIcon(
                     onPressed: () async {
@@ -260,7 +282,7 @@ class HomePage extends StatelessWidget {
                       );
                     },
                     icon: const Icon(Icons.ios_share),
-                    label: const Text('Share hari ini'),
+                    label: const Text('Kongsi hari ini'),
                   ),
                   OutlinedButton.icon(
                     onPressed: () async {
@@ -272,12 +294,15 @@ class HomePage extends StatelessWidget {
                       );
                     },
                     icon: const Icon(Icons.map),
-                    label: const Text('Masjid berdekatan'),
+                    label: const Text('Masjid terdekat'),
                   ),
                 ],
               ),
               const SizedBox(height: 12),
-              Text('Jadual', style: Theme.of(context).textTheme.titleMedium),
+              _SectionLabel(
+                icon: Icons.view_module,
+                text: 'Jadual',
+              ),
               const SizedBox(height: 8),
               _PrayerGrid(
                 prayers: prayers,
@@ -342,12 +367,12 @@ class HomePage extends StatelessWidget {
     buffer.writeln('');
     if (nextPrayer != null) {
       buffer.writeln(
-        'Seterusnya: ${nextPrayer.name} ${DateFormat('HH:mm').format(nextPrayer.time)} (${_formatCountdown(countdown)})',
+        'Seterusnya: ${nextPrayer.name} ${DateFormat('HH:mm', _msLocale).format(nextPrayer.time)} (${_formatCountdown(countdown)})',
       );
       buffer.writeln('');
     }
     for (final p in prayers) {
-      buffer.writeln('${p.name}: ${DateFormat('HH:mm').format(p.time)}');
+      buffer.writeln('${p.name}: ${DateFormat('HH:mm', _msLocale).format(p.time)}');
     }
     return buffer.toString();
   }
@@ -377,6 +402,32 @@ class _SectionTitle extends StatelessWidget {
         Text(
           subtitle,
           style: Theme.of(context).textTheme.bodyMedium,
+        ),
+      ],
+    );
+  }
+}
+
+class _SectionLabel extends StatelessWidget {
+  const _SectionLabel({
+    required this.icon,
+    required this.text,
+  });
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      children: [
+        Icon(icon, size: 18, color: Theme.of(context).colorScheme.primary),
+        const SizedBox(width: 8),
+        Text(
+          text,
+          style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w700,
+              ),
         ),
       ],
     );
@@ -417,8 +468,8 @@ class _DateClockCardState extends State<_DateClockCard> {
 
   @override
   Widget build(BuildContext context) {
-    final gDate = DateFormat('EEEE, d MMMM yyyy').format(_now);
-    final clock = DateFormat('HH:mm:ss').format(_now);
+    final gDate = DateFormat('EEEE, d MMMM yyyy', _msLocale).format(_now);
+    final clock = DateFormat('HH:mm:ss', _msLocale).format(_now);
     final hijri = widget.hijriDate ?? '--';
 
     return Container(
@@ -440,7 +491,7 @@ class _DateClockCardState extends State<_DateClockCard> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'GREGORIAN DATE',
+                    'TARIKH MASIHI',
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
                           color: const Color(0xFF9EC2BC),
                           letterSpacing: 1.1,
@@ -456,7 +507,7 @@ class _DateClockCardState extends State<_DateClockCard> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'HIJRI DATE',
+                    'TARIKH HIJRAH',
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
                           color: const Color(0xFF9EC2BC),
                           letterSpacing: 1.1,
@@ -593,12 +644,12 @@ class _PrayerGrid extends StatelessWidget {
       'Isyak',
     ];
     final labels = <String, String>{
-      'Subuh': 'Fajr',
-      'Syuruk': 'Sunrise',
-      'Zohor': 'Dhuhr',
-      'Asar': 'Asr',
+      'Subuh': 'Subuh',
+      'Syuruk': 'Syuruk',
+      'Zohor': 'Zohor',
+      'Asar': 'Asar',
       'Maghrib': 'Maghrib',
-      'Isyak': 'Isha',
+      'Isyak': 'Isyak',
     };
 
     final visible = <PrayerTimeEntry>[];
@@ -663,7 +714,7 @@ class _PrayerGrid extends StatelessWidget {
                 ),
               ),
               Text(
-                '${DateFormat('HH:mm').format(item.time)}:00',
+                DateFormat('HH:mm', _msLocale).format(item.time),
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       color: Colors.white,
                       fontWeight: FontWeight.w800,
@@ -732,7 +783,8 @@ class _NextPrayerCountdownCardState extends State<_NextPrayerCountdownCard> {
   @override
   Widget build(BuildContext context) {
     final next = widget.nextPrayer;
-    final timeLabel = next == null ? '-' : DateFormat('HH:mm').format(next.time);
+    final timeLabel =
+        next == null ? '-' : DateFormat('HH:mm', _msLocale).format(next.time);
 
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -742,7 +794,7 @@ class _NextPrayerCountdownCardState extends State<_NextPrayerCountdownCard> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(
-                'NEXT PRAYER',
+                'WAKTU SETERUSNYA',
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
                       color: Colors.white.withValues(alpha: 0.88),
                       letterSpacing: 1.1,
@@ -780,7 +832,7 @@ class _NextPrayerCountdownCardState extends State<_NextPrayerCountdownCard> {
           crossAxisAlignment: CrossAxisAlignment.end,
           children: [
             Text(
-              'COUNTDOWN',
+              'KIRAAN MUNDUR',
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                     color: Colors.white.withValues(alpha: 0.88),
                     letterSpacing: 1.1,

@@ -77,7 +77,7 @@ class AppController extends ChangeNotifier {
     }
     final age = DateTime.now().difference(updatedAt);
     final ageText = age.inMinutes <= 0 ? 'baru sahaja' : '${age.inMinutes} min lalu';
-    final source = isUsingCachedPrayerData ? 'Data cache' : 'Data live';
+    final source = isUsingCachedPrayerData ? 'Data simpanan' : 'Data langsung';
     return '$source | $ageText';
   }
 
@@ -468,7 +468,7 @@ class AppController extends ChangeNotifier {
       return 'Sambungan perlahan. Tarik ke bawah untuk cuba semula.';
     }
     if (text.contains('tidak tersedia')) {
-      return 'Data belum tersedia dari server. Data cache akan digunakan bila ada.';
+      return 'Data belum tersedia dari pelayan. Data simpanan akan digunakan bila ada.';
     }
     return 'Tidak dapat memuat data sekarang. Sila cuba semula sekejap lagi.';
   }
@@ -481,7 +481,7 @@ class AppController extends ChangeNotifier {
       return 'Buka tetapan lokasi';
     }
     if (_lastErrorRaw.contains('notification') || _lastErrorRaw.contains('notifikasi')) {
-      return 'Buka tetapan app';
+      return 'Buka tetapan aplikasi';
     }
     if (_lastErrorRaw.contains('server') || _lastErrorRaw.contains('timeout')) {
       return 'Guna zon manual';
@@ -498,7 +498,7 @@ class AppController extends ChangeNotifier {
       await Geolocator.openLocationSettings();
       return;
     }
-    if (label == 'Buka tetapan app') {
+    if (label == 'Buka tetapan aplikasi') {
       await Geolocator.openAppSettings();
       return;
     }
