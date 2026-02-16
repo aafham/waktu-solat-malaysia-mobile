@@ -3,7 +3,6 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 
 import 'features/home/home_page.dart';
-import 'features/monthly/monthly_page.dart';
 import 'features/onboarding/onboarding_page.dart';
 import 'features/qibla/qibla_page.dart';
 import 'features/settings/settings_page.dart';
@@ -29,7 +28,8 @@ class WaktuSolatApp extends StatefulWidget {
   State<WaktuSolatApp> createState() => _WaktuSolatAppState();
 }
 
-class _WaktuSolatAppState extends State<WaktuSolatApp> {
+class _WaktuSolatAppState extends State<WaktuSolatApp>
+    with WidgetsBindingObserver {
   late final AppController controller;
   int tabIndex = 0;
   bool showSplash = true;
@@ -38,6 +38,7 @@ class _WaktuSolatAppState extends State<WaktuSolatApp> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     controller = AppController(
       prayerService: PrayerService(),
       locationService: LocationService(),
@@ -57,31 +58,41 @@ class _WaktuSolatAppState extends State<WaktuSolatApp> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     controller.dispose();
     super.dispose();
   }
 
   @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      controller.refreshPrayerData();
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    const surfaceBg = Color(0xFFE7EEEC);
-    const cardBg = Color(0xFFF2F6F5);
-    const primary = Color(0xFF0A7E70);
-    const secondary = Color(0xFF7FBEB3);
+    const surfaceBg = Color(0xFF07142E);
+    const cardBg = Color(0xFF303950);
+    const cardBgSoft = Color(0xFF414A62);
+    const primary = Color(0xFFF4C542);
+    const secondary = Color(0xFF3CCAB5);
 
     final baseTheme = ThemeData(
-      colorScheme: const ColorScheme.light(
+      brightness: Brightness.dark,
+      colorScheme: const ColorScheme.dark(
         primary: primary,
-        onPrimary: Colors.white,
+        onPrimary: Color(0xFF1A1400),
         secondary: secondary,
-        onSecondary: Color(0xFF12312C),
+        onSecondary: Color(0xFF04111F),
         surface: cardBg,
-        onSurface: Color(0xFF1A2A27),
+        onSurface: Color(0xFFF2F5F9),
       ),
       scaffoldBackgroundColor: surfaceBg,
-      dividerColor: const Color(0xFFD0DFDB),
+      dividerColor: const Color(0xFF2A4363),
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.transparent,
-        foregroundColor: Color(0xFF1A2A27),
+        foregroundColor: Color(0xFFF2F5F9),
         elevation: 0,
         scrolledUnderElevation: 0,
       ),
@@ -96,7 +107,7 @@ class _WaktuSolatAppState extends State<WaktuSolatApp> {
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           backgroundColor: primary,
-          foregroundColor: Colors.white,
+          foregroundColor: const Color(0xFF1A1400),
           minimumSize: const Size(0, 48),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(999),
@@ -105,9 +116,9 @@ class _WaktuSolatAppState extends State<WaktuSolatApp> {
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: const Color(0xFF0A6358),
+          foregroundColor: const Color(0xFFEAF2FF),
           minimumSize: const Size(0, 48),
-          side: const BorderSide(color: Color(0xFF8AAEA8)),
+          side: const BorderSide(color: Color(0xFF4A6183)),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(999),
           ),
@@ -121,47 +132,47 @@ class _WaktuSolatAppState extends State<WaktuSolatApp> {
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return const Color(0xFF0A7E70);
+            return const Color(0xFFFFFFFF);
           }
-          return const Color(0xFFE1EAE7);
+          return const Color(0xFFCDD6E6);
         }),
         trackColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return const Color(0xFF97CFC5);
+            return const Color(0xFF12D568);
           }
-          return const Color(0xFFC8D6D2);
+          return const Color(0xFF5B657F);
         }),
       ),
       chipTheme: ChipThemeData(
-        backgroundColor: const Color(0xFFD4E7E2),
-        selectedColor: const Color(0xFFB5D8D0),
-        side: const BorderSide(color: Color(0xFF9ABCB5)),
+        backgroundColor: cardBgSoft,
+        selectedColor: const Color(0xFF2A4970),
+        side: const BorderSide(color: Color(0xFF365577)),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
       navigationBarTheme: const NavigationBarThemeData(
-        backgroundColor: Color(0xFFDDE9E6),
-        indicatorColor: Color(0xFFC0DFD8),
+        backgroundColor: Color(0xFF0C1D3A),
+        indicatorColor: Color(0xFF3A4560),
         surfaceTintColor: Colors.transparent,
         iconTheme: WidgetStatePropertyAll(
-          IconThemeData(color: Color(0xFF4B5855)),
+          IconThemeData(color: Color(0xFFB7C6DC)),
         ),
         labelTextStyle: WidgetStatePropertyAll(
           TextStyle(
-            color: Color(0xFF2F3E3B),
+            color: Color(0xFFEAF2FF),
             fontWeight: FontWeight.w600,
           ),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: const Color(0xFFF1F6F4),
+        fillColor: cardBgSoft,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFB7CBC6)),
+          borderSide: const BorderSide(color: Color(0xFF3E5D82)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFB7CBC6)),
+          borderSide: const BorderSide(color: Color(0xFF3E5D82)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -170,7 +181,7 @@ class _WaktuSolatAppState extends State<WaktuSolatApp> {
       ),
       snackBarTheme: const SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
-        backgroundColor: Color(0xFF163D36),
+        backgroundColor: Color(0xFF12213A),
         contentTextStyle: TextStyle(color: Colors.white),
       ),
       useMaterial3: true,
@@ -188,65 +199,81 @@ class _WaktuSolatAppState extends State<WaktuSolatApp> {
       useMaterial3: true,
     );
 
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'Waktu Solat Malaysia',
-      theme: controller.highContrast ? highContrastTheme : baseTheme,
-      home: showSplash
-          ? const SplashScreen()
-          : AnimatedBuilder(
-              animation: controller,
-              builder: (context, _) {
-                final pages = <Widget>[
-                  HomePage(controller: controller),
-                  MonthlyPage(controller: controller),
-                  QiblaPage(controller: controller),
-                  TasbihPage(controller: controller),
-                  SettingsPage(controller: controller),
-                ];
-
-                return Scaffold(
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, _) {
+        Intl.defaultLocale = controller.isEnglish ? 'en_US' : 'ms_MY';
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          title: 'JagaSolat',
+          theme: controller.highContrast ? highContrastTheme : baseTheme,
+          home: showSplash
+              ? const SplashScreen()
+              : Scaffold(
                   body: controller.isLoading
                       ? const Center(child: CircularProgressIndicator())
                       : !controller.onboardingSeen && !dismissedOnboarding
-                      ? OnboardingPage(
-                          controller: controller,
-                          onSelesai: () async {
-                            await controller.completeOnboarding();
-                            setState(() {
-                              dismissedOnboarding = true;
-                            });
-                          },
-                        )
-                      : MediaQuery(
-                          data: MediaQuery.of(context).copyWith(
-                            textScaler: TextScaler.linear(controller.textScale),
-                          ),
-                          child: pages[tabIndex],
-                        ),
-                  bottomNavigationBar: controller.isLoading
-                      ? null
-                      : !controller.onboardingSeen && !dismissedOnboarding
-                          ? null
-                          : NavigationBar(
-                              height: 72,
-                              selectedIndex: tabIndex,
-                              onDestinationSelected: (idx) {
+                          ? OnboardingPage(
+                              controller: controller,
+                              onSelesai: () async {
+                                await controller.completeOnboarding();
                                 setState(() {
-                                  tabIndex = idx;
+                                  dismissedOnboarding = true;
                                 });
                               },
-                              destinations: const [
-                                NavigationDestination(icon: Icon(Icons.access_time), label: 'Waktu'),
-                                NavigationDestination(icon: Icon(Icons.calendar_month), label: 'Bulanan'),
-                                NavigationDestination(icon: Icon(Icons.explore), label: 'Kiblat'),
-                                NavigationDestination(icon: Icon(Icons.touch_app), label: 'Tasbih'),
-                                NavigationDestination(icon: Icon(Icons.settings), label: 'Tetapan'),
-                              ],
+                            )
+                          : MediaQuery(
+                              data: MediaQuery.of(context).copyWith(
+                                textScaler:
+                                    TextScaler.linear(controller.textScale),
+                              ),
+                              child: <Widget>[
+                                HomePage(
+                                  controller: controller,
+                                  onNavigateToTab: (index) {
+                                    setState(() {
+                                      tabIndex = index;
+                                    });
+                                  },
+                                ),
+                                QiblaPage(controller: controller),
+                                TasbihPage(controller: controller),
+                                SettingsPage(controller: controller),
+                              ][tabIndex],
                             ),
-                );
-              },
-            ),
+                  bottomNavigationBar: controller.isLoading ||
+                          (!controller.onboardingSeen && !dismissedOnboarding)
+                      ? null
+                      : NavigationBar(
+                          height: 72,
+                          selectedIndex: tabIndex,
+                          onDestinationSelected: (idx) {
+                            setState(() {
+                              tabIndex = idx;
+                            });
+                          },
+                          destinations: [
+                            NavigationDestination(
+                              icon: const Icon(Icons.home_outlined),
+                              label: controller.tr('Waktu', 'Times'),
+                            ),
+                            NavigationDestination(
+                              icon: const Icon(Icons.explore),
+                              label: controller.tr('Qiblat', 'Qibla'),
+                            ),
+                            NavigationDestination(
+                              icon: const Icon(Icons.touch_app),
+                              label: controller.tr('Zikir', 'Tasbih'),
+                            ),
+                            NavigationDestination(
+                              icon: const Icon(Icons.settings),
+                              label: controller.tr('Tetapan', 'Settings'),
+                            ),
+                          ],
+                        ),
+                ),
+        );
+      },
     );
   }
 }
@@ -256,25 +283,54 @@ class SplashScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      backgroundColor: Color(0xFF00695C),
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.mosque, size: 84, color: Colors.white),
-            SizedBox(height: 20),
-            Text(
-              'Waktu Solat Malaysia',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.w700,
+    return Scaffold(
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF0C1D3A), Color(0xFF07152F)],
+          ),
+        ),
+        child: const Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircleAvatar(
+                radius: 44,
+                backgroundColor: Color(0x1AF4C542),
+                child: Icon(Icons.mosque, size: 48, color: Color(0xFFF4C542)),
               ),
-            ),
-            SizedBox(height: 12),
-            CircularProgressIndicator(color: Colors.white),
-          ],
+              SizedBox(height: 20),
+              Text(
+                'JagaSolat',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 30,
+                  letterSpacing: 0.3,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              SizedBox(height: 8),
+              Text(
+                'Waktu Solat Malaysia',
+                style: TextStyle(
+                  color: Color(0xFFC7D3E8),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              SizedBox(height: 20),
+              SizedBox(
+                width: 28,
+                height: 28,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.8,
+                  color: Color(0xFFF4C542),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );
