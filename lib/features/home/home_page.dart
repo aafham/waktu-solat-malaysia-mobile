@@ -7,7 +7,7 @@ import '../../state/app_controller.dart';
 
 const _msLocale = 'ms_MY';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({
     super.key,
     required this.controller,
@@ -18,7 +18,39 @@ class HomePage extends StatelessWidget {
   final ValueChanged<int> onNavigateToTab;
 
   @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  late final ScrollController _scrollController;
+  bool _showMiniBar = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController = ScrollController()..addListener(_onScroll);
+  }
+
+  @override
+  void dispose() {
+    _scrollController
+      ..removeListener(_onScroll)
+      ..dispose();
+    super.dispose();
+  }
+
+  void _onScroll() {
+    final visible = _scrollController.offset > 210;
+    if (visible != _showMiniBar) {
+      setState(() {
+        _showMiniBar = visible;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
+    final controller = widget.controller;
     final tr = controller.tr;
     final prayers = controller.dailyPrayerTimes?.entries ?? <PrayerTimeEntry>[];
     final nextPrayer = controller.nextPrayer;
@@ -27,96 +59,138 @@ class HomePage extends StatelessWidget {
     final zoneLabel = controller.activeZone?.label ??
         tr('Zon belum ditentukan', 'Zone not selected');
     final heroTheme = _themeForPrayer(nextPrayer?.name ?? currentPrayer?.name);
+    final pageMood =
+        _pageMoodForPrayer(nextPrayer?.name ?? currentPrayer?.name);
 
     return SafeArea(
-      child: RefreshIndicator(
-        onRefresh: controller.refreshPrayerData,
-        child: ListView(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
-          children: [
-            Text(
-              tr('Waktu Solat', 'Prayer Times'),
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    fontWeight: FontWeight.w800,
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 700),
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                  colors: pageMood,
+                ),
+              ),
+            ),
+          ),
+          RefreshIndicator(
+            onRefresh: controller.refreshPrayerData,
+            child: ListView(
+              controller: _scrollController,
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+              children: [
+                Text(
+                  tr('Waktu Solat', 'Prayer Times'),
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  zoneLabel,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: const Color(0xFFB9C8E2),
+                      ),
+                ),
+                const SizedBox(height: 8),
+                _DataFreshnessPill(
+                  label: controller.prayerDataFreshnessLabel,
+                  isCache: controller.isUsingCachedPrayerData,
+                ),
+                const SizedBox(height: 10),
+                if (controller.errorMessage != null)
+                  _ErrorCard(controller: controller)
+                else ...[
+                  _DateClockCard(
+                    controller: controller,
+                    hijriDate: controller.dailyPrayerTimes?.hijriDate,
                   ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              zoneLabel,
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: const Color(0xFFB9C8E2),
+                  const SizedBox(height: 10),
+                  _HeroPrayerCard(
+                    controller: controller,
+                    nextPrayer: nextPrayer,
+                    currentPrayer: currentPrayer,
+                    gradientColors: heroTheme,
                   ),
+                  const SizedBox(height: 10),
+                  _SectionLabel(
+                    icon: Icons.timeline,
+                    text: tr('Ritma Solat', 'Prayer Rhythm'),
+                  ),
+                  const SizedBox(height: 8),
+                  _PrayerRhythmStrip(
+                    controller: controller,
+                    prayers: prayers,
+                    nextPrayerName: nextPrayer?.name,
+                    currentPrayerName: currentPrayer?.name,
+                  ),
+                  const SizedBox(height: 10),
+                  _DailyProgressCard(
+                    controller: controller,
+                    completed: controller.todayPrayerCompletedCount,
+                    total: controller.todayPrayerTargetCount,
+                    progress: controller.todayPrayerProgress,
+                  ),
+                  const SizedBox(height: 10),
+                  _QuickActionsRow(
+                    controller: controller,
+                    onOpenTools: () => _showQuickTools(context),
+                    onOpenQiblat: () => widget.onNavigateToTab(1),
+                    onOpenZikir: () => widget.onNavigateToTab(2),
+                  ),
+                  const SizedBox(height: 12),
+                  _SectionLabel(
+                    icon: Icons.checklist,
+                    text:
+                        tr('Check-in Solat Hari Ini', 'Today Prayer Check-in'),
+                  ),
+                  const SizedBox(height: 8),
+                  _PrayerCheckinList(
+                    prayers: prayers,
+                    controller: controller,
+                    onToggle: (name) =>
+                        controller.togglePrayerCompletedToday(name),
+                  ),
+                  const SizedBox(height: 12),
+                  _SectionLabel(
+                    icon: Icons.schedule,
+                    text: tr('Jadual Ringkas', 'Quick Schedule'),
+                  ),
+                  const SizedBox(height: 8),
+                  _PrayerGrid(
+                    prayers: prayers,
+                    nextPrayerName: nextPrayer?.name,
+                  ),
+                ],
+              ],
             ),
-            const SizedBox(height: 8),
-            _DataFreshnessPill(
-              label: controller.prayerDataFreshnessLabel,
-              isCache: controller.isUsingCachedPrayerData,
+          ),
+          Positioned(
+            top: 8,
+            left: 16,
+            right: 16,
+            child: IgnorePointer(
+              ignoring: !_showMiniBar,
+              child: AnimatedSlide(
+                duration: const Duration(milliseconds: 260),
+                curve: Curves.easeOut,
+                offset: _showMiniBar ? Offset.zero : const Offset(0, -1.15),
+                child: AnimatedOpacity(
+                  duration: const Duration(milliseconds: 220),
+                  opacity: _showMiniBar ? 1 : 0,
+                  child: _MiniCountdownBar(
+                    controller: controller,
+                    nextPrayer: nextPrayer,
+                  ),
+                ),
+              ),
             ),
-            const SizedBox(height: 10),
-            if (controller.errorMessage != null)
-              _ErrorCard(controller: controller)
-            else ...[
-              _DateClockCard(
-                controller: controller,
-                hijriDate: controller.dailyPrayerTimes?.hijriDate,
-              ),
-              const SizedBox(height: 10),
-              _HeroPrayerCard(
-                controller: controller,
-                nextPrayer: nextPrayer,
-                currentPrayer: currentPrayer,
-                gradientColors: heroTheme,
-              ),
-              const SizedBox(height: 10),
-              _SectionLabel(
-                icon: Icons.timeline,
-                text: tr('Ritma Solat', 'Prayer Rhythm'),
-              ),
-              const SizedBox(height: 8),
-              _PrayerRhythmStrip(
-                controller: controller,
-                prayers: prayers,
-                nextPrayerName: nextPrayer?.name,
-                currentPrayerName: currentPrayer?.name,
-              ),
-              const SizedBox(height: 10),
-              _DailyProgressCard(
-                controller: controller,
-                completed: controller.todayPrayerCompletedCount,
-                total: controller.todayPrayerTargetCount,
-                progress: controller.todayPrayerProgress,
-              ),
-              const SizedBox(height: 10),
-              _QuickActionsRow(
-                controller: controller,
-                onOpenTools: () => _showQuickTools(context),
-                onOpenQiblat: () => onNavigateToTab(1),
-                onOpenZikir: () => onNavigateToTab(2),
-              ),
-              const SizedBox(height: 12),
-              _SectionLabel(
-                icon: Icons.checklist,
-                text: tr('Check-in Solat Hari Ini', 'Today Prayer Check-in'),
-              ),
-              const SizedBox(height: 8),
-              _PrayerCheckinList(
-                prayers: prayers,
-                controller: controller,
-                onToggle: (name) => controller.togglePrayerCompletedToday(name),
-              ),
-              const SizedBox(height: 12),
-              _SectionLabel(
-                icon: Icons.schedule,
-                text: tr('Jadual Ringkas', 'Quick Schedule'),
-              ),
-              const SizedBox(height: 8),
-              _PrayerGrid(
-                prayers: prayers,
-                nextPrayerName: nextPrayer?.name,
-              ),
-            ],
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -151,6 +225,23 @@ class HomePage extends StatelessWidget {
     }
   }
 
+  List<Color> _pageMoodForPrayer(String? prayerName) {
+    switch (prayerName) {
+      case 'Subuh':
+        return const [Color(0xFF08264A), Color(0xFF051B36)];
+      case 'Zohor':
+        return const [Color(0xFF16365A), Color(0xFF071E3D)];
+      case 'Asar':
+        return const [Color(0xFF1B3D46), Color(0xFF082532)];
+      case 'Maghrib':
+        return const [Color(0xFF3D2F2A), Color(0xFF0A243D)];
+      case 'Isyak':
+        return const [Color(0xFF0C2445), Color(0xFF061A32)];
+      default:
+        return const [Color(0xFF0A1A38), Color(0xFF07142E)];
+    }
+  }
+
   Future<void> _showQuickTools(BuildContext context) async {
     await showModalBottomSheet<void>(
       context: context,
@@ -178,34 +269,34 @@ class HomePage extends StatelessWidget {
                   children: [
                     _QuickToolTile(
                       icon: Icons.home_outlined,
-                      label: controller.tr('Waktu', 'Times'),
+                      label: widget.controller.tr('Waktu', 'Times'),
                       onTap: () {
                         Navigator.pop(context);
-                        onNavigateToTab(0);
+                        widget.onNavigateToTab(0);
                       },
                     ),
                     _QuickToolTile(
                       icon: Icons.explore,
-                      label: controller.tr('Qiblat', 'Qibla'),
+                      label: widget.controller.tr('Qiblat', 'Qibla'),
                       onTap: () {
                         Navigator.pop(context);
-                        onNavigateToTab(1);
+                        widget.onNavigateToTab(1);
                       },
                     ),
                     _QuickToolTile(
                       icon: Icons.touch_app,
-                      label: controller.tr('Zikir', 'Tasbih'),
+                      label: widget.controller.tr('Zikir', 'Tasbih'),
                       onTap: () {
                         Navigator.pop(context);
-                        onNavigateToTab(2);
+                        widget.onNavigateToTab(2);
                       },
                     ),
                     _QuickToolTile(
                       icon: Icons.settings,
-                      label: controller.tr('Tetapan', 'Settings'),
+                      label: widget.controller.tr('Tetapan', 'Settings'),
                       onTap: () {
                         Navigator.pop(context);
-                        onNavigateToTab(3);
+                        widget.onNavigateToTab(3);
                       },
                     ),
                   ],
@@ -216,6 +307,107 @@ class HomePage extends StatelessWidget {
         );
       },
     );
+  }
+}
+
+class _MiniCountdownBar extends StatefulWidget {
+  const _MiniCountdownBar({
+    required this.controller,
+    required this.nextPrayer,
+  });
+
+  final AppController controller;
+  final PrayerTimeEntry? nextPrayer;
+
+  @override
+  State<_MiniCountdownBar> createState() => _MiniCountdownBarState();
+}
+
+class _MiniCountdownBarState extends State<_MiniCountdownBar> {
+  Timer? _ticker;
+  Duration _remaining = Duration.zero;
+
+  @override
+  void initState() {
+    super.initState();
+    _refresh();
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+      if (!mounted) return;
+      setState(_refresh);
+    });
+  }
+
+  @override
+  void didUpdateWidget(covariant _MiniCountdownBar oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.nextPrayer?.time != widget.nextPrayer?.time) {
+      _refresh();
+    }
+  }
+
+  @override
+  void dispose() {
+    _ticker?.cancel();
+    super.dispose();
+  }
+
+  void _refresh() {
+    final next = widget.controller.nextPrayer;
+    if (next == null) {
+      _remaining = Duration.zero;
+      return;
+    }
+    final diff = next.time.difference(DateTime.now());
+    _remaining = diff.isNegative ? Duration.zero : diff;
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final tr = widget.controller.tr;
+    final next = widget.controller.nextPrayer;
+    final text = next == null
+        ? tr('Tiada waktu seterusnya', 'No next prayer')
+        : tr(
+            '${next.name} dalam ${_formatHms(_remaining)}',
+            '${next.name} in ${_formatHms(_remaining)}',
+          );
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      decoration: BoxDecoration(
+        color: const Color(0xF018335B),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0xFF40628E)),
+        boxShadow: const [
+          BoxShadow(
+            color: Color(0x33000000),
+            blurRadius: 10,
+            offset: Offset(0, 5),
+          ),
+        ],
+      ),
+      child: Row(
+        children: [
+          const Icon(Icons.timer, size: 16, color: Color(0xFFF3C623)),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: const Color(0xFFEAF2FF),
+                    fontWeight: FontWeight.w700,
+                  ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatHms(Duration d) {
+    final h = d.inHours.toString().padLeft(2, '0');
+    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
+    return '$h:$m:$s';
   }
 }
 
@@ -238,8 +430,10 @@ class _HeroPrayerCard extends StatefulWidget {
 
 class _HeroPrayerCardState extends State<_HeroPrayerCard> {
   Timer? _ticker;
+  Timer? _pulseTimer;
   Duration _remaining = Duration.zero;
   bool _refreshingNext = false;
+  bool _pulse = false;
 
   @override
   void initState() {
@@ -258,12 +452,23 @@ class _HeroPrayerCardState extends State<_HeroPrayerCard> {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.nextPrayer?.time != widget.nextPrayer?.time) {
       _updateRemaining();
+      _pulseTimer?.cancel();
+      setState(() {
+        _pulse = true;
+      });
+      _pulseTimer = Timer(const Duration(milliseconds: 650), () {
+        if (!mounted) return;
+        setState(() {
+          _pulse = false;
+        });
+      });
     }
   }
 
   @override
   void dispose() {
     _ticker?.cancel();
+    _pulseTimer?.cancel();
     super.dispose();
   }
 
@@ -293,7 +498,8 @@ class _HeroPrayerCardState extends State<_HeroPrayerCard> {
     final currentName =
         _currentPrayerName() ?? tr('Belum bermula', 'Not started');
     final next = widget.controller.nextPrayer;
-    return Container(
+    return AnimatedContainer(
+      duration: const Duration(milliseconds: 420),
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
         gradient: LinearGradient(
@@ -301,11 +507,11 @@ class _HeroPrayerCardState extends State<_HeroPrayerCard> {
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
-        boxShadow: const [
+        boxShadow: [
           BoxShadow(
-            color: Color(0x44000000),
-            blurRadius: 16,
-            offset: Offset(0, 10),
+            color: _pulse ? const Color(0x66F3C623) : const Color(0x44000000),
+            blurRadius: _pulse ? 24 : 16,
+            offset: const Offset(0, 10),
           ),
         ],
       ),
@@ -322,23 +528,31 @@ class _HeroPrayerCardState extends State<_HeroPrayerCard> {
                   ),
             ),
             const SizedBox(height: 4),
-            Text(
-              currentName,
-              style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                    fontWeight: FontWeight.w800,
-                    color: Colors.white,
-                  ),
+            AnimatedSwitcher(
+              duration: const Duration(milliseconds: 240),
+              child: Text(
+                currentName,
+                key: ValueKey<String>(currentName),
+                style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                    ),
+              ),
             ),
             const SizedBox(height: 8),
             if (next != null) ...[
-              Text(
-                tr(
-                  'Seterusnya ${next.name} pada ${DateFormat('HH:mm', _msLocale).format(next.time)}',
-                  'Next ${next.name} at ${DateFormat('HH:mm', _msLocale).format(next.time)}',
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 220),
+                child: Text(
+                  tr(
+                    'Seterusnya ${next.name} pada ${DateFormat('HH:mm', _msLocale).format(next.time)}',
+                    'Next ${next.name} at ${DateFormat('HH:mm', _msLocale).format(next.time)}',
+                  ),
+                  key: ValueKey<String>('next-${next.name}-${next.time}'),
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                        color: Colors.white.withValues(alpha: 0.94),
+                      ),
                 ),
-                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: Colors.white.withValues(alpha: 0.94),
-                    ),
               ),
               const SizedBox(height: 8),
               Text(
