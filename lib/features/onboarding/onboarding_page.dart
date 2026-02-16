@@ -73,7 +73,7 @@ class _OnboardingPageState extends State<OnboardingPage> {
                   decoration: BoxDecoration(
                     color: active
                         ? Theme.of(context).colorScheme.primary
-                        : const Color(0xFFB8CBC7),
+                        : const Color(0xFF6B7897),
                     borderRadius: BorderRadius.circular(99),
                   ),
                 );
@@ -132,7 +132,7 @@ class _OnboardCard extends StatelessWidget {
         gradient: const LinearGradient(
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
-          colors: [Color(0xFF0D2524), Color(0xFF153533)],
+          colors: [Color(0xFF1A2748), Color(0xFF0E1E3E)],
         ),
       ),
       padding: const EdgeInsets.all(24),
@@ -146,7 +146,7 @@ class _OnboardCard extends StatelessWidget {
               color: Colors.white.withValues(alpha: 0.12),
               borderRadius: BorderRadius.circular(18),
             ),
-            child: Icon(item.icon, size: 34, color: const Color(0xFF7BE3BE)),
+            child: Icon(item.icon, size: 34, color: const Color(0xFFF4C542)),
           ),
           const SizedBox(height: 26),
           Text(
@@ -160,7 +160,7 @@ class _OnboardCard extends StatelessWidget {
           Text(
             item.desc,
             style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                  color: const Color(0xFFD2E9E3),
+                  color: const Color(0xFFC7D3E8),
                 ),
           ),
         ],

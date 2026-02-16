@@ -1,4 +1,4 @@
-﻿import 'dart:math';
+import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_compass/flutter_compass.dart';
@@ -22,173 +22,136 @@ class _QiblaPageState extends State<QiblaPage> {
     final hasQibla = widget.controller.qiblaBearing != null;
 
     return SafeArea(
-      child: ListView(
-        padding: const EdgeInsets.fromLTRB(14, 14, 14, 96),
-        children: [
-          Container(
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(22),
-              gradient: const LinearGradient(
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-                colors: [Color(0xFF071414), Color(0xFF112521)],
-              ),
-              border: Border.all(color: const Color(0xFF28433D)),
+      child: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF0A1A38), Color(0xFF07142E)],
+          ),
+        ),
+        child: ListView(
+          padding: const EdgeInsets.fromLTRB(16, 10, 16, 100),
+          children: [
+            Text(
+              'qiblat',
+              style: Theme.of(context).textTheme.displaySmall?.copyWith(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w800,
+                  ),
             ),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'KOMPAS KIBLAT',
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: const Color(0xFFA4C7BF),
-                          letterSpacing: 1.2,
-                        ),
+            const SizedBox(height: 4),
+            Text(
+              hasQibla
+                  ? 'arah ke kaabah berdasarkan lokasi semasa'
+                  : 'aktifkan lokasi untuk kiraan arah qiblat',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: const Color(0xFFB8C4D9),
                   ),
-                  const SizedBox(height: 8),
-                  Text(
-                    'Arah ke Kaabah',
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          color: Colors.white,
-                          fontWeight: FontWeight.w700,
-                        ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    hasQibla
-                        ? 'Arah kiblat telah dikira berdasarkan lokasi semasa anda.'
-                        : 'Arah kiblat belum tersedia. Sila aktifkan lokasi dahulu.',
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: const Color(0xFFD4E8E1),
-                        ),
-                  ),
-                  const SizedBox(height: 10),
-                  Row(
-                    children: [
-                      Container(
-                        width: 8,
-                        height: 8,
-                        decoration: BoxDecoration(
-                          color: _enabled && hasQibla
-                              ? const Color(0xFF4BCF90)
-                              : const Color(0xFFE8564B),
-                          shape: BoxShape.circle,
-                        ),
+            ),
+            const SizedBox(height: 12),
+            Card(
+              color: const Color(0xFF2F3750),
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Row(
+                  children: [
+                    Container(
+                      width: 10,
+                      height: 10,
+                      decoration: BoxDecoration(
+                        color: _enabled && hasQibla
+                            ? const Color(0xFF13D66A)
+                            : const Color(0xFFE65A5A),
+                        shape: BoxShape.circle,
                       ),
-                      const SizedBox(width: 8),
-                      Text(
-                        _enabled && hasQibla ? 'Aktif' : 'Tidak aktif',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                              color: const Color(0xFFE3F1ED),
-                              fontWeight: FontWeight.w600,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        _enabled && hasQibla ? 'Kompas aktif' : 'Kompas belum aktif',
+                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.w700,
                             ),
                       ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Row(
-                    children: [
-                      Expanded(
-                        child: FilledButton(
-                          onPressed: hasQibla
-                              ? () {
-                                  setState(() {
-                                    _enabled = true;
-                                  });
-                                }
-                              : null,
-                          style: FilledButton.styleFrom(
-                            backgroundColor: const Color(0xFF57CC99),
-                            foregroundColor: const Color(0xFF083326),
-                            minimumSize: const Size.fromHeight(48),
-                          ),
-                          child: const Text(
-                            'Aktifkan Kompas',
-                            style: TextStyle(fontWeight: FontWeight.w700),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-                      OutlinedButton(
-                        onPressed: () => _showCalibrationGuide(context),
-                        style: OutlinedButton.styleFrom(
-                          foregroundColor: const Color(0xFFCDEBE3),
-                          side: const BorderSide(color: Color(0xFF5F8078)),
-                        ),
-                        child: const Text('Kalibrasi'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 6),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF0D1F1C),
-                      borderRadius: BorderRadius.circular(10),
-                      border: Border.all(color: const Color(0xFF2A4A42)),
                     ),
-                    child: Row(
-                      children: [
-                        const Icon(Icons.tune, size: 16, color: Color(0xFF89D5BF)),
-                        const SizedBox(width: 8),
-                        Expanded(
-                          child: Text(
-                            'Ketepatan disaran: ralat bawah 10 darjah.',
-                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                                  color: const Color(0xFFC8E2DB),
-                                ),
-                          ),
-                        ),
-                      ],
+                    FilledButton(
+                      onPressed: hasQibla
+                          ? () {
+                              setState(() {
+                                _enabled = true;
+                              });
+                            }
+                          : null,
+                      child: const Text('Aktifkan'),
                     ),
-                  ),
-                  Text(
-                    'Cara guna: Pastikan telefon rata. Anak panah menunjuk ke arah Kaabah.',
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: const Color(0xFFB9D4CC),
-                        ),
-                  ),
-                  const SizedBox(height: 14),
-                  if (!_enabled || !hasQibla)
-                    _buildDisabledCompass(context)
-                  else
-                    StreamBuilder<CompassEvent>(
-                      stream: FlutterCompass.events,
-                      builder: (context, snapshot) {
-                        final heading = snapshot.data?.heading;
-                        if (heading == null) {
-                          return _buildDisabledCompass(context);
-                        }
-                        final turn =
-                            ((widget.controller.qiblaBearing! - heading) / 360);
-                        final delta = _normalizeDelta(
-                          widget.controller.qiblaBearing! - heading,
-                        ).abs();
-                        return _buildActiveCompass(
-                          context,
-                          turn: turn,
-                          degrees: widget.controller.qiblaBearing!,
-                          heading: heading,
-                          delta: delta,
-                        );
-                      },
-                    ),
-                ],
+                  ],
+                ),
               ),
             ),
-          ),
-          const SizedBox(height: 10),
-          Center(
-            child: Text(
-              'Sumber data: JAKIM e-Solat dan Malaysia Waktu Solat API.',
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: const Color(0xFF51645F),
-                  ),
+            const SizedBox(height: 10),
+            Card(
+              color: const Color(0xFF2F3750),
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: (!_enabled || !hasQibla)
+                    ? _buildDisabledCompass(context)
+                    : StreamBuilder<CompassEvent>(
+                        stream: FlutterCompass.events,
+                        builder: (context, snapshot) {
+                          final heading = snapshot.data?.heading;
+                          if (heading == null) {
+                            return _buildDisabledCompass(context);
+                          }
+                          final turn =
+                              ((widget.controller.qiblaBearing! - heading) / 360);
+                          final delta = _normalizeDelta(
+                            widget.controller.qiblaBearing! - heading,
+                          ).abs();
+                          return _buildActiveCompass(
+                            context,
+                            turn: turn,
+                            degrees: widget.controller.qiblaBearing!,
+                            heading: heading,
+                            delta: delta,
+                          );
+                        },
+                      ),
+              ),
             ),
-          ),
-        ],
+            const SizedBox(height: 10),
+            Card(
+              color: const Color(0xFF2F3750),
+              child: Padding(
+                padding: const EdgeInsets.all(14),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'panduan kalibrasi',
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
+                    const SizedBox(height: 8),
+                    const _GuideRow(text: 'Pegang telefon dalam posisi rata.'),
+                    const _GuideRow(text: 'Gerakkan telefon bentuk angka 8, 5-10 kali.'),
+                    const _GuideRow(text: 'Jauhkan dari magnet dan casing bermagnet.'),
+                    const _GuideRow(text: 'Tunggu bacaan stabil sebelum ikut arah.'),
+                    const SizedBox(height: 8),
+                    OutlinedButton.icon(
+                      onPressed: () => _showCalibrationGuide(context),
+                      icon: const Icon(Icons.tune),
+                      label: const Text('Buka panduan penuh'),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -196,22 +159,23 @@ class _QiblaPageState extends State<QiblaPage> {
   Widget _buildDisabledCompass(BuildContext context) {
     return Column(
       children: [
-        _CompassFrame(
+        const _CompassFrame(
           child: Center(
             child: Text(
               'Kompas belum aktif',
-              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                    color: const Color(0xFFA7C2BA),
-                  ),
+              style: TextStyle(
+                color: Color(0xFFAFC0DE),
+                fontWeight: FontWeight.w600,
+              ),
             ),
           ),
         ),
-        const SizedBox(height: 10),
+        const SizedBox(height: 8),
         Text(
           '--',
           style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: const Color(0xFFE3F1ED),
-                fontWeight: FontWeight.w700,
+                color: Colors.white,
+                fontWeight: FontWeight.w800,
               ),
         ),
       ],
@@ -236,7 +200,7 @@ class _QiblaPageState extends State<QiblaPage> {
                 height: 210,
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
-                  border: Border.all(color: const Color(0xFF2F4A45)),
+                  border: Border.all(color: const Color(0xFF49526B)),
                 ),
               ),
               Transform.rotate(
@@ -244,7 +208,7 @@ class _QiblaPageState extends State<QiblaPage> {
                 child: const Icon(
                   Icons.navigation,
                   size: 112,
-                  color: Color(0xFF57CC99),
+                  color: Color(0xFFF4C542),
                 ),
               ),
               _directionLabel('U', Alignment.topCenter),
@@ -257,17 +221,17 @@ class _QiblaPageState extends State<QiblaPage> {
         const SizedBox(height: 10),
         Text(
           '${degrees.toStringAsFixed(0)} darjah',
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                color: const Color(0xFFE3F1ED),
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                color: Colors.white,
                 fontWeight: FontWeight.w800,
               ),
         ),
         const SizedBox(height: 4),
         Text(
-          'Arah semasa: ${heading.toStringAsFixed(0)} darjah | Ralat: ${delta.toStringAsFixed(0)} darjah',
+          'Arah semasa ${heading.toStringAsFixed(0)}° | Ralat ${delta.toStringAsFixed(0)}°',
           textAlign: TextAlign.center,
-          style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                color: const Color(0xFFC7DED8),
+          style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                color: const Color(0xFFB8C4D9),
               ),
         ),
       ],
@@ -282,7 +246,7 @@ class _QiblaPageState extends State<QiblaPage> {
         child: Text(
           text,
           style: const TextStyle(
-            color: Color(0xFFB3D3CB),
+            color: Color(0xFFD9E4F7),
             fontWeight: FontWeight.w700,
             fontSize: 13,
           ),
@@ -344,12 +308,44 @@ class _CompassFrame extends StatelessWidget {
       height: 246,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
+        color: const Color(0xFF242D45),
         border: Border.all(
-          color: const Color(0xFF3A5A53),
+          color: const Color(0xFF4A5673),
           width: 1.4,
         ),
       ),
       child: child,
+    );
+  }
+}
+
+class _GuideRow extends StatelessWidget {
+  const _GuideRow({required this.text});
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 4),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const Padding(
+            padding: EdgeInsets.only(top: 6),
+            child: Icon(Icons.circle, size: 6, color: Color(0xFF97A9C9)),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Text(
+              text,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: const Color(0xFFC7D3E8),
+                  ),
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

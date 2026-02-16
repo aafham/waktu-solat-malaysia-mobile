@@ -62,11 +62,11 @@ class _WaktuSolatAppState extends State<WaktuSolatApp> {
 
   @override
   Widget build(BuildContext context) {
-    const surfaceBg = Color(0xFF07152F);
-    const cardBg = Color(0xFF102544);
-    const cardBgSoft = Color(0xFF143053);
-    const primary = Color(0xFFF3C623);
-    const secondary = Color(0xFF5DADE2);
+    const surfaceBg = Color(0xFF07142E);
+    const cardBg = Color(0xFF303950);
+    const cardBgSoft = Color(0xFF414A62);
+    const primary = Color(0xFFF4C542);
+    const secondary = Color(0xFF3CCAB5);
 
     final baseTheme = ThemeData(
       brightness: Brightness.dark,
@@ -122,15 +122,15 @@ class _WaktuSolatAppState extends State<WaktuSolatApp> {
       switchTheme: SwitchThemeData(
         thumbColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return const Color(0xFFF3C623);
+            return const Color(0xFFFFFFFF);
           }
-          return const Color(0xFFBBC9DD);
+          return const Color(0xFFCDD6E6);
         }),
         trackColor: WidgetStateProperty.resolveWith((states) {
           if (states.contains(WidgetState.selected)) {
-            return const Color(0xFF6B5A1D);
+            return const Color(0xFF12D568);
           }
-          return const Color(0xFF324A6B);
+          return const Color(0xFF5B657F);
         }),
       ),
       chipTheme: ChipThemeData(
@@ -140,8 +140,8 @@ class _WaktuSolatAppState extends State<WaktuSolatApp> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
       navigationBarTheme: const NavigationBarThemeData(
-        backgroundColor: Color(0xFF0C1F3D),
-        indicatorColor: Color(0xFFF3C623),
+        backgroundColor: Color(0xFF0C1D3A),
+        indicatorColor: Color(0xFF3A4560),
         surfaceTintColor: Colors.transparent,
         iconTheme: WidgetStatePropertyAll(
           IconThemeData(color: Color(0xFFB7C6DC)),

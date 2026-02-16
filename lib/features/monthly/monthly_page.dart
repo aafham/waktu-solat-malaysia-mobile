@@ -214,9 +214,9 @@ class _MonthlySummary extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.82),
+        color: const Color(0xFF2F3750),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: const Color(0xFFD0DFDB)),
+        border: Border.all(color: const Color(0xFF4D5772)),
       ),
       child: Wrap(
         spacing: 8,
@@ -263,8 +263,8 @@ class _HeatMap extends StatelessWidget {
         final v = values[idx];
         final t = span == 0 ? 0.5 : (v - min) / span;
         final color = Color.lerp(
-          const Color(0xFFDBEFEA),
-          const Color(0xFF0D8C7B),
+          const Color(0xFF4D5772),
+          const Color(0xFFF4C542),
           t.clamp(0, 1),
         )!;
 

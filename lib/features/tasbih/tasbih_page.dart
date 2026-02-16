@@ -25,271 +25,199 @@ class _TasbihPageState extends State<TasbihPage> {
   @override
   Widget build(BuildContext context) {
     final count = widget.controller.tasbihCount;
+    final presetTarget = _presets[_activePreset] ?? 33;
     const cycleTarget = 33;
     final cycle = count ~/ cycleTarget;
     final inCycle = count % cycleTarget;
-    final progress = inCycle / cycleTarget;
-    final presetTarget = _presets[_activePreset] ?? 33;
+    final cycleProgress = inCycle / cycleTarget;
     final presetCount = count % presetTarget;
     final presetProgress = presetCount / presetTarget;
-    final compact = MediaQuery.sizeOf(context).height < 760;
-    final orbSize = compact ? 170.0 : 210.0;
 
     return SafeArea(
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          return SingleChildScrollView(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(minHeight: constraints.maxHeight),
-              child: Container(
-                decoration: const BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: <Color>[Color(0xFFF4F7F6), Color(0xFFE7EFEC)],
+      child: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF0A1A38), Color(0xFF07142E)],
+          ),
+        ),
+        child: focusMode
+            ? _buildFocusMode(context, count)
+            : ListView(
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 100),
+                children: [
+                  Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          'zikir',
+                          style:
+                              Theme.of(context).textTheme.displaySmall?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                        ),
+                      ),
+                      IconButton.filledTonal(
+                        onPressed: () {
+                          setState(() {
+                            focusMode = true;
+                          });
+                        },
+                        icon: const Icon(Icons.center_focus_strong),
+                      ),
+                    ],
                   ),
-                ),
-                child: focusMode
-                    ? _buildFocusMode(context, count)
-                    : Padding(
-                        padding: const EdgeInsets.fromLTRB(20, 18, 20, 20),
-                        child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            'Tasbih Digital',
-                            style: Theme.of(context)
-                                .textTheme
-                                .headlineSmall
-                                ?.copyWith(fontWeight: FontWeight.w700),
-                          ),
+                  Text(
+                    'tap bulatan untuk tambah kiraan',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: const Color(0xFFAEBBD3),
                         ),
-                        IconButton(
-                          tooltip: 'Mod fokus',
-                          onPressed: () {
-                            setState(() {
-                              focusMode = true;
-                            });
+                  ),
+                  const SizedBox(height: 12),
+                  Card(
+                    color: const Color(0xFF2F3750),
+                    child: Padding(
+                      padding: const EdgeInsets.all(14),
+                      child: Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: [
+                          _StatChip(
+                            icon: Icons.today,
+                            text: 'Hari ini ${widget.controller.tasbihTodayCount}',
+                          ),
+                          _StatChip(
+                            icon: Icons.view_week,
+                            text: '7 hari ${widget.controller.tasbihWeekCount}',
+                          ),
+                          _StatChip(
+                            icon: Icons.local_fire_department,
+                            text: 'Streak ${widget.controller.tasbihStreakDays}',
+                          ),
+                          _StatChip(
+                            icon: Icons.emoji_events,
+                            text: 'Terbaik ${widget.controller.tasbihBestDay}',
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Card(
+                    color: const Color(0xFF2F3750),
+                    child: Padding(
+                      padding: const EdgeInsets.all(14),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 180),
+                            child: Text(
+                              '$count',
+                              key: ValueKey<int>(count),
+                              style: Theme.of(context)
+                                  .textTheme
+                                  .displayLarge
+                                  ?.copyWith(
+                                    color: Colors.white,
+                                    fontWeight: FontWeight.w800,
+                                  ),
+                            ),
+                          ),
+                          Text(
+                            'jumlah semasa',
+                            style:
+                                Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                      color: const Color(0xFFAEBBD3),
+                                    ),
+                          ),
+                          const SizedBox(height: 10),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: _presets.entries
+                                .map(
+                                  (entry) => ChoiceChip(
+                                    label: Text('${entry.key} (${entry.value})'),
+                                    selected: _activePreset == entry.key,
+                                    onSelected: (_) {
+                                      setState(() {
+                                        _activePreset = entry.key;
+                                      });
+                                    },
+                                  ),
+                                )
+                                .toList(),
+                          ),
+                          const SizedBox(height: 12),
+                          _ProgressBlock(
+                            title: 'pusingan 33',
+                            valueText: '$inCycle/$cycleTarget',
+                            value: cycleProgress,
+                            color: const Color(0xFF20D167),
+                          ),
+                          const SizedBox(height: 10),
+                          _ProgressBlock(
+                            title: _activePreset,
+                            valueText: '$presetCount/$presetTarget',
+                            value: presetProgress,
+                            color: const Color(0xFFF4C542),
+                          ),
+                          const SizedBox(height: 8),
+                          Text(
+                            'Set lengkap: $cycle',
+                            style:
+                                Theme.of(context).textTheme.bodyMedium?.copyWith(
+                                      color: const Color(0xFFC9D4E8),
+                                    ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 14),
+                  _TapOrb(
+                    onTap: () async {
+                      await HapticFeedback.lightImpact();
+                      await widget.controller.incrementTasbih();
+                    },
+                  ),
+                  const SizedBox(height: 14),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: FilledButton.icon(
+                          onPressed: () async {
+                            await HapticFeedback.lightImpact();
+                            await widget.controller.incrementTasbih();
                           },
-                          icon: const Icon(Icons.center_focus_strong),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      'Sentuh bulatan untuk tambah kiraan',
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                            color: Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
-                    ),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: _presets.entries
-                          .map(
-                            (entry) => ChoiceChip(
-                              label: Text('${entry.key} (${entry.value})'),
-                              selected: _activePreset == entry.key,
-                              onSelected: (_) {
-                                setState(() {
-                                  _activePreset = entry.key;
-                                });
-                              },
-                            ),
-                          )
-                          .toList(),
-                    ),
-                    SizedBox(height: compact ? 12 : 18),
-                    Card(
-                      elevation: 0,
-                      color: Colors.white.withValues(alpha: 0.72),
-                      child: Padding(
-                        padding: const EdgeInsets.all(12),
-                        child: Wrap(
-                          spacing: 8,
-                          runSpacing: 8,
-                          children: [
-                            Chip(
-                              avatar: const Icon(Icons.today, size: 16),
-                              label:
-                                  Text('Hari ini ${widget.controller.tasbihTodayCount}'),
-                            ),
-                            Chip(
-                              avatar: const Icon(Icons.view_week, size: 16),
-                              label: Text(
-                                '7 hari ${widget.controller.tasbihWeekCount}',
-                              ),
-                            ),
-                            Chip(
-                              avatar: const Icon(Icons.local_fire_department, size: 16),
-                              label:
-                                  Text('Streak ${widget.controller.tasbihStreakDays}'),
-                            ),
-                            Chip(
-                              avatar: const Icon(Icons.emoji_events, size: 16),
-                              label:
-                                  Text('Terbaik ${widget.controller.tasbihBestDay}'),
-                            ),
-                          ],
+                          icon: const Icon(Icons.add),
+                          label: const Text('Tambah'),
                         ),
                       ),
-                    ),
-                    SizedBox(height: compact ? 12 : 18),
-                    Card(
-                      elevation: 0,
-                      color: Colors.white.withValues(alpha: 0.82),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(22),
-                      ),
-                      child: Padding(
-                        padding: const EdgeInsets.all(18),
-                        child: Column(
-                          children: [
-                            AnimatedSwitcher(
-                              duration: const Duration(milliseconds: 180),
-                              child: Text(
-                                '$count',
-                                key: ValueKey<int>(count),
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .displayLarge
-                                    ?.copyWith(fontWeight: FontWeight.w700),
-                              ),
-                            ),
-                            const SizedBox(height: 8),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text('Pusingan 33: $cycle'),
-                                Text('$inCycle/$cycleTarget'),
-                              ],
-                            ),
-                            const SizedBox(height: 6),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text('Zikir: $_activePreset'),
-                                Text('$presetCount/$presetTarget'),
-                              ],
-                            ),
-                            const SizedBox(height: 8),
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(999),
-                              child: LinearProgressIndicator(
-                                minHeight: 8,
-                                value: progress,
-                                backgroundColor: Theme.of(context)
-                                    .colorScheme
-                                    .surfaceContainerHighest,
-                              ),
-                            ),
-                            const SizedBox(height: 10),
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                              children: [
-                                Text('Kemajuan $_activePreset'),
-                                Text('$presetCount/$presetTarget'),
-                              ],
-                            ),
-                            const SizedBox(height: 6),
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(999),
-                              child: LinearProgressIndicator(
-                                minHeight: 8,
-                                value: presetProgress,
-                                backgroundColor: Theme.of(context)
-                                    .colorScheme
-                                    .surfaceContainerHighest,
-                                valueColor: const AlwaysStoppedAnimation<Color>(
-                                  Color(0xFF2B9C8D),
-                                ),
-                              ),
-                            ),
-                          ],
+                      const SizedBox(width: 10),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: () async {
+                            await HapticFeedback.selectionClick();
+                            await widget.controller.addTasbihBatch(presetTarget);
+                          },
+                          icon: const Icon(Icons.bolt),
+                          label: Text('+$presetTarget'),
                         ),
                       ),
-                    ),
-                    SizedBox(height: compact ? 14 : 22),
-                    _TapOrb(
-                      size: orbSize,
-                      onTap: () async {
-                        await HapticFeedback.lightImpact();
-                        await widget.controller.incrementTasbih();
-                      },
-                    ),
-                    SizedBox(height: compact ? 14 : 22),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: FilledButton.icon(
-                            onPressed: () async {
-                              await HapticFeedback.lightImpact();
-                              await widget.controller.incrementTasbih();
-                            },
-                            icon: const Icon(Icons.add),
-                            style: FilledButton.styleFrom(
-                              minimumSize: const Size.fromHeight(54),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                            ),
-                            label: const Text('Tambah'),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: OutlinedButton.icon(
-                            onPressed: () async {
-                              await HapticFeedback.selectionClick();
-                              await widget.controller.addTasbihBatch(
-                                _presets[_activePreset] ?? 0,
-                              );
-                            },
-                            icon: const Icon(Icons.bolt),
-                            style: OutlinedButton.styleFrom(
-                              minimumSize: const Size.fromHeight(54),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(16),
-                              ),
-                            ),
-                            label: Text('+$presetTarget'),
-                          ),
-                        ),
-                      ],
-                    ),
-                    SizedBox(height: compact ? 8 : 10),
-                    OutlinedButton.icon(
-                      onPressed: count == 0 ? null : () => _confirmReset(context),
-                      icon: const Icon(Icons.delete_outline),
-                      style: OutlinedButton.styleFrom(
-                        minimumSize: const Size.fromHeight(50),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                      label: const Text('Tetapkan semula kiraan'),
-                    ),
-                    SizedBox(height: compact ? 4 : 8),
-                    Text(
-                      'Petua: biasanya satu set zikir = 33 kiraan',
-                      textAlign: TextAlign.center,
-                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                            color:
-                                Theme.of(context).colorScheme.onSurfaceVariant,
-                          ),
-                    ),
-                  ],
-                        ),
-                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  OutlinedButton.icon(
+                    onPressed: count == 0 ? null : () => _confirmReset(context),
+                    icon: const Icon(Icons.restart_alt),
+                    label: const Text('Reset kiraan'),
+                  ),
+                ],
               ),
-            ),
-          );
-        },
       ),
     );
   }
@@ -302,15 +230,14 @@ class _TasbihPageState extends State<TasbihPage> {
           Row(
             children: [
               Text(
-                'Mod Fokus',
-                style: Theme.of(context)
-                    .textTheme
-                    .titleLarge
-                    ?.copyWith(fontWeight: FontWeight.w700),
+                'focus mode',
+                style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
               ),
               const Spacer(),
-              IconButton(
-                tooltip: 'Keluar mod fokus',
+              IconButton.filledTonal(
                 onPressed: () {
                   setState(() {
                     focusMode = false;
@@ -323,12 +250,12 @@ class _TasbihPageState extends State<TasbihPage> {
           const Spacer(),
           Text(
             '$count',
-            style: Theme.of(context)
-                .textTheme
-                .displayLarge
-                ?.copyWith(fontWeight: FontWeight.w700),
+            style: Theme.of(context).textTheme.displayLarge?.copyWith(
+                  color: Colors.white,
+                  fontWeight: FontWeight.w800,
+                ),
           ),
-          const SizedBox(height: 22),
+          const SizedBox(height: 18),
           _TapOrb(
             size: 250,
             onTap: () async {
@@ -340,9 +267,8 @@ class _TasbihPageState extends State<TasbihPage> {
           FilledButton.icon(
             onPressed: count == 0 ? null : () => _confirmReset(context),
             icon: const Icon(Icons.restart_alt),
-            label: const Text('Tetapkan semula kiraan'),
+            label: const Text('Reset'),
           ),
-          const SizedBox(height: 6),
         ],
       ),
     );
@@ -376,6 +302,82 @@ class _TasbihPageState extends State<TasbihPage> {
   }
 }
 
+class _StatChip extends StatelessWidget {
+  const _StatChip({
+    required this.icon,
+    required this.text,
+  });
+
+  final IconData icon;
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    return Chip(
+      avatar: Icon(icon, size: 16, color: const Color(0xFFD8E5FF)),
+      label: Text(text),
+      labelStyle: const TextStyle(
+        color: Color(0xFFE7EEFB),
+        fontWeight: FontWeight.w600,
+      ),
+      backgroundColor: const Color(0xFF3A435D),
+      side: const BorderSide(color: Color(0xFF4D5773)),
+    );
+  }
+}
+
+class _ProgressBlock extends StatelessWidget {
+  const _ProgressBlock({
+    required this.title,
+    required this.valueText,
+    required this.value,
+    required this.color,
+  });
+
+  final String title;
+  final String valueText;
+  final double value;
+  final Color color;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                title,
+                style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+            ),
+            Text(
+              valueText,
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: const Color(0xFFC9D4E8),
+                  ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 6),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(999),
+          child: LinearProgressIndicator(
+            value: value.clamp(0.0, 1.0),
+            minHeight: 9,
+            backgroundColor: const Color(0xFF4F5A77),
+            valueColor: AlwaysStoppedAnimation<Color>(color),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _TapOrb extends StatelessWidget {
   const _TapOrb({
     required this.onTap,
@@ -400,7 +402,7 @@ class _TapOrb extends StatelessWidget {
             decoration: const BoxDecoration(
               shape: BoxShape.circle,
               gradient: LinearGradient(
-                colors: <Color>[Color(0xFF0D8C7B), Color(0xFF0A6A60)],
+                colors: <Color>[Color(0xFF19B07A), Color(0xFF0F8F64)],
                 begin: Alignment.topLeft,
                 end: Alignment.bottomRight,
               ),

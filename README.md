@@ -5,6 +5,13 @@ Aplikasi mudah alih untuk bantu pengguna Malaysia jaga amalan harian dengan 3 fo
 - Qiblat
 - Zikir
 
+## Status UI Terkini
+Kemaskini terkini membawa gaya visual gelap yang konsisten di semua page:
+- Palette navy gelap + kad biru-kelabu rounded.
+- `Settings` dirombak ke gaya list card seperti rujukan (section `prayer times`, `notifications`, `appearance`, `fasting reminders`, `zikir`, `about`).
+- Page `Zikir` dikemas dari segi hierarchy, progress, dan action utama.
+- Page `Qiblat` dikemas dengan struktur status + kompas + panduan kalibrasi yang lebih jelas.
+
 ## Fokus Utama Aplikasi
 - `Waktu Solat`: waktu harian ikut zon Malaysia, countdown ke waktu seterusnya, check-in solat harian.
 - `Qiblat`: kompas kiblat dengan bacaan darjah, status aktif, dan panduan kalibrasi.
@@ -17,10 +24,11 @@ Bottom navigation:
 - `Zikir`
 - `Tetapan`
 
-## Ciri Tambahan Yang Sudah Ada
+## Ciri Tambahan
 - Lokasi automatik (GPS) + zon manual.
 - Notifikasi waktu solat (termasuk tetapan per waktu).
 - Travel mode auto tukar zon.
+- Reminder puasa (`Ramadhan`, `Isnin/Khamis`, `Ayyamul Bidh`).
 - Mod kontras tinggi dan saiz teks boleh laras.
 - Simpanan setempat (`SharedPreferences`) untuk fallback data.
 - Android home widget (paparan waktu seterusnya + countdown + tasbih).
@@ -45,7 +53,7 @@ flutter run
 ## Ujian & Analisis
 ```bash
 flutter test
-flutter analyze
+flutter analyze --no-pub
 ```
 
 ## Build APK
@@ -70,17 +78,18 @@ Kebenaran minimum:
 ```
 
 ## Struktur Kod Ringkas
-- `lib/main.dart` - inisialisasi app, tema global, navigasi bawah
-- `lib/state/app_controller.dart` - state utama dan aliran data
-- `lib/features/home/home_page.dart` - skrin Waktu Solat (hero, countdown, check-in)
-- `lib/features/qibla/qibla_page.dart` - skrin Qiblat
-- `lib/features/tasbih/tasbih_page.dart` - skrin Zikir
-- `lib/features/settings/settings_page.dart` - tetapan mesra pengguna
-- `lib/services/prayer_service.dart` - API waktu solat, parser, cache
-- `lib/services/location_service.dart` - GPS dan permission
-- `lib/services/notification_service.dart` - jadual notifikasi
-- `lib/services/qibla_service.dart` - kiraan arah kiblat
-- `lib/services/tasbih_store.dart` - simpanan kiraan/tetapan
+- `lib/main.dart` - inisialisasi app, tema global, navigasi bawah.
+- `lib/state/app_controller.dart` - state utama dan aliran data.
+- `lib/features/home/home_page.dart` - skrin Waktu Solat (hero, countdown, check-in).
+- `lib/features/qibla/qibla_page.dart` - skrin Qiblat.
+- `lib/features/tasbih/tasbih_page.dart` - skrin Zikir.
+- `lib/features/settings/settings_page.dart` - tetapan gaya kad.
+- `lib/features/monthly/monthly_page.dart` - jadual bulanan + eksport.
+- `lib/services/prayer_service.dart` - API waktu solat, parser, cache.
+- `lib/services/location_service.dart` - GPS dan permission.
+- `lib/services/notification_service.dart` - jadual notifikasi.
+- `lib/services/qibla_service.dart` - kiraan arah kiblat.
+- `lib/services/tasbih_store.dart` - simpanan kiraan/tetapan.
 
 ## API Digunakan
 - `https://solat.my/api/locations`
@@ -88,10 +97,10 @@ Kebenaran minimum:
 - `https://solat.my/api/monthly/{ZONE_CODE}`
 
 ## Nota Teknikal
-- Locale default: `ms_MY`
-- Timezone notifikasi: `Asia/Kuala_Lumpur`
-- Refresh automatik bila hari bertukar
-- Data zon/waktu disimpan setempat untuk kegunaan offline sementara
+- Locale default: `ms_MY`.
+- Timezone notifikasi: `Asia/Kuala_Lumpur`.
+- Refresh automatik bila hari bertukar.
+- Data zon/waktu disimpan setempat untuk kegunaan offline sementara.
 
 ## Troubleshooting Ringkas
 - `flutter`/`dart` tidak dijumpai: semak PATH dan restart terminal.
