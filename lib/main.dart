@@ -28,7 +28,8 @@ class WaktuSolatApp extends StatefulWidget {
   State<WaktuSolatApp> createState() => _WaktuSolatAppState();
 }
 
-class _WaktuSolatAppState extends State<WaktuSolatApp> {
+class _WaktuSolatAppState extends State<WaktuSolatApp>
+    with WidgetsBindingObserver {
   late final AppController controller;
   int tabIndex = 0;
   bool showSplash = true;
@@ -37,6 +38,7 @@ class _WaktuSolatAppState extends State<WaktuSolatApp> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     controller = AppController(
       prayerService: PrayerService(),
       locationService: LocationService(),
@@ -56,8 +58,16 @@ class _WaktuSolatAppState extends State<WaktuSolatApp> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     controller.dispose();
     super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      controller.refreshPrayerData();
+    }
   }
 
   @override
@@ -189,69 +199,81 @@ class _WaktuSolatAppState extends State<WaktuSolatApp> {
       useMaterial3: true,
     );
 
-    return MaterialApp(
-      debugShowCheckedModeBanner: false,
-      title: 'JagaSolat',
-      theme: controller.highContrast ? highContrastTheme : baseTheme,
-      home: showSplash
-          ? const SplashScreen()
-          : AnimatedBuilder(
-              animation: controller,
-              builder: (context, _) {
-                final pages = <Widget>[
-                  HomePage(
-                    controller: controller,
-                    onNavigateToTab: (index) {
-                      setState(() {
-                        tabIndex = index;
-                      });
-                    },
-                  ),
-                  QiblaPage(controller: controller),
-                  TasbihPage(controller: controller),
-                  SettingsPage(controller: controller),
-                ];
-
-                return Scaffold(
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, _) {
+        Intl.defaultLocale = controller.isEnglish ? 'en_US' : 'ms_MY';
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          title: 'JagaSolat',
+          theme: controller.highContrast ? highContrastTheme : baseTheme,
+          home: showSplash
+              ? const SplashScreen()
+              : Scaffold(
                   body: controller.isLoading
                       ? const Center(child: CircularProgressIndicator())
                       : !controller.onboardingSeen && !dismissedOnboarding
-                      ? OnboardingPage(
-                          onSelesai: () async {
-                            await controller.completeOnboarding();
-                            setState(() {
-                              dismissedOnboarding = true;
-                            });
-                          },
-                        )
-                      : MediaQuery(
-                          data: MediaQuery.of(context).copyWith(
-                            textScaler: TextScaler.linear(controller.textScale),
-                          ),
-                          child: pages[tabIndex],
-                        ),
-                  bottomNavigationBar: controller.isLoading
-                      ? null
-                      : !controller.onboardingSeen && !dismissedOnboarding
-                          ? null
-                          : NavigationBar(
-                              height: 72,
-                              selectedIndex: tabIndex,
-                              onDestinationSelected: (idx) {
+                          ? OnboardingPage(
+                              controller: controller,
+                              onSelesai: () async {
+                                await controller.completeOnboarding();
                                 setState(() {
-                                  tabIndex = idx;
+                                  dismissedOnboarding = true;
                                 });
                               },
-                              destinations: const [
-                                NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Waktu'),
-                                NavigationDestination(icon: Icon(Icons.explore), label: 'Qiblat'),
-                                NavigationDestination(icon: Icon(Icons.touch_app), label: 'Zikir'),
-                                NavigationDestination(icon: Icon(Icons.settings), label: 'Tetapan'),
-                              ],
+                            )
+                          : MediaQuery(
+                              data: MediaQuery.of(context).copyWith(
+                                textScaler:
+                                    TextScaler.linear(controller.textScale),
+                              ),
+                              child: <Widget>[
+                                HomePage(
+                                  controller: controller,
+                                  onNavigateToTab: (index) {
+                                    setState(() {
+                                      tabIndex = index;
+                                    });
+                                  },
+                                ),
+                                QiblaPage(controller: controller),
+                                TasbihPage(controller: controller),
+                                SettingsPage(controller: controller),
+                              ][tabIndex],
                             ),
-                );
-              },
-            ),
+                  bottomNavigationBar: controller.isLoading ||
+                          (!controller.onboardingSeen && !dismissedOnboarding)
+                      ? null
+                      : NavigationBar(
+                          height: 72,
+                          selectedIndex: tabIndex,
+                          onDestinationSelected: (idx) {
+                            setState(() {
+                              tabIndex = idx;
+                            });
+                          },
+                          destinations: [
+                            NavigationDestination(
+                              icon: const Icon(Icons.home_outlined),
+                              label: controller.tr('Waktu', 'Times'),
+                            ),
+                            NavigationDestination(
+                              icon: const Icon(Icons.explore),
+                              label: controller.tr('Qiblat', 'Qibla'),
+                            ),
+                            NavigationDestination(
+                              icon: const Icon(Icons.touch_app),
+                              label: controller.tr('Zikir', 'Tasbih'),
+                            ),
+                            NavigationDestination(
+                              icon: const Icon(Icons.settings),
+                              label: controller.tr('Tetapan', 'Settings'),
+                            ),
+                          ],
+                        ),
+                ),
+        );
+      },
     );
   }
 }
@@ -261,25 +283,54 @@ class SplashScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      backgroundColor: Color(0xFF07152F),
-      body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(Icons.mosque, size: 84, color: Color(0xFFF3C623)),
-            SizedBox(height: 20),
-            Text(
-              'JagaSolat',
-              style: TextStyle(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.w700,
+    return Scaffold(
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF0C1D3A), Color(0xFF07152F)],
+          ),
+        ),
+        child: const Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              CircleAvatar(
+                radius: 44,
+                backgroundColor: Color(0x1AF4C542),
+                child: Icon(Icons.mosque, size: 48, color: Color(0xFFF4C542)),
               ),
-            ),
-            SizedBox(height: 12),
-            CircularProgressIndicator(color: Color(0xFFF3C623)),
-          ],
+              SizedBox(height: 20),
+              Text(
+                'JagaSolat',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 30,
+                  letterSpacing: 0.3,
+                  fontWeight: FontWeight.w800,
+                ),
+              ),
+              SizedBox(height: 8),
+              Text(
+                'Waktu Solat Malaysia',
+                style: TextStyle(
+                  color: Color(0xFFC7D3E8),
+                  fontSize: 14,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              SizedBox(height: 20),
+              SizedBox(
+                width: 28,
+                height: 28,
+                child: CircularProgressIndicator(
+                  strokeWidth: 2.8,
+                  color: Color(0xFFF4C542),
+                ),
+              ),
+            ],
+          ),
         ),
       ),
     );

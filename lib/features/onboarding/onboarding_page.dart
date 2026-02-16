@@ -1,12 +1,16 @@
 import 'package:flutter/material.dart';
 
+import '../../state/app_controller.dart';
+
 class OnboardingPage extends StatefulWidget {
   const OnboardingPage({
     super.key,
     required this.onSelesai,
+    required this.controller,
   });
 
   final Future<void> Function() onSelesai;
+  final AppController controller;
 
   @override
   State<OnboardingPage> createState() => _OnboardingPageState();
@@ -15,6 +19,15 @@ class OnboardingPage extends StatefulWidget {
 class _OnboardingPageState extends State<OnboardingPage> {
   final PageController _controller = PageController();
   int _index = 0;
+  bool _notifyEnabled = true;
+  bool _autoLocation = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _notifyEnabled = widget.controller.notifyEnabled;
+    _autoLocation = widget.controller.autoLocation;
+  }
 
   @override
   void dispose() {
@@ -24,21 +37,39 @@ class _OnboardingPageState extends State<OnboardingPage> {
 
   @override
   Widget build(BuildContext context) {
+    final tr = widget.controller.tr;
     final pages = <_OnboardItem>[
-      const _OnboardItem(
+      _OnboardItem(
         icon: Icons.access_time_filled,
-        title: 'Waktu Solat Tepat',
-        desc: 'Lihat waktu solat harian dan bulanan mengikut zon Malaysia.',
+        title: tr('Waktu Solat Tepat', 'Accurate Prayer Times'),
+        desc: tr(
+          'Lihat waktu solat harian dan bulanan mengikut zon Malaysia.',
+          'View daily and monthly prayer times by Malaysia zones.',
+        ),
       ),
-      const _OnboardItem(
+      _OnboardItem(
         icon: Icons.notifications_active,
-        title: 'Notifikasi Pintar',
-        desc: 'Aktifkan peringatan masuk waktu, tunda, dan profil bunyi.',
+        title: tr('Notifikasi Pintar', 'Smart Notifications'),
+        desc: tr(
+          'Aktifkan peringatan masuk waktu, tunda, dan profil bunyi.',
+          'Enable prayer alerts, snooze, and sound profiles.',
+        ),
       ),
-      const _OnboardItem(
+      _OnboardItem(
         icon: Icons.explore,
-        title: 'Kiblat & Tasbih',
-        desc: 'Gunakan kompas kiblat dan tasbih digital dengan statistik.',
+        title: tr('Qiblat & Zikir', 'Qibla & Tasbih'),
+        desc: tr(
+          'Gunakan kompas qiblat dan zikir digital dengan statistik.',
+          'Use qibla compass and digital tasbih with stats.',
+        ),
+      ),
+      _OnboardItem(
+        icon: Icons.tune,
+        title: tr('Tetapan Permulaan', 'Quick Setup'),
+        desc: tr(
+          'Tetapkan notifikasi dan lokasi auto sebelum mula guna.',
+          'Set notifications and auto location before you start.',
+        ),
       ),
     ];
 
@@ -89,17 +120,50 @@ class _OnboardingPageState extends State<OnboardingPage> {
                   );
                   return;
                 }
+                await widget.controller.setNotifyEnabled(_notifyEnabled);
+                await widget.controller.setAutoLocation(_autoLocation);
                 await widget.onSelesai();
               },
-              child: Text(_index < pages.length - 1 ? 'Seterusnya' : 'Mula Guna App'),
+              child: Text(
+                _index < pages.length - 1
+                    ? tr('Seterusnya', 'Next')
+                    : tr('Mula Guna App', 'Start App'),
+              ),
             ),
             const SizedBox(height: 8),
             TextButton(
               onPressed: () async {
+                await widget.controller.setNotifyEnabled(_notifyEnabled);
+                await widget.controller.setAutoLocation(_autoLocation);
                 await widget.onSelesai();
               },
-              child: const Text('Langkau'),
+              child: Text(tr('Langkau', 'Skip')),
             ),
+            if (_index == pages.length - 1) ...[
+              const SizedBox(height: 10),
+              _SetupToggle(
+                title: tr(
+                  'Aktifkan notifikasi waktu solat',
+                  'Enable prayer notifications',
+                ),
+                value: _notifyEnabled,
+                onChanged: (value) {
+                  setState(() {
+                    _notifyEnabled = value;
+                  });
+                },
+              ),
+              const SizedBox(height: 8),
+              _SetupToggle(
+                title: tr('Guna lokasi automatik', 'Use automatic location'),
+                value: _autoLocation,
+                onChanged: (value) {
+                  setState(() {
+                    _autoLocation = value;
+                  });
+                },
+              ),
+            ],
           ],
         ),
       ),
@@ -164,6 +228,40 @@ class _OnboardCard extends StatelessWidget {
                 ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _SetupToggle extends StatelessWidget {
+  const _SetupToggle({
+    required this.title,
+    required this.value,
+    required this.onChanged,
+  });
+
+  final String title;
+  final bool value;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      decoration: BoxDecoration(
+        color: const Color(0xFF122A4C),
+        borderRadius: BorderRadius.circular(14),
+        border: Border.all(color: const Color(0xFF2F4F76)),
+      ),
+      child: SwitchListTile(
+        value: value,
+        onChanged: onChanged,
+        title: Text(
+          title,
+          style: const TextStyle(
+            color: Color(0xFFEAF2FF),
+            fontWeight: FontWeight.w600,
+          ),
+        ),
       ),
     );
   }

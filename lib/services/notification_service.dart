@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
+import 'package:flutter/services.dart';
 import 'package:timezone/data/latest.dart' as tz;
 import 'package:timezone/timezone.dart' as tz;
 
@@ -45,10 +46,10 @@ class NotificationService {
 
     final androidPlugin = _plugin.resolvePlatformSpecificImplementation<
         AndroidFlutterLocalNotificationsPlugin>();
-    final iosPlugin = _plugin
-        .resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>();
-    final macosPlugin = _plugin
-        .resolvePlatformSpecificImplementation<MacOSFlutterLocalNotificationsPlugin>();
+    final iosPlugin = _plugin.resolvePlatformSpecificImplementation<
+        IOSFlutterLocalNotificationsPlugin>();
+    final macosPlugin = _plugin.resolvePlatformSpecificImplementation<
+        MacOSFlutterLocalNotificationsPlugin>();
 
     final androidAllowed =
         await androidPlugin?.requestNotificationsPermission() ?? true;
@@ -75,6 +76,7 @@ class NotificationService {
     required bool enableVibration,
     Set<String>? enabledPrayerNames,
     Map<String, String>? prayerSoundProfiles,
+    int leadMinutes = 0,
   }) async {
     await initialize();
     for (var id = 100; id < 220; id++) {
@@ -98,16 +100,22 @@ class NotificationService {
         continue;
       }
 
-      if (prayer.time.isBefore(now)) {
+      final adjustedTime = prayer.time.subtract(Duration(minutes: leadMinutes));
+      if (adjustedTime.isBefore(now)) {
         continue;
       }
 
-      final scheduleDate = tz.TZDateTime.from(prayer.time, tz.local);
+      final scheduleDate = tz.TZDateTime.from(adjustedTime, tz.local);
       final soundProfile = prayerSoundProfiles?[prayer.name] ?? 'default';
       final isSilent = soundProfile == 'silent';
-      final rawResource = soundProfile.startsWith('raw:')
-          ? soundProfile.substring(4)
-          : null;
+      final rawResource =
+          soundProfile.startsWith('raw:') ? soundProfile.substring(4) : null;
+      final title = leadMinutes > 0
+          ? '${prayer.name} dalam $leadMinutes minit'
+          : 'Masuk Waktu ${prayer.name}';
+      final body = leadMinutes > 0
+          ? 'Bersedia untuk ${prayer.name}.'
+          : 'Sudah masuk waktu ${prayer.name}.';
 
       final details = NotificationDetails(
         android: AndroidNotificationDetails(
@@ -136,16 +144,13 @@ class NotificationService {
         ),
       );
 
-      await _plugin.zonedSchedule(
-        id++,
-        'Masuk Waktu ${prayer.name}',
-        'Sudah masuk waktu ${prayer.name}.',
-        scheduleDate,
-        details,
+      await _safeZonedSchedule(
+        id: id++,
+        title: title,
+        body: body,
+        scheduleDate: scheduleDate,
+        details: details,
         payload: prayer.name,
-        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-        uiLocalNotificationDateInterpretation:
-            UILocalNotificationDateInterpretation.absoluteTime,
       );
     }
   }
@@ -185,16 +190,13 @@ class NotificationService {
       ),
     );
 
-    await _plugin.zonedSchedule(
-      9999,
-      'Peringatan $prayerName',
-      'Ini peringatan snooze $minutes minit untuk $prayerName.',
-      scheduleDate,
-      details,
+    await _safeZonedSchedule(
+      id: 9999,
+      title: 'Peringatan $prayerName',
+      body: 'Ini peringatan snooze $minutes minit untuk $prayerName.',
+      scheduleDate: scheduleDate,
+      details: details,
       payload: prayerName,
-      androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-      uiLocalNotificationDateInterpretation:
-          UILocalNotificationDateInterpretation.absoluteTime,
     );
   }
 
@@ -205,9 +207,8 @@ class NotificationService {
   }) async {
     await initialize();
     final isSilent = soundProfile == 'silent';
-    final rawResource = soundProfile.startsWith('raw:')
-        ? soundProfile.substring(4)
-        : null;
+    final rawResource =
+        soundProfile.startsWith('raw:') ? soundProfile.substring(4) : null;
 
     final details = NotificationDetails(
       android: AndroidNotificationDetails(
@@ -238,6 +239,7 @@ class NotificationService {
   Future<void> scheduleFastingReminders({
     required List<DailyPrayerTimes> monthlyDays,
     required bool enableNotification,
+    required bool enableRamadhanMode,
     required bool enableMondayThursday,
     required bool enableAyyamulBidh,
     required bool enableVibration,
@@ -254,7 +256,7 @@ class NotificationService {
     }
 
     if (!enableNotification ||
-        (!enableMondayThursday && !enableAyyamulBidh)) {
+        (!enableRamadhanMode && !enableMondayThursday && !enableAyyamulBidh)) {
       return;
     }
 
@@ -267,6 +269,7 @@ class NotificationService {
       }
       final shouldNotify = _isFastingTargetDay(
         day,
+        enableRamadhanMode: enableRamadhanMode,
         enableMondayThursday: enableMondayThursday,
         enableAyyamulBidh: enableAyyamulBidh,
       );
@@ -281,12 +284,12 @@ class NotificationService {
       final nightBefore = imsak.subtract(const Duration(hours: 9));
       final preImsak = imsak.subtract(const Duration(minutes: 30));
       if (nightBefore.isAfter(now)) {
-        await _plugin.zonedSchedule(
-          idNight++,
-          'Niat Puasa Esok',
-          'Esok hari puasa sunat. Bersedia untuk sahur.',
-          tz.TZDateTime.from(nightBefore, tz.local),
-          NotificationDetails(
+        await _safeZonedSchedule(
+          id: idNight++,
+          title: 'Niat Puasa Esok',
+          body: _nightReminderMessage(day),
+          scheduleDate: tz.TZDateTime.from(nightBefore, tz.local),
+          details: NotificationDetails(
             android: AndroidNotificationDetails(
               'fasting_night',
               'Peringatan Puasa',
@@ -296,18 +299,15 @@ class NotificationService {
               enableVibration: enableVibration,
             ),
           ),
-          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-          uiLocalNotificationDateInterpretation:
-              UILocalNotificationDateInterpretation.absoluteTime,
         );
       }
       if (preImsak.isAfter(now)) {
-        await _plugin.zonedSchedule(
-          idImsak++,
-          'Sahur Hampir Tamat',
-          '30 minit lagi menuju Imsak.',
-          tz.TZDateTime.from(preImsak, tz.local),
-          NotificationDetails(
+        await _safeZonedSchedule(
+          id: idImsak++,
+          title: 'Sahur Hampir Tamat',
+          body: '30 minit lagi menuju Imsak.',
+          scheduleDate: tz.TZDateTime.from(preImsak, tz.local),
+          details: NotificationDetails(
             android: AndroidNotificationDetails(
               'fasting_imsak',
               'Peringatan Sahur',
@@ -317,9 +317,6 @@ class NotificationService {
               enableVibration: enableVibration,
             ),
           ),
-          androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
-          uiLocalNotificationDateInterpretation:
-              UILocalNotificationDateInterpretation.absoluteTime,
         );
       }
     }
@@ -327,6 +324,7 @@ class NotificationService {
 
   bool _isFastingTargetDay(
     DailyPrayerTimes day, {
+    required bool enableRamadhanMode,
     required bool enableMondayThursday,
     required bool enableAyyamulBidh,
   }) {
@@ -334,9 +332,13 @@ class NotificationService {
     final monThu = enableMondayThursday &&
         (weekday == DateTime.monday || weekday == DateTime.thursday);
     final hijriDay = _extractHijriDay(day.hijriDate);
-    final ayyamulBidh =
-        enableAyyamulBidh && hijriDay != null && hijriDay >= 13 && hijriDay <= 15;
-    return monThu || ayyamulBidh;
+    final hijriMonth = _extractHijriMonth(day.hijriDate);
+    final ramadhan = enableRamadhanMode && hijriMonth == 9;
+    final ayyamulBidh = enableAyyamulBidh &&
+        hijriDay != null &&
+        hijriDay >= 13 &&
+        hijriDay <= 15;
+    return ramadhan || monThu || ayyamulBidh;
   }
 
   int? _extractHijriDay(String? hijri) {
@@ -345,6 +347,83 @@ class NotificationService {
     }
     final first = hijri.trim().split(' ').first;
     return int.tryParse(first);
+  }
+
+  int? _extractHijriMonth(String? hijri) {
+    if (hijri == null || hijri.trim().isEmpty) {
+      return null;
+    }
+    final tokens = hijri.trim().split(RegExp(r'\s+'));
+    if (tokens.length < 2) {
+      return null;
+    }
+    final monthToken = tokens[1].toLowerCase();
+    const monthMap = <String, int>{
+      'muharam': 1,
+      'safar': 2,
+      'rabiulawal': 3,
+      'rabiulakhir': 4,
+      'jamadilawal': 5,
+      'jamadilakhir': 6,
+      'rejab': 7,
+      'syaaban': 8,
+      'ramadan': 9,
+      'syawal': 10,
+      'zulkaedah': 11,
+      'zulhijjah': 12,
+    };
+    return monthMap[monthToken];
+  }
+
+  String _nightReminderMessage(DailyPrayerTimes day) {
+    final month = _extractHijriMonth(day.hijriDate);
+    if (month == 9) {
+      return 'Esok hari puasa Ramadan. Bersedia untuk sahur.';
+    }
+    return 'Esok hari puasa sunat. Bersedia untuk sahur.';
+  }
+
+  Future<void> _safeZonedSchedule({
+    required int id,
+    required String title,
+    required String body,
+    required tz.TZDateTime scheduleDate,
+    required NotificationDetails details,
+    String? payload,
+  }) async {
+    try {
+      await _plugin.zonedSchedule(
+        id,
+        title,
+        body,
+        scheduleDate,
+        details,
+        payload: payload,
+        androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
+        uiLocalNotificationDateInterpretation:
+            UILocalNotificationDateInterpretation.absoluteTime,
+      );
+      return;
+    } on PlatformException catch (e) {
+      final message = '${e.code} ${e.message}'.toLowerCase();
+      final exactNotAllowed = message.contains('exact_alarms_not_permitted') ||
+          message.contains('exact alarms are not permitted');
+      if (!exactNotAllowed) {
+        rethrow;
+      }
+    }
+
+    await _plugin.zonedSchedule(
+      id,
+      title,
+      body,
+      scheduleDate,
+      details,
+      payload: payload,
+      androidScheduleMode: AndroidScheduleMode.inexactAllowWhileIdle,
+      uiLocalNotificationDateInterpretation:
+          UILocalNotificationDateInterpretation.absoluteTime,
+    );
   }
 
   void dispose() {

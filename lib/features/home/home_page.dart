@@ -19,11 +19,13 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tr = controller.tr;
     final prayers = controller.dailyPrayerTimes?.entries ?? <PrayerTimeEntry>[];
     final nextPrayer = controller.nextPrayer;
     final now = DateTime.now();
     final currentPrayer = _currentPrayer(prayers, now);
-    final zoneLabel = controller.activeZone?.label ?? 'Zon belum ditentukan';
+    final zoneLabel = controller.activeZone?.label ??
+        tr('Zon belum ditentukan', 'Zone not selected');
     final heroTheme = _themeForPrayer(nextPrayer?.name ?? currentPrayer?.name);
 
     return SafeArea(
@@ -33,7 +35,7 @@ class HomePage extends StatelessWidget {
           padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
           children: [
             Text(
-              'Waktu Solat',
+              tr('Waktu Solat', 'Prayer Times'),
               style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     fontWeight: FontWeight.w800,
                   ),
@@ -45,11 +47,19 @@ class HomePage extends StatelessWidget {
                     color: const Color(0xFFB9C8E2),
                   ),
             ),
+            const SizedBox(height: 8),
+            _DataFreshnessPill(
+              label: controller.prayerDataFreshnessLabel,
+              isCache: controller.isUsingCachedPrayerData,
+            ),
             const SizedBox(height: 10),
             if (controller.errorMessage != null)
               _ErrorCard(controller: controller)
             else ...[
-              _DateClockCard(hijriDate: controller.dailyPrayerTimes?.hijriDate),
+              _DateClockCard(
+                controller: controller,
+                hijriDate: controller.dailyPrayerTimes?.hijriDate,
+              ),
               const SizedBox(height: 10),
               _HeroPrayerCard(
                 controller: controller,
@@ -58,19 +68,36 @@ class HomePage extends StatelessWidget {
                 gradientColors: heroTheme,
               ),
               const SizedBox(height: 10),
+              _SectionLabel(
+                icon: Icons.timeline,
+                text: tr('Ritma Solat', 'Prayer Rhythm'),
+              ),
+              const SizedBox(height: 8),
+              _PrayerRhythmStrip(
+                controller: controller,
+                prayers: prayers,
+                nextPrayerName: nextPrayer?.name,
+                currentPrayerName: currentPrayer?.name,
+              ),
+              const SizedBox(height: 10),
               _DailyProgressCard(
+                controller: controller,
                 completed: controller.todayPrayerCompletedCount,
                 total: controller.todayPrayerTargetCount,
                 progress: controller.todayPrayerProgress,
               ),
               const SizedBox(height: 10),
               _QuickActionsRow(
+                controller: controller,
                 onOpenTools: () => _showQuickTools(context),
                 onOpenQiblat: () => onNavigateToTab(1),
                 onOpenZikir: () => onNavigateToTab(2),
               ),
               const SizedBox(height: 12),
-              const _SectionLabel(icon: Icons.checklist, text: 'Check-in Solat Hari Ini'),
+              _SectionLabel(
+                icon: Icons.checklist,
+                text: tr('Check-in Solat Hari Ini', 'Today Prayer Check-in'),
+              ),
               const SizedBox(height: 8),
               _PrayerCheckinList(
                 prayers: prayers,
@@ -78,7 +105,10 @@ class HomePage extends StatelessWidget {
                 onToggle: (name) => controller.togglePrayerCompletedToday(name),
               ),
               const SizedBox(height: 12),
-              const _SectionLabel(icon: Icons.schedule, text: 'Jadual Ringkas'),
+              _SectionLabel(
+                icon: Icons.schedule,
+                text: tr('Jadual Ringkas', 'Quick Schedule'),
+              ),
               const SizedBox(height: 8),
               _PrayerGrid(
                 prayers: prayers,
@@ -148,7 +178,7 @@ class HomePage extends StatelessWidget {
                   children: [
                     _QuickToolTile(
                       icon: Icons.home_outlined,
-                      label: 'Waktu',
+                      label: controller.tr('Waktu', 'Times'),
                       onTap: () {
                         Navigator.pop(context);
                         onNavigateToTab(0);
@@ -156,7 +186,7 @@ class HomePage extends StatelessWidget {
                     ),
                     _QuickToolTile(
                       icon: Icons.explore,
-                      label: 'Kiblat',
+                      label: controller.tr('Qiblat', 'Qibla'),
                       onTap: () {
                         Navigator.pop(context);
                         onNavigateToTab(1);
@@ -164,7 +194,7 @@ class HomePage extends StatelessWidget {
                     ),
                     _QuickToolTile(
                       icon: Icons.touch_app,
-                      label: 'Zikir',
+                      label: controller.tr('Zikir', 'Tasbih'),
                       onTap: () {
                         Navigator.pop(context);
                         onNavigateToTab(2);
@@ -172,7 +202,7 @@ class HomePage extends StatelessWidget {
                     ),
                     _QuickToolTile(
                       icon: Icons.settings,
-                      label: 'Tetapan',
+                      label: controller.tr('Tetapan', 'Settings'),
                       onTap: () {
                         Navigator.pop(context);
                         onNavigateToTab(3);
@@ -209,6 +239,7 @@ class _HeroPrayerCard extends StatefulWidget {
 class _HeroPrayerCardState extends State<_HeroPrayerCard> {
   Timer? _ticker;
   Duration _remaining = Duration.zero;
+  bool _refreshingNext = false;
 
   @override
   void initState() {
@@ -237,19 +268,31 @@ class _HeroPrayerCardState extends State<_HeroPrayerCard> {
   }
 
   void _updateRemaining() {
-    final next = widget.nextPrayer;
+    final next = widget.controller.nextPrayer;
     if (next == null) {
       _remaining = Duration.zero;
       return;
     }
     final diff = next.time.difference(DateTime.now());
-    _remaining = diff.isNegative ? Duration.zero : diff;
+    if (diff.isNegative || diff.inSeconds == 0) {
+      _remaining = Duration.zero;
+      if (!_refreshingNext) {
+        _refreshingNext = true;
+        widget.controller.refreshPrayerData().whenComplete(() {
+          _refreshingNext = false;
+        });
+      }
+      return;
+    }
+    _remaining = diff;
   }
 
   @override
   Widget build(BuildContext context) {
-    final currentName = widget.currentPrayer?.name ?? 'Belum bermula';
-    final next = widget.nextPrayer;
+    final tr = widget.controller.tr;
+    final currentName =
+        _currentPrayerName() ?? tr('Belum bermula', 'Not started');
+    final next = widget.controller.nextPrayer;
     return Container(
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(24),
@@ -272,7 +315,7 @@ class _HeroPrayerCardState extends State<_HeroPrayerCard> {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'WAKTU SEMASA',
+              tr('WAKTU SEMASA', 'CURRENT PRAYER'),
               style: Theme.of(context).textTheme.labelSmall?.copyWith(
                     color: Colors.white.withValues(alpha: 0.88),
                     letterSpacing: 1.1,
@@ -289,7 +332,10 @@ class _HeroPrayerCardState extends State<_HeroPrayerCard> {
             const SizedBox(height: 8),
             if (next != null) ...[
               Text(
-                'Seterusnya ${next.name} pada ${DateFormat('HH:mm', _msLocale).format(next.time)}',
+                tr(
+                  'Seterusnya ${next.name} pada ${DateFormat('HH:mm', _msLocale).format(next.time)}',
+                  'Next ${next.name} at ${DateFormat('HH:mm', _msLocale).format(next.time)}',
+                ),
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Colors.white.withValues(alpha: 0.94),
                     ),
@@ -303,14 +349,20 @@ class _HeroPrayerCardState extends State<_HeroPrayerCard> {
                     ),
               ),
               Text(
-                'sebelum masuk waktu ${next.name.toLowerCase()}',
+                tr(
+                  'sebelum masuk waktu ${next.name.toLowerCase()}',
+                  'until ${next.name.toLowerCase()} starts',
+                ),
                 style: Theme.of(context).textTheme.bodySmall?.copyWith(
                       color: Colors.white.withValues(alpha: 0.9),
                     ),
               ),
             ] else
               Text(
-                'Tiada waktu seterusnya buat masa ini.',
+                tr(
+                  'Tiada waktu seterusnya buat masa ini.',
+                  'No next prayer time for now.',
+                ),
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: Colors.white.withValues(alpha: 0.94),
                     ),
@@ -323,16 +375,20 @@ class _HeroPrayerCardState extends State<_HeroPrayerCard> {
                   return;
                 }
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Rekod solat dikemas kini.')),
+                  SnackBar(
+                    content: Text(
+                      tr('Rekod solat dikemas kini.', 'Prayer record updated.'),
+                    ),
+                  ),
                 );
               },
               style: FilledButton.styleFrom(
                 minimumSize: const Size.fromHeight(52),
               ),
               icon: const Icon(Icons.check_circle_outline),
-              label: const Text(
-                'Tanda Solat Selesai',
-                style: TextStyle(fontWeight: FontWeight.w700),
+              label: Text(
+                tr('Tanda Solat Selesai', 'Mark As Completed'),
+                style: const TextStyle(fontWeight: FontWeight.w700),
               ),
             ),
           ],
@@ -347,21 +403,39 @@ class _HeroPrayerCardState extends State<_HeroPrayerCard> {
     final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
     return '$h:$m:$s';
   }
+
+  String? _currentPrayerName() {
+    final entries = widget.controller.dailyPrayerTimes?.entries;
+    if (entries == null || entries.isEmpty) {
+      return widget.currentPrayer?.name;
+    }
+    final now = DateTime.now();
+    PrayerTimeEntry? current;
+    for (final entry in entries) {
+      if (entry.time.isBefore(now) || entry.time.isAtSameMomentAs(now)) {
+        current = entry;
+      }
+    }
+    return current?.name ?? widget.currentPrayer?.name;
+  }
 }
 
 class _DailyProgressCard extends StatelessWidget {
   const _DailyProgressCard({
+    required this.controller,
     required this.completed,
     required this.total,
     required this.progress,
   });
 
+  final AppController controller;
   final int completed;
   final int total;
   final double progress;
 
   @override
   Widget build(BuildContext context) {
+    final tr = controller.tr;
     return Card(
       child: Padding(
         padding: const EdgeInsets.all(14),
@@ -369,7 +443,7 @@ class _DailyProgressCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              'Progress Hari Ini',
+              tr('Progress Hari Ini', 'Today Progress'),
               style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.w700,
                   ),
@@ -379,7 +453,8 @@ class _DailyProgressCard extends StatelessWidget {
               children: [
                 Expanded(
                   child: Text(
-                    '$completed/$total selesai',
+                    tr('$completed/$total selesai',
+                        '$completed/$total completed'),
                     style: Theme.of(context).textTheme.titleLarge?.copyWith(
                           fontWeight: FontWeight.w800,
                         ),
@@ -401,7 +476,8 @@ class _DailyProgressCard extends StatelessWidget {
                 minHeight: 10,
                 value: progress,
                 backgroundColor: const Color(0xFF233D61),
-                valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFF3C623)),
+                valueColor:
+                    const AlwaysStoppedAnimation<Color>(Color(0xFFF3C623)),
               ),
             ),
           ],
@@ -411,13 +487,136 @@ class _DailyProgressCard extends StatelessWidget {
   }
 }
 
+class _PrayerRhythmStrip extends StatelessWidget {
+  const _PrayerRhythmStrip({
+    required this.controller,
+    required this.prayers,
+    required this.nextPrayerName,
+    required this.currentPrayerName,
+  });
+
+  final AppController controller;
+  final List<PrayerTimeEntry> prayers;
+  final String? nextPrayerName;
+  final String? currentPrayerName;
+
+  @override
+  Widget build(BuildContext context) {
+    if (prayers.isEmpty) {
+      return const SizedBox.shrink();
+    }
+    final now = DateTime.now();
+    final visible = prayers
+        .where(
+          (p) =>
+              p.name == 'Subuh' ||
+              p.name == 'Syuruk' ||
+              p.name == 'Zohor' ||
+              p.name == 'Asar' ||
+              p.name == 'Maghrib' ||
+              p.name == 'Isyak',
+        )
+        .toList();
+    if (visible.isEmpty) {
+      return const SizedBox.shrink();
+    }
+
+    return SizedBox(
+      height: 122,
+      child: ListView.separated(
+        scrollDirection: Axis.horizontal,
+        itemCount: visible.length,
+        separatorBuilder: (_, __) => const SizedBox(width: 8),
+        itemBuilder: (context, i) {
+          final item = visible[i];
+          final isNext = item.name == nextPrayerName;
+          final isCurrent = item.name == currentPrayerName;
+          final isDone = item.time.isBefore(now) && !isCurrent;
+          final status = isCurrent
+              ? controller.tr('Semasa', 'Current')
+              : isNext
+                  ? controller.tr('Seterusnya', 'Next')
+                  : isDone
+                      ? controller.tr('Selesai', 'Done')
+                      : controller.tr('Akan datang', 'Upcoming');
+          final accent = isCurrent
+              ? const Color(0xFF3CCAB5)
+              : isNext
+                  ? const Color(0xFFF3C623)
+                  : const Color(0xFF7D93B8);
+
+          return Container(
+            width: 132,
+            padding: const EdgeInsets.all(12),
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(16),
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: isNext
+                    ? const [Color(0xFF1F3F6A), Color(0xFF17375E)]
+                    : const [Color(0xFF162D4D), Color(0xFF132540)],
+              ),
+              border: Border.all(
+                color:
+                    isNext ? const Color(0xFFF3C623) : const Color(0xFF31527A),
+                width: isNext ? 1.4 : 1.0,
+              ),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.circle, size: 8, color: accent),
+                    const SizedBox(width: 6),
+                    Expanded(
+                      child: Text(
+                        status,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              color: const Color(0xFFC9D8EF),
+                              fontWeight: FontWeight.w700,
+                            ),
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 10),
+                Text(
+                  item.name,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        color: const Color(0xFFEAF2FF),
+                        fontWeight: FontWeight.w700,
+                      ),
+                ),
+                const Spacer(),
+                Text(
+                  DateFormat('HH:mm', _msLocale).format(item.time),
+                  style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                        color: const Color(0xFFEAF2FF),
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
+              ],
+            ),
+          );
+        },
+      ),
+    );
+  }
+}
+
 class _QuickActionsRow extends StatelessWidget {
   const _QuickActionsRow({
+    required this.controller,
     required this.onOpenTools,
     required this.onOpenQiblat,
     required this.onOpenZikir,
   });
 
+  final AppController controller;
   final VoidCallback onOpenTools;
   final VoidCallback onOpenQiblat;
   final VoidCallback onOpenZikir;
@@ -431,17 +630,17 @@ class _QuickActionsRow extends StatelessWidget {
         FilledButton.tonalIcon(
           onPressed: onOpenTools,
           icon: const Icon(Icons.grid_view_rounded),
-          label: const Text('Quick Tools'),
+          label: Text(controller.tr('Alat Pantas', 'Quick Tools')),
         ),
         OutlinedButton.icon(
           onPressed: onOpenQiblat,
           icon: const Icon(Icons.explore),
-          label: const Text('Qiblat'),
+          label: Text(controller.tr('Qiblat', 'Qibla')),
         ),
         OutlinedButton.icon(
           onPressed: onOpenZikir,
           icon: const Icon(Icons.touch_app),
-          label: const Text('Zikir'),
+          label: Text(controller.tr('Zikir', 'Tasbih')),
         ),
       ],
     );
@@ -464,17 +663,19 @@ class _PrayerCheckinList extends StatelessWidget {
     const order = <String>['Subuh', 'Zohor', 'Asar', 'Maghrib', 'Isyak'];
     final selected = prayers.where((p) => order.contains(p.name)).toList();
     if (selected.isEmpty) {
+      final tr = controller.tr;
       return Card(
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('Tiada rekod untuk dipaparkan.'),
+              Text(tr(
+                  'Tiada rekod untuk dipaparkan.', 'No records to display.')),
               const SizedBox(height: 8),
               FilledButton(
                 onPressed: controller.refreshPrayerData,
-                child: const Text('Muat semula data waktu'),
+                child: Text(tr('Muat semula data waktu', 'Reload prayer data')),
               ),
             ],
           ),
@@ -494,7 +695,8 @@ class _PrayerCheckinList extends StatelessWidget {
             subtitle: Text(DateFormat('HH:mm', _msLocale).format(entry.time)),
             secondary: Icon(
               completed ? Icons.check_circle : Icons.radio_button_unchecked,
-              color: completed ? const Color(0xFFF3C623) : const Color(0xFF9BB1CE),
+              color:
+                  completed ? const Color(0xFFF3C623) : const Color(0xFF9BB1CE),
             ),
           );
         }).toList(),
@@ -571,12 +773,27 @@ class _PrayerGrid extends StatelessWidget {
           child: Row(
             children: [
               Expanded(
-                child: Text(
-                  item.name,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        color: const Color(0xFFEAF2FF),
-                        fontWeight: FontWeight.w700,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      item.name,
+                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                            color: const Color(0xFFEAF2FF),
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
+                    if (active)
+                      Text(
+                        'NEXT',
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                              color: const Color(0xFFF3C623),
+                              fontWeight: FontWeight.w800,
+                              letterSpacing: 0.8,
+                            ),
                       ),
+                  ],
                 ),
               ),
               Text(
@@ -596,9 +813,11 @@ class _PrayerGrid extends StatelessWidget {
 
 class _DateClockCard extends StatefulWidget {
   const _DateClockCard({
+    required this.controller,
     required this.hijriDate,
   });
 
+  final AppController controller;
   final String? hijriDate;
 
   @override
@@ -630,8 +849,10 @@ class _DateClockCardState extends State<_DateClockCard> {
 
   @override
   Widget build(BuildContext context) {
-    final gDate = DateFormat('EEEE, d MMMM yyyy', _msLocale).format(_now);
-    final clock = DateFormat('HH:mm:ss', _msLocale).format(_now);
+    final locale = widget.controller.isEnglish ? 'en_US' : _msLocale;
+    final tr = widget.controller.tr;
+    final gDate = DateFormat('EEEE, d MMMM yyyy', locale).format(_now);
+    final clock = DateFormat('HH:mm:ss', locale).format(_now);
     final hijri = widget.hijriDate ?? '--';
 
     return Container(
@@ -649,7 +870,7 @@ class _DateClockCardState extends State<_DateClockCard> {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   Text(
-                    'TARIKH MASIHI',
+                    tr('TARIKH MASIHI', 'GREGORIAN DATE'),
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
                           color: const Color(0xFF90A9CC),
                           letterSpacing: 1.1,
@@ -665,7 +886,7 @@ class _DateClockCardState extends State<_DateClockCard> {
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'TARIKH HIJRAH',
+                    tr('TARIKH HIJRAH', 'HIJRI DATE'),
                     style: Theme.of(context).textTheme.labelSmall?.copyWith(
                           color: const Color(0xFF90A9CC),
                           letterSpacing: 1.1,
@@ -766,10 +987,12 @@ class _AnalogClock extends StatelessWidget {
     return Align(
       alignment: alignment,
       child: Container(
-        width: alignment == Alignment.topCenter || alignment == Alignment.bottomCenter
+        width: alignment == Alignment.topCenter ||
+                alignment == Alignment.bottomCenter
             ? 3
             : 10,
-        height: alignment == Alignment.topCenter || alignment == Alignment.bottomCenter
+        height: alignment == Alignment.topCenter ||
+                alignment == Alignment.bottomCenter
             ? 10
             : 3,
         margin: const EdgeInsets.all(10),
@@ -789,6 +1012,7 @@ class _ErrorCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final tr = controller.tr;
     return Card(
       color: const Color(0xFF3B1E29),
       child: Padding(
@@ -797,14 +1021,15 @@ class _ErrorCard extends StatelessWidget {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Text(
-              controller.errorMessage ?? 'Ralat tidak diketahui.',
+              controller.errorMessage ??
+                  tr('Ralat tidak diketahui.', 'Unknown error.'),
               style: const TextStyle(fontWeight: FontWeight.w600),
             ),
             const SizedBox(height: 10),
             FilledButton.icon(
               onPressed: controller.refreshPrayerData,
               icon: const Icon(Icons.refresh),
-              label: const Text('Cuba semula'),
+              label: Text(tr('Cuba semula', 'Try again')),
             ),
             if (controller.errorActionLabel != null) ...[
               const SizedBox(height: 8),
@@ -889,6 +1114,47 @@ class _QuickToolTile extends StatelessWidget {
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _DataFreshnessPill extends StatelessWidget {
+  const _DataFreshnessPill({
+    required this.label,
+    required this.isCache,
+  });
+
+  final String label;
+  final bool isCache;
+
+  @override
+  Widget build(BuildContext context) {
+    final color = isCache ? const Color(0xFFF4C542) : const Color(0xFF3CCAB5);
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 7),
+      decoration: BoxDecoration(
+        color: const Color(0xFF132B4D),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: const Color(0xFF31527A)),
+      ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Icon(Icons.cloud_done, size: 15, color: color),
+          const SizedBox(width: 6),
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: const Color(0xFFD8E5F8),
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
+          ),
+        ],
       ),
     );
   }

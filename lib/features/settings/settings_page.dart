@@ -25,11 +25,17 @@ class _SettingsPageState extends State<SettingsPage> {
   @override
   Widget build(BuildContext context) {
     final controller = widget.controller;
+    final tr = controller.tr;
     final zones = controller.zones;
     final filteredZones = zones
         .where((z) => z.label.toLowerCase().contains(_searchTerm.toLowerCase()))
         .toList();
     final locationLabel = controller.activeZone?.location ?? 'Kuala Lumpur';
+    final fastingEnabledCount = <bool>[
+      controller.ramadhanMode,
+      controller.fastingMondayThursdayEnabled,
+      controller.fastingAyyamulBidhEnabled,
+    ].where((enabled) => enabled).length;
 
     return SafeArea(
       child: Container(
@@ -44,7 +50,7 @@ class _SettingsPageState extends State<SettingsPage> {
           padding: const EdgeInsets.fromLTRB(16, 8, 16, 100),
           children: [
             Text(
-              'settings',
+              tr('Tetapan', 'Settings'),
               style: Theme.of(context).textTheme.displaySmall?.copyWith(
                     fontWeight: FontWeight.w800,
                     color: Colors.white,
@@ -52,32 +58,64 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
             const SizedBox(height: 4),
             Text(
-              'set your intentions',
+              tr('Sesuaikan aplikasi anda', 'Personalize your app'),
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: const Color(0xFFB8C4D9),
                   ),
             ),
             const SizedBox(height: 14),
             _SettingCard(
+              icon: Icons.language,
+              iconColor: const Color(0xFF4BD6C7),
+              title: tr('Bahasa', 'Language'),
+              subtitle: controller.isEnglish ? 'English' : 'Bahasa Melayu',
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: SegmentedButton<String>(
+                  segments: const [
+                    ButtonSegment<String>(value: 'ms', label: Text('BM')),
+                    ButtonSegment<String>(value: 'en', label: Text('EN')),
+                  ],
+                  selected: <String>{controller.languageCode},
+                  onSelectionChanged: (selection) {
+                    controller.setLanguageCode(selection.first);
+                  },
+                ),
+              ),
+            ),
+            const SizedBox(height: 10),
+            _SettingCard(
               icon: Icons.place,
               iconColor: const Color(0xFF4EA4FF),
-              title: 'prayer times',
+              title: tr('Waktu Solat', 'Prayer Times'),
               subtitle: locationLabel,
               trailing: controller.autoLocation
-                  ? const Text('auto')
+                  ? Text(tr('Auto', 'Auto'))
                   : Text(controller.manualZoneCode),
               child: Column(
                 children: [
                   _SwitchRow(
-                    title: 'auto-update when traveling',
-                    subtitle: 'automatically update prayer times and qibla',
+                    title: tr(
+                      'Auto-kemas kini ketika bermusafir',
+                      'Auto-update while traveling',
+                    ),
+                    subtitle: tr(
+                      'Kemas kini waktu solat dan qiblat secara automatik',
+                      'Automatically update prayer times and qibla',
+                    ),
                     value: controller.travelModeEnabled,
                     onChanged: controller.setTravelModeEnabled,
                   ),
                   const Divider(height: 20),
                   _SwitchRow(
-                    title: 'detect location automatically',
-                    subtitle: 'turn off to pick zone manually',
+                    title: tr(
+                      'Kesan lokasi secara automatik',
+                      'Detect location automatically',
+                    ),
+                    subtitle: tr(
+                      'Matikan untuk pilih zon secara manual',
+                      'Turn off to pick zone manually',
+                    ),
                     value: controller.autoLocation,
                     onChanged: controller.setAutoLocation,
                   ),
@@ -85,9 +123,9 @@ class _SettingsPageState extends State<SettingsPage> {
                     const SizedBox(height: 10),
                     TextField(
                       controller: _searchController,
-                      decoration: const InputDecoration(
-                        labelText: 'search zone',
-                        prefixIcon: Icon(Icons.search),
+                      decoration: InputDecoration(
+                        labelText: tr('Cari zon', 'Search zone'),
+                        prefixIcon: const Icon(Icons.search),
                       ),
                       onChanged: (value) {
                         setState(() {
@@ -109,7 +147,9 @@ class _SettingsPageState extends State<SettingsPage> {
                             ),
                           )
                           .toList(),
-                      decoration: const InputDecoration(labelText: 'manual zone'),
+                      decoration: InputDecoration(
+                        labelText: tr('Zon manual', 'Manual zone'),
+                      ),
                       onChanged: (value) {
                         if (value != null) {
                           controller.setManualZone(value);
@@ -129,20 +169,28 @@ class _SettingsPageState extends State<SettingsPage> {
             _SettingCard(
               icon: Icons.notifications_active,
               iconColor: const Color(0xFFFF9A3E),
-              title: 'notifications',
-              subtitle: controller.notifyEnabled ? 'enabled' : 'disabled',
+              title: tr('Notifikasi', 'Notifications'),
+              subtitle: controller.notifyEnabled
+                  ? tr('Aktif', 'Enabled')
+                  : tr('Tidak aktif', 'Disabled'),
               child: Column(
                 children: [
                   _SwitchRow(
-                    title: 'enable notifications',
-                    subtitle: 'azan and reminder alerts',
+                    title: tr('Aktifkan notifikasi', 'Enable notifications'),
+                    subtitle: tr(
+                      'Amaran azan dan peringatan',
+                      'Azan and reminder alerts',
+                    ),
                     value: controller.notifyEnabled,
                     onChanged: controller.setNotifyEnabled,
                   ),
                   const Divider(height: 20),
                   _SwitchRow(
-                    title: 'vibrate',
-                    subtitle: 'vibrate when notification arrives',
+                    title: tr('Getaran', 'Vibrate'),
+                    subtitle: tr(
+                      'Getar semasa notifikasi masuk',
+                      'Vibrate when notification arrives',
+                    ),
                     value: controller.vibrateEnabled,
                     onChanged: controller.notifyEnabled
                         ? controller.setVibrateEnabled
@@ -160,14 +208,46 @@ class _SettingsPageState extends State<SettingsPage> {
                             }
                           : null,
                       icon: const Icon(Icons.play_arrow_rounded),
-                      label: const Text('test sound'),
+                      label: Text(tr('Uji bunyi', 'Test sound')),
                     ),
                   ),
                   const Divider(height: 20),
                   Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      'enable for prayers',
+                      tr('Jeda awal notifikasi', 'Notification lead time'),
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SegmentedButton<int>(
+                    segments: [
+                      ButtonSegment<int>(
+                        value: 0,
+                        label: Text(tr('Tepat waktu', 'On time')),
+                      ),
+                      const ButtonSegment<int>(value: 5, label: Text('-5 min')),
+                      const ButtonSegment<int>(
+                          value: 10, label: Text('-10 min')),
+                      const ButtonSegment<int>(
+                          value: 15, label: Text('-15 min')),
+                    ],
+                    selected: <int>{
+                      _closestLeadMinutes(controller.notificationLeadMinutes)
+                    },
+                    onSelectionChanged: controller.notifyEnabled
+                        ? (selection) => controller
+                            .setNotificationLeadMinutes(selection.first)
+                        : null,
+                  ),
+                  const Divider(height: 20),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      tr('Aktif untuk waktu', 'Enable for prayers'),
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
                             color: Colors.white,
                             fontWeight: FontWeight.w700,
@@ -200,14 +280,16 @@ class _SettingsPageState extends State<SettingsPage> {
             _SettingCard(
               icon: Icons.palette,
               iconColor: const Color(0xFFE75A93),
-              title: 'appearance',
-              subtitle: controller.highContrast ? 'high contrast' : 'standard',
+              title: tr('Paparan', 'Appearance'),
+              subtitle: controller.highContrast
+                  ? tr('Kontras tinggi', 'High contrast')
+                  : tr('Standard', 'Standard'),
               child: Column(
                 children: [
                   Align(
                     alignment: Alignment.centerLeft,
                     child: Text(
-                      'text size',
+                      tr('Saiz teks', 'Text size'),
                       style: Theme.of(context).textTheme.titleSmall?.copyWith(
                             fontWeight: FontWeight.w700,
                             color: Colors.white,
@@ -229,8 +311,9 @@ class _SettingsPageState extends State<SettingsPage> {
                   ),
                   const Divider(height: 20),
                   _SwitchRow(
-                    title: 'high contrast',
-                    subtitle: 'improve readability',
+                    title: tr('Kontras tinggi', 'High contrast'),
+                    subtitle:
+                        tr('Tingkatkan keterbacaan', 'Improve readability'),
                     value: controller.highContrast,
                     onChanged: controller.setHighContrast,
                   ),
@@ -241,29 +324,89 @@ class _SettingsPageState extends State<SettingsPage> {
             _SettingCard(
               icon: Icons.nights_stay,
               iconColor: const Color(0xFFF4C542),
-              title: 'fasting reminders',
-              subtitle: 'ramadhan and sunnah',
+              title: tr('Peringatan Puasa', 'Fasting reminders'),
+              subtitle: fastingEnabledCount == 0
+                  ? tr('Tiada peringatan aktif', 'No active reminders')
+                  : tr(
+                      '$fastingEnabledCount peringatan aktif',
+                      '$fastingEnabledCount active reminders',
+                    ),
               child: Column(
                 children: [
+                  Wrap(
+                    spacing: 8,
+                    runSpacing: 8,
+                    children: [
+                      _StatusPill(
+                        label: tr('Ramadan', 'Ramadan'),
+                        enabled: controller.ramadhanMode,
+                      ),
+                      _StatusPill(
+                        label: tr('Isnin/Khamis', 'Mon/Thu'),
+                        enabled: controller.fastingMondayThursdayEnabled,
+                      ),
+                      _StatusPill(
+                        label: tr('Ayyamul Bidh', 'Ayyamul Bidh'),
+                        enabled: controller.fastingAyyamulBidhEnabled,
+                      ),
+                    ],
+                  ),
+                  if (!controller.notifyEnabled) ...[
+                    const SizedBox(height: 10),
+                    Container(
+                      width: double.infinity,
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: const Color(0xFF3D2F2A),
+                        borderRadius: BorderRadius.circular(10),
+                        border: Border.all(color: const Color(0xFF6D4A3E)),
+                      ),
+                      child: Text(
+                        tr(
+                          'Aktifkan Notifikasi dahulu untuk guna peringatan puasa.',
+                          'Enable Notifications first to use fasting reminders.',
+                        ),
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: const Color(0xFFFFD7C8),
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                    ),
+                  ],
+                  const Divider(height: 20),
                   _SwitchRow(
-                    title: 'ramadhan mode',
-                    subtitle: 'supportive reminders for fasting days',
+                    title: tr('Mod Ramadan', 'Ramadan mode'),
+                    subtitle: tr(
+                      'Peringatan harian sepanjang Ramadan',
+                      'Daily reminders throughout Ramadan',
+                    ),
                     value: controller.ramadhanMode,
-                    onChanged: controller.setRamadhanMode,
+                    onChanged: controller.notifyEnabled
+                        ? controller.setRamadhanMode
+                        : null,
                   ),
                   const Divider(height: 20),
                   _SwitchRow(
-                    title: 'monday & thursday',
-                    subtitle: 'schedule fasting reminders',
+                    title: tr('Isnin & Khamis', 'Monday & Thursday'),
+                    subtitle: tr(
+                      'Peringatan puasa sunat mingguan',
+                      'Weekly sunnah fasting reminders',
+                    ),
                     value: controller.fastingMondayThursdayEnabled,
-                    onChanged: controller.setFastingMondayThursdayEnabled,
+                    onChanged: controller.notifyEnabled
+                        ? controller.setFastingMondayThursdayEnabled
+                        : null,
                   ),
                   const Divider(height: 20),
                   _SwitchRow(
-                    title: 'ayyamul bidh',
-                    subtitle: '13, 14, 15 every hijri month',
+                    title: tr('Ayyamul Bidh', 'Ayyamul Bidh'),
+                    subtitle: tr('13, 14, 15 setiap bulan hijrah',
+                        '13, 14, 15 every hijri month'),
                     value: controller.fastingAyyamulBidhEnabled,
-                    onChanged: controller.setFastingAyyamulBidhEnabled,
+                    onChanged: controller.notifyEnabled
+                        ? controller.setFastingAyyamulBidhEnabled
+                        : null,
                   ),
                 ],
               ),
@@ -272,17 +415,61 @@ class _SettingsPageState extends State<SettingsPage> {
             _SettingCard(
               icon: Icons.touch_app,
               iconColor: const Color(0xFF9B77FF),
-              title: 'zikir',
-              subtitle: 'today ${controller.tasbihTodayCount} | total ${controller.tasbihCount}',
+              title: tr('Zikir', 'Tasbih'),
+              subtitle: tr(
+                'hari ini ${controller.tasbihTodayCount} | jumlah ${controller.tasbihLifetimeCount}',
+                'today ${controller.tasbihTodayCount} | total ${controller.tasbihLifetimeCount}',
+              ),
               child: Column(
                 children: [
+                  _SwitchRow(
+                    title: tr('Auto reset harian', 'Auto reset daily'),
+                    subtitle: tr(
+                      'Reset kiraan ke 0 setiap hari baharu',
+                      'Reset count to 0 every new day',
+                    ),
+                    value: controller.tasbihAutoResetDaily,
+                    onChanged: controller.setTasbihAutoResetDaily,
+                  ),
+                  const Divider(height: 20),
+                  Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      tr('Sasaran pusingan', 'Cycle target'),
+                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w700,
+                          ),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SegmentedButton<int>(
+                    segments: const [
+                      ButtonSegment<int>(value: 33, label: Text('33')),
+                      ButtonSegment<int>(value: 99, label: Text('99')),
+                      ButtonSegment<int>(value: 100, label: Text('100')),
+                    ],
+                    selected: <int>{
+                      _closestCycleTarget(controller.tasbihCycleTarget)
+                    },
+                    onSelectionChanged: (selection) {
+                      controller.setTasbihCycleTarget(selection.first);
+                    },
+                  ),
+                  const SizedBox(height: 10),
                   Row(
                     children: [
-                      _DataPill(label: '7 hari', value: '${controller.tasbihWeekCount}'),
+                      _DataPill(
+                          label: tr('7 hari', '7 days'),
+                          value: '${controller.tasbihWeekCount}'),
                       const SizedBox(width: 8),
-                      _DataPill(label: 'streak', value: '${controller.tasbihStreakDays}'),
+                      _DataPill(
+                          label: tr('streak', 'streak'),
+                          value: '${controller.tasbihStreakDays}'),
                       const SizedBox(width: 8),
-                      _DataPill(label: 'terbaik', value: '${controller.tasbihBestDay}'),
+                      _DataPill(
+                          label: tr('terbaik', 'best'),
+                          value: '${controller.tasbihBestDay}'),
                     ],
                   ),
                   const SizedBox(height: 10),
@@ -293,7 +480,7 @@ class _SettingsPageState extends State<SettingsPage> {
                           ? null
                           : () => _confirmResetTasbih(controller),
                       icon: const Icon(Icons.restart_alt),
-                      label: const Text('reset count'),
+                      label: Text(tr('Reset kiraan', 'Reset count')),
                     ),
                   ),
                 ],
@@ -303,10 +490,10 @@ class _SettingsPageState extends State<SettingsPage> {
             _SettingCard(
               icon: Icons.info_outline,
               iconColor: const Color(0xFF49C5F6),
-              title: 'about',
+              title: tr('Tentang', 'About'),
               subtitle: 'JagaSolat',
               child: Text(
-                'data source: JAKIM e-Solat + Malaysia Waktu Solat API\n${controller.prayerDataFreshnessLabel}',
+                '${tr('Sumber data', 'Data source')}: JAKIM e-Solat + Malaysia Waktu Solat API\n${controller.prayerDataFreshnessLabel}',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                       color: const Color(0xFFC8D3E8),
                     ),
@@ -332,21 +519,51 @@ class _SettingsPageState extends State<SettingsPage> {
     return best;
   }
 
+  int _closestLeadMinutes(int value) {
+    const options = <int>[0, 5, 10, 15];
+    var best = options.first;
+    var bestDiff = (value - best).abs();
+    for (final option in options.skip(1)) {
+      final diff = (value - option).abs();
+      if (diff < bestDiff) {
+        best = option;
+        bestDiff = diff;
+      }
+    }
+    return best;
+  }
+
+  int _closestCycleTarget(int value) {
+    const options = <int>[33, 99, 100];
+    var best = options.first;
+    var bestDiff = (value - best).abs();
+    for (final option in options.skip(1)) {
+      final diff = (value - option).abs();
+      if (diff < bestDiff) {
+        best = option;
+        bestDiff = diff;
+      }
+    }
+    return best;
+  }
+
   Future<void> _confirmResetTasbih(AppController controller) async {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Reset zikir count?'),
-          content: const Text('Kiraan akan kembali ke 0.'),
+          title:
+              Text(controller.tr('Reset kiraan zikir?', 'Reset tasbih count?')),
+          content: Text(controller.tr(
+              'Kiraan akan kembali ke 0.', 'Count will return to 0.')),
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('Cancel'),
+              child: Text(controller.tr('Batal', 'Cancel')),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('Reset'),
+              child: Text(controller.tr('Reset', 'Reset')),
             ),
           ],
         );
@@ -412,7 +629,7 @@ class _SettingCard extends StatelessWidget {
                       Text(
                         subtitle,
                         style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: const Color(0xFFAEBBD3),
+                              color: const Color(0xFFC8D4EA),
                             ),
                       ),
                     ],
@@ -461,7 +678,7 @@ class _SwitchRow extends StatelessWidget {
               Text(
                 subtitle,
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: const Color(0xFFAEBBD3),
+                      color: const Color(0xFFC8D4EA),
                     ),
               ),
             ],
@@ -567,6 +784,38 @@ class _FavoriteZoneChips extends StatelessWidget {
             ),
           )
           .toList(),
+    );
+  }
+}
+
+class _StatusPill extends StatelessWidget {
+  const _StatusPill({
+    required this.label,
+    required this.enabled,
+  });
+
+  final String label;
+  final bool enabled;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      decoration: BoxDecoration(
+        color: enabled ? const Color(0xFF1E8B74) : const Color(0xFF3C4661),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(
+          color: enabled ? const Color(0xFF2AD4AE) : const Color(0xFF5A6688),
+        ),
+      ),
+      child: Text(
+        label,
+        style: const TextStyle(
+          color: Color(0xFFF2F6FF),
+          fontSize: 12,
+          fontWeight: FontWeight.w700,
+        ),
+      ),
     );
   }
 }

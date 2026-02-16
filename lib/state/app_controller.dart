@@ -42,6 +42,7 @@ class AppController extends ChangeNotifier {
   PrayerZone? activeZone;
   DailyPrayerTimes? dailyPrayerTimes;
   MonthlyPrayerTimes? monthlyPrayerTimes;
+  MonthlyPrayerTimes? nextMonthlyPrayerTimes;
 
   Position? position;
   double? qiblaBearing;
@@ -60,6 +61,11 @@ class AppController extends ChangeNotifier {
   bool travelModeEnabled = true;
   bool fastingMondayThursdayEnabled = false;
   bool fastingAyyamulBidhEnabled = false;
+  int notificationLeadMinutes = 0;
+  int tasbihCycleTarget = 33;
+  bool tasbihAutoResetDaily = false;
+  String languageCode = 'ms';
+  int tasbihLifetimeCount = 0;
 
   Map<String, bool> prayerNotificationToggles = <String, bool>{};
   Map<String, String> prayerSoundProfiles = <String, String>{};
@@ -74,13 +80,17 @@ class AppController extends ChangeNotifier {
   StreamSubscription? _notificationResponseSub;
   DateTime _lastDayCheck = DateTime.now();
   bool _refreshing = false;
+  Timer? _retryTimer;
+  int _retryAttempt = 0;
 
   int get apiSuccessCount => _prayerService.apiSuccessCount;
   int get apiFailureCount => _prayerService.apiFailureCount;
   int get cacheHitCount => _prayerService.cacheHitCount;
   bool get isUsingCachedPrayerData => lastPrayerDataSource == 'cache';
-  bool get isReady => zones.isNotEmpty || dailyPrayerTimes != null || !isLoading;
+  bool get isReady =>
+      zones.isNotEmpty || dailyPrayerTimes != null || !isLoading;
   int get tasbihTodayCount => tasbihDailyStats[_dateKey(DateTime.now())] ?? 0;
+  bool get isEnglish => languageCode == 'en';
   int get tasbihWeekCount {
     final now = DateTime.now();
     var total = 0;
@@ -90,17 +100,20 @@ class AppController extends ChangeNotifier {
     }
     return total;
   }
+
   int get tasbihBestDay {
     if (tasbihDailyStats.isEmpty) {
       return 0;
     }
     return tasbihDailyStats.values.reduce((a, b) => a > b ? a : b);
   }
+
   List<String> get todayPrayerCheckins =>
       prayerCheckinsByDate[_dateKey(DateTime.now())] ?? <String>[];
   int get todayPrayerCompletedCount => todayPrayerCheckins.length;
   int get todayPrayerTargetCount {
-    final names = dailyPrayerTimes?.entries.map((e) => e.name).toList() ?? <String>[];
+    final names =
+        dailyPrayerTimes?.entries.map((e) => e.name).toList() ?? <String>[];
     final filtered = names
         .where((name) =>
             name == 'Subuh' ||
@@ -111,6 +124,7 @@ class AppController extends ChangeNotifier {
         .toList();
     return filtered.isEmpty ? 5 : filtered.length;
   }
+
   double get todayPrayerProgress {
     final target = todayPrayerTargetCount;
     if (target == 0) {
@@ -118,6 +132,7 @@ class AppController extends ChangeNotifier {
     }
     return (todayPrayerCompletedCount / target).clamp(0.0, 1.0);
   }
+
   int get tasbihStreakDays {
     var streak = 0;
     var cursor = DateTime.now();
@@ -127,14 +142,19 @@ class AppController extends ChangeNotifier {
     }
     return streak;
   }
+
   String get prayerDataFreshnessLabel {
     final updatedAt = lastPrayerDataUpdatedAt;
     if (updatedAt == null) {
-      return 'Belum dikemas kini';
+      return tr('Belum dikemas kini', 'Not updated yet');
     }
     final age = DateTime.now().difference(updatedAt);
-    final ageText = age.inMinutes <= 0 ? 'baru sahaja' : '${age.inMinutes} min lalu';
-    final source = isUsingCachedPrayerData ? 'Data simpanan' : 'Data langsung';
+    final ageText = age.inMinutes <= 0
+        ? tr('baru sahaja', 'just now')
+        : tr('${age.inMinutes} min lalu', '${age.inMinutes} min ago');
+    final source = isUsingCachedPrayerData
+        ? tr('Data simpanan', 'Cached data')
+        : tr('Data langsung', 'Live data');
     return '$source | $ageText';
   }
 
@@ -163,11 +183,22 @@ class AppController extends ChangeNotifier {
         await _tasbihStore.loadFastingAyyamulBidhEnabled();
     tasbihDailyStats = await _tasbihStore.loadTasbihDailyStats();
     prayerCheckinsByDate = await _tasbihStore.loadPrayerCheckins();
+    notificationLeadMinutes = await _tasbihStore.loadNotificationLeadMinutes();
+    tasbihCycleTarget = await _tasbihStore.loadTasbihCycleTarget();
+    tasbihAutoResetDaily = await _tasbihStore.loadTasbihAutoResetDaily();
+    languageCode = await _tasbihStore.loadLanguageCode();
+    tasbihLifetimeCount = await _tasbihStore.loadTasbihLifetimeCount();
+    if (tasbihLifetimeCount == 0 && tasbihCount > 0) {
+      tasbihLifetimeCount = tasbihCount;
+      await _tasbihStore.saveTasbihLifetimeCount(tasbihLifetimeCount);
+    }
+    await _ensureTasbihDailyReset();
 
     zones = await _prayerService.fetchZones();
     await _notificationService.initialize();
     exactAlarmAllowed = await _notificationService.canScheduleExactAlarms();
-    _notificationResponseSub = _notificationService.responses.listen((response) {
+    _notificationResponseSub =
+        _notificationService.responses.listen((response) {
       if (response.actionId == 'done') {
         _pushHealthLog('notif_action:done');
       } else if (response.actionId == 'snooze_5') {
@@ -261,20 +292,24 @@ class AppController extends ChangeNotifier {
           prayers: dailyPrayerTimes?.entries ?? <PrayerTimeEntry>[],
           enableNotification: notifyEnabled,
           enableVibration: vibrateEnabled,
-        enabledPrayerNames: prayerNotificationToggles.entries
-            .where((entry) => entry.value)
-            .map((entry) => entry.key)
-            .toSet(),
+          enabledPrayerNames: prayerNotificationToggles.entries
+              .where((entry) => entry.value)
+              .map((entry) => entry.key)
+              .toSet(),
           prayerSoundProfiles: prayerSoundProfiles,
+          leadMinutes: notificationLeadMinutes,
         );
       } catch (_) {
         // Non-critical: data waktu solat sudah berjaya diambil.
       }
       await _updateWidgetData();
+      _retryAttempt = 0;
+      _retryTimer?.cancel();
     } catch (e) {
       _pushHealthLog('daily_err:${e.runtimeType}');
       _lastErrorRaw = e.toString().toLowerCase();
       errorMessage = _friendlyError(e);
+      _scheduleAutoRetry();
     } finally {
       isLoading = false;
       _refreshing = false;
@@ -291,7 +326,7 @@ class AppController extends ChangeNotifier {
         zoneCode,
         month: DateTime.now(),
       );
-      await _prayerService.fetchMonthlyPrayerTimes(
+      nextMonthlyPrayerTimes = await _prayerService.fetchMonthlyPrayerTimes(
         zoneCode,
         month: DateTime.now().add(const Duration(days: 32)),
       );
@@ -331,7 +366,9 @@ class AppController extends ChangeNotifier {
 
   Future<void> incrementTasbih() async {
     tasbihCount += 1;
+    tasbihLifetimeCount += 1;
     await _tasbihStore.saveCount(tasbihCount);
+    await _tasbihStore.saveTasbihLifetimeCount(tasbihLifetimeCount);
     await _addTasbihDaily(1);
     await _updateWidgetData();
     notifyListeners();
@@ -342,7 +379,9 @@ class AppController extends ChangeNotifier {
       return;
     }
     tasbihCount += count;
+    tasbihLifetimeCount += count;
     await _tasbihStore.saveCount(tasbihCount);
+    await _tasbihStore.saveTasbihLifetimeCount(tasbihLifetimeCount);
     await _addTasbihDaily(count);
     await _updateWidgetData();
     notifyListeners();
@@ -390,13 +429,18 @@ class AppController extends ChangeNotifier {
     await refreshPrayerData();
   }
 
+  Future<void> setNotificationLeadMinutes(int value) async {
+    notificationLeadMinutes = value.clamp(0, 30);
+    await _tasbihStore.saveNotificationLeadMinutes(notificationLeadMinutes);
+    await refreshPrayerData();
+  }
+
   Future<void> toggleFavoriteZone(String zoneCode) async {
     if (favoriteZones.contains(zoneCode)) {
       favoriteZones = favoriteZones.where((z) => z != zoneCode).toList();
     } else {
-      favoriteZones = <String>[zoneCode, ...favoriteZones]
-          .take(8)
-          .toList(growable: false);
+      favoriteZones =
+          <String>[zoneCode, ...favoriteZones].take(8).toList(growable: false);
     }
     await _tasbihStore.saveFavoriteZones(favoriteZones);
     notifyListeners();
@@ -456,6 +500,32 @@ class AppController extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> setTasbihCycleTarget(int value) async {
+    final safe = value <= 0 ? 33 : value;
+    tasbihCycleTarget = safe;
+    await _tasbihStore.saveTasbihCycleTarget(safe);
+    notifyListeners();
+  }
+
+  Future<void> setTasbihAutoResetDaily(bool value) async {
+    tasbihAutoResetDaily = value;
+    await _tasbihStore.saveTasbihAutoResetDaily(value);
+    if (value) {
+      await _ensureTasbihDailyReset(forceWriteDate: true);
+    }
+    notifyListeners();
+  }
+
+  Future<void> setLanguageCode(String value) async {
+    languageCode = value == 'en' ? 'en' : 'ms';
+    await _tasbihStore.saveLanguageCode(languageCode);
+    notifyListeners();
+  }
+
+  String tr(String bm, String en) {
+    return isEnglish ? en : bm;
+  }
+
   Future<void> completeOnboarding() async {
     onboardingSeen = true;
     await _tasbihStore.saveOnboardingSeen(true);
@@ -491,6 +561,11 @@ class AppController extends ChangeNotifier {
       'favoriteZones': favoriteZones,
       'recentZones': recentZones,
       'prayerCheckinsByDate': prayerCheckinsByDate,
+      'notificationLeadMinutes': notificationLeadMinutes,
+      'tasbihCycleTarget': tasbihCycleTarget,
+      'tasbihAutoResetDaily': tasbihAutoResetDaily,
+      'languageCode': languageCode,
+      'tasbihLifetimeCount': tasbihLifetimeCount,
     });
   }
 
@@ -505,17 +580,15 @@ class AppController extends ChangeNotifier {
     ramadhanMode = parsed['ramadhanMode'] as bool? ?? ramadhanMode;
     travelModeEnabled =
         parsed['travelModeEnabled'] as bool? ?? travelModeEnabled;
-    fastingMondayThursdayEnabled = parsed['fastingMondayThursdayEnabled']
-            as bool? ??
-        fastingMondayThursdayEnabled;
-    fastingAyyamulBidhEnabled =
-        parsed['fastingAyyamulBidhEnabled'] as bool? ??
-            fastingAyyamulBidhEnabled;
+    fastingMondayThursdayEnabled =
+        parsed['fastingMondayThursdayEnabled'] as bool? ??
+            fastingMondayThursdayEnabled;
+    fastingAyyamulBidhEnabled = parsed['fastingAyyamulBidhEnabled'] as bool? ??
+        fastingAyyamulBidhEnabled;
 
     final toggles = parsed['prayerNotificationToggles'];
     if (toggles is Map<String, dynamic>) {
-      prayerNotificationToggles =
-          toggles.map((k, v) => MapEntry(k, v == true));
+      prayerNotificationToggles = toggles.map((k, v) => MapEntry(k, v == true));
     }
 
     final sounds = parsed['prayerSoundProfiles'];
@@ -542,6 +615,18 @@ class AppController extends ChangeNotifier {
         return MapEntry(key, list);
       });
     }
+    notificationLeadMinutes =
+        (parsed['notificationLeadMinutes'] as num?)?.toInt() ??
+            notificationLeadMinutes;
+    tasbihCycleTarget =
+        (parsed['tasbihCycleTarget'] as num?)?.toInt() ?? tasbihCycleTarget;
+    tasbihAutoResetDaily =
+        parsed['tasbihAutoResetDaily'] as bool? ?? tasbihAutoResetDaily;
+    languageCode = (parsed['languageCode'] as String? ?? languageCode) == 'en'
+        ? 'en'
+        : 'ms';
+    tasbihLifetimeCount =
+        (parsed['tasbihLifetimeCount'] as num?)?.toInt() ?? tasbihLifetimeCount;
 
     await _tasbihStore.saveNotifyEnabled(notifyEnabled);
     await _tasbihStore.saveVibrateEnabled(vibrateEnabled);
@@ -558,6 +643,11 @@ class AppController extends ChangeNotifier {
     await _tasbihStore.saveFavoriteZones(favoriteZones);
     await _tasbihStore.saveRecentZones(recentZones);
     await _tasbihStore.savePrayerCheckins(prayerCheckinsByDate);
+    await _tasbihStore.saveNotificationLeadMinutes(notificationLeadMinutes);
+    await _tasbihStore.saveTasbihCycleTarget(tasbihCycleTarget);
+    await _tasbihStore.saveTasbihAutoResetDaily(tasbihAutoResetDaily);
+    await _tasbihStore.saveLanguageCode(languageCode);
+    await _tasbihStore.saveTasbihLifetimeCount(tasbihLifetimeCount);
     for (final entry in prayerNotificationToggles.entries) {
       await _tasbihStore.savePrayerNotificationToggle(entry.key, entry.value);
     }
@@ -587,7 +677,8 @@ class AppController extends ChangeNotifier {
 
       final d =
           '${day.date.year}-${day.date.month.toString().padLeft(2, '0')}-${day.date.day.toString().padLeft(2, '0')}';
-      rows.add('$d,${findTime('Imsak')},${findTime('Subuh')},${findTime('Syuruk')},${findTime('Zohor')},${findTime('Asar')},${findTime('Maghrib')},${findTime('Isyak')}');
+      rows.add(
+          '$d,${findTime('Imsak')},${findTime('Subuh')},${findTime('Syuruk')},${findTime('Zohor')},${findTime('Asar')},${findTime('Maghrib')},${findTime('Isyak')}');
     }
     return rows.join('\n');
   }
@@ -727,10 +818,12 @@ class AppController extends ChangeNotifier {
     if (errorMessage == null) {
       return null;
     }
-    if (_lastErrorRaw.contains('location') || _lastErrorRaw.contains('lokasi')) {
+    if (_lastErrorRaw.contains('location') ||
+        _lastErrorRaw.contains('lokasi')) {
       return 'Buka tetapan lokasi';
     }
-    if (_lastErrorRaw.contains('notification') || _lastErrorRaw.contains('notifikasi')) {
+    if (_lastErrorRaw.contains('notification') ||
+        _lastErrorRaw.contains('notifikasi')) {
       return 'Buka tetapan aplikasi';
     }
     if (_lastErrorRaw.contains('server') || _lastErrorRaw.contains('timeout')) {
@@ -773,13 +866,22 @@ class AppController extends ChangeNotifier {
     if (monthly == null) {
       return;
     }
-    await _notificationService.scheduleFastingReminders(
-      monthlyDays: monthly.days,
-      enableNotification: notifyEnabled,
-      enableMondayThursday: fastingMondayThursdayEnabled,
-      enableAyyamulBidh: fastingAyyamulBidhEnabled,
-      enableVibration: vibrateEnabled,
-    );
+    final days = <DailyPrayerTimes>[
+      ...monthly.days,
+      ...(nextMonthlyPrayerTimes?.days ?? const <DailyPrayerTimes>[]),
+    ];
+    try {
+      await _notificationService.scheduleFastingReminders(
+        monthlyDays: days,
+        enableNotification: notifyEnabled,
+        enableRamadhanMode: ramadhanMode,
+        enableMondayThursday: fastingMondayThursdayEnabled,
+        enableAyyamulBidh: fastingAyyamulBidhEnabled,
+        enableVibration: vibrateEnabled,
+      );
+    } catch (_) {
+      _pushHealthLog('fasting_schedule_err');
+    }
   }
 
   Future<void> _checkTravelAutoZone() async {
@@ -839,9 +941,37 @@ class AppController extends ChangeNotifier {
   }
 
   Future<void> _addTasbihDaily(int count) async {
+    await _ensureTasbihDailyReset();
     final key = _dateKey(DateTime.now());
     tasbihDailyStats[key] = (tasbihDailyStats[key] ?? 0) + count;
     await _tasbihStore.saveTasbihDailyStats(tasbihDailyStats);
+  }
+
+  Future<void> _ensureTasbihDailyReset({bool forceWriteDate = false}) async {
+    final todayKey = _dateKey(DateTime.now());
+    final lastReset = await _tasbihStore.loadTasbihLastResetDate();
+    if (tasbihAutoResetDaily &&
+        lastReset != null &&
+        lastReset != todayKey &&
+        tasbihCount > 0) {
+      tasbihCount = 0;
+      await _tasbihStore.saveCount(0);
+    }
+    if (forceWriteDate || lastReset != todayKey) {
+      await _tasbihStore.saveTasbihLastResetDate(todayKey);
+    }
+  }
+
+  void _scheduleAutoRetry() {
+    if (_retryAttempt >= 3) {
+      return;
+    }
+    _retryTimer?.cancel();
+    _retryAttempt += 1;
+    final delay = Duration(seconds: 20 * _retryAttempt);
+    _retryTimer = Timer(delay, () {
+      unawaited(refreshPrayerData());
+    });
   }
 
   String _dateKey(DateTime d) =>
@@ -856,6 +986,7 @@ class AppController extends ChangeNotifier {
   void dispose() {
     _refreshTimer?.cancel();
     _travelTimer?.cancel();
+    _retryTimer?.cancel();
     _notificationResponseSub?.cancel();
     _notificationService.dispose();
     super.dispose();

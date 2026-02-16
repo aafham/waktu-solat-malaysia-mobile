@@ -8,14 +8,15 @@ Aplikasi mudah alih untuk bantu pengguna Malaysia jaga amalan harian dengan 3 fo
 ## Status UI Terkini
 Kemaskini terkini membawa gaya visual gelap yang konsisten di semua page:
 - Palette navy gelap + kad biru-kelabu rounded.
-- `Settings` dirombak ke gaya list card seperti rujukan (section `prayer times`, `notifications`, `appearance`, `fasting reminders`, `zikir`, `about`).
-- Page `Zikir` dikemas dari segi hierarchy, progress, dan action utama.
+- Splash screen Android + Flutter yang konsisten.
+- `Settings` dirombak ke gaya card sections.
+- Page `Zikir` dikemas dari segi hierarchy, kontras, progress ring, dan milestone.
 - Page `Qiblat` dikemas dengan struktur status + kompas + panduan kalibrasi yang lebih jelas.
 
 ## Fokus Utama Aplikasi
 - `Waktu Solat`: waktu harian ikut zon Malaysia, countdown ke waktu seterusnya, check-in solat harian.
-- `Qiblat`: kompas kiblat dengan bacaan darjah, status aktif, dan panduan kalibrasi.
-- `Zikir`: tasbih digital dengan preset, mod fokus, haptic, statistik harian/mingguan/streak.
+- `Qiblat`: kompas qiblat dengan bacaan darjah, indikator ketepatan, status aktif/henti, dan panduan kalibrasi.
+- `Zikir`: tasbih digital dengan sasaran pusingan (33/99/100), batch tambah, auto reset harian, statistik harian/mingguan/streak.
 
 ## Navigasi Semasa
 Bottom navigation:
@@ -25,13 +26,16 @@ Bottom navigation:
 - `Tetapan`
 
 ## Ciri Tambahan
+- Sokongan bahasa `BM/EN` (boleh tukar di `Settings`).
 - Lokasi automatik (GPS) + zon manual.
-- Notifikasi waktu solat (termasuk tetapan per waktu).
+- Notifikasi waktu solat (tetapan per waktu + lead time awal notifikasi).
 - Travel mode auto tukar zon.
 - Reminder puasa (`Ramadhan`, `Isnin/Khamis`, `Ayyamul Bidh`).
 - Mod kontras tinggi dan saiz teks boleh laras.
+- Onboarding setup awal (notifikasi + lokasi automatik).
 - Simpanan setempat (`SharedPreferences`) untuk fallback data.
 - Android home widget (paparan waktu seterusnya + countdown + tasbih).
+- Auto-retry fetch data bila gagal + refresh semula bila app kembali aktif.
 
 ## Prasyarat
 - Flutter SDK
@@ -78,18 +82,19 @@ Kebenaran minimum:
 ```
 
 ## Struktur Kod Ringkas
-- `lib/main.dart` - inisialisasi app, tema global, navigasi bawah.
+- `lib/main.dart` - inisialisasi app, tema global, splash, navigasi bawah.
 - `lib/state/app_controller.dart` - state utama dan aliran data.
-- `lib/features/home/home_page.dart` - skrin Waktu Solat (hero, countdown, check-in).
-- `lib/features/qibla/qibla_page.dart` - skrin Qiblat.
-- `lib/features/tasbih/tasbih_page.dart` - skrin Zikir.
-- `lib/features/settings/settings_page.dart` - tetapan gaya kad.
+- `lib/features/home/home_page.dart` - skrin Waktu Solat (hero, countdown, check-in, freshness pill).
+- `lib/features/qibla/qibla_page.dart` - skrin Qiblat + indikator ketepatan.
+- `lib/features/tasbih/tasbih_page.dart` - skrin Zikir + progress ring/milestone.
+- `lib/features/settings/settings_page.dart` - tetapan gaya kad + toggle BM/EN.
+- `lib/features/onboarding/onboarding_page.dart` - onboarding + setup awal.
 - `lib/features/monthly/monthly_page.dart` - jadual bulanan + eksport.
 - `lib/services/prayer_service.dart` - API waktu solat, parser, cache.
 - `lib/services/location_service.dart` - GPS dan permission.
-- `lib/services/notification_service.dart` - jadual notifikasi.
+- `lib/services/notification_service.dart` - jadual notifikasi + lead time.
 - `lib/services/qibla_service.dart` - kiraan arah kiblat.
-- `lib/services/tasbih_store.dart` - simpanan kiraan/tetapan.
+- `lib/services/tasbih_store.dart` - simpanan kiraan/tetapan/language.
 
 ## API Digunakan
 - `https://solat.my/api/locations`
@@ -97,10 +102,11 @@ Kebenaran minimum:
 - `https://solat.my/api/monthly/{ZONE_CODE}`
 
 ## Nota Teknikal
-- Locale default: `ms_MY`.
+- Locale runtime: `ms_MY` atau `en_US` ikut pilihan pengguna.
 - Timezone notifikasi: `Asia/Kuala_Lumpur`.
 - Refresh automatik bila hari bertukar.
 - Data zon/waktu disimpan setempat untuk kegunaan offline sementara.
+- Auto retry fetch data (maksimum 3 cubaan berturutan).
 
 ## Troubleshooting Ringkas
 - `flutter`/`dart` tidak dijumpai: semak PATH dan restart terminal.

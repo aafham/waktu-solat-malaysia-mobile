@@ -19,6 +19,7 @@ class _QiblaPageState extends State<QiblaPage> {
 
   @override
   Widget build(BuildContext context) {
+    final tr = widget.controller.tr;
     final hasQibla = widget.controller.qiblaBearing != null;
 
     return SafeArea(
@@ -34,7 +35,7 @@ class _QiblaPageState extends State<QiblaPage> {
           padding: const EdgeInsets.fromLTRB(16, 10, 16, 100),
           children: [
             Text(
-              'qiblat',
+              tr('Qiblat', 'Qibla'),
               style: Theme.of(context).textTheme.displaySmall?.copyWith(
                     color: Colors.white,
                     fontWeight: FontWeight.w800,
@@ -43,8 +44,14 @@ class _QiblaPageState extends State<QiblaPage> {
             const SizedBox(height: 4),
             Text(
               hasQibla
-                  ? 'arah ke kaabah berdasarkan lokasi semasa'
-                  : 'aktifkan lokasi untuk kiraan arah qiblat',
+                  ? tr(
+                      'Arah ke Kaabah berdasarkan lokasi semasa',
+                      'Direction to Kaaba based on current location',
+                    )
+                  : tr(
+                      'Aktifkan lokasi untuk kiraan arah qiblat',
+                      'Enable location to calculate qibla direction',
+                    ),
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: const Color(0xFFB8C4D9),
                   ),
@@ -69,22 +76,29 @@ class _QiblaPageState extends State<QiblaPage> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        _enabled && hasQibla ? 'Kompas aktif' : 'Kompas belum aktif',
-                        style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                              color: Colors.white,
-                              fontWeight: FontWeight.w700,
-                            ),
+                        _enabled && hasQibla
+                            ? tr('Kompas aktif', 'Compass active')
+                            : tr('Kompas belum aktif', 'Compass inactive'),
+                        style:
+                            Theme.of(context).textTheme.titleMedium?.copyWith(
+                                  color: Colors.white,
+                                  fontWeight: FontWeight.w700,
+                                ),
                       ),
                     ),
                     FilledButton(
                       onPressed: hasQibla
                           ? () {
                               setState(() {
-                                _enabled = true;
+                                _enabled = !_enabled;
                               });
                             }
                           : null,
-                      child: const Text('Aktifkan'),
+                      child: Text(
+                        _enabled
+                            ? tr('Hentikan', 'Stop')
+                            : tr('Aktifkan', 'Activate'),
+                      ),
                     ),
                   ],
                 ),
@@ -105,16 +119,19 @@ class _QiblaPageState extends State<QiblaPage> {
                             return _buildDisabledCompass(context);
                           }
                           final turn =
-                              ((widget.controller.qiblaBearing! - heading) / 360);
+                              ((widget.controller.qiblaBearing! - heading) /
+                                  360);
                           final delta = _normalizeDelta(
                             widget.controller.qiblaBearing! - heading,
                           ).abs();
+                          final quality = _accuracyLabel(delta, tr);
                           return _buildActiveCompass(
                             context,
                             turn: turn,
                             degrees: widget.controller.qiblaBearing!,
                             heading: heading,
                             delta: delta,
+                            quality: quality,
                           );
                         },
                       ),
@@ -129,22 +146,39 @@ class _QiblaPageState extends State<QiblaPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      'panduan kalibrasi',
+                      tr('Panduan Kalibrasi', 'Calibration guide'),
                       style: Theme.of(context).textTheme.titleMedium?.copyWith(
                             color: Colors.white,
                             fontWeight: FontWeight.w700,
                           ),
                     ),
                     const SizedBox(height: 8),
-                    const _GuideRow(text: 'Pegang telefon dalam posisi rata.'),
-                    const _GuideRow(text: 'Gerakkan telefon bentuk angka 8, 5-10 kali.'),
-                    const _GuideRow(text: 'Jauhkan dari magnet dan casing bermagnet.'),
-                    const _GuideRow(text: 'Tunggu bacaan stabil sebelum ikut arah.'),
+                    _GuideRow(
+                        text: tr('Pegang telefon dalam posisi rata.',
+                            'Hold phone flat.')),
+                    _GuideRow(
+                      text: tr(
+                        'Gerakkan telefon bentuk angka 8, 5-10 kali.',
+                        'Move phone in an 8-shape, 5-10 times.',
+                      ),
+                    ),
+                    _GuideRow(
+                      text: tr(
+                        'Jauhkan dari magnet dan casing bermagnet.',
+                        'Keep away from magnets and magnetic cases.',
+                      ),
+                    ),
+                    _GuideRow(
+                      text: tr(
+                        'Tunggu bacaan stabil sebelum ikut arah.',
+                        'Wait for stable readings before following direction.',
+                      ),
+                    ),
                     const SizedBox(height: 8),
                     OutlinedButton.icon(
                       onPressed: () => _showCalibrationGuide(context),
                       icon: const Icon(Icons.tune),
-                      label: const Text('Buka panduan penuh'),
+                      label: Text(tr('Buka panduan penuh', 'Open full guide')),
                     ),
                   ],
                 ),
@@ -157,13 +191,14 @@ class _QiblaPageState extends State<QiblaPage> {
   }
 
   Widget _buildDisabledCompass(BuildContext context) {
+    final tr = widget.controller.tr;
     return Column(
       children: [
-        const _CompassFrame(
+        _CompassFrame(
           child: Center(
             child: Text(
-              'Kompas belum aktif',
-              style: TextStyle(
+              tr('Kompas belum aktif', 'Compass inactive'),
+              style: const TextStyle(
                 color: Color(0xFFAFC0DE),
                 fontWeight: FontWeight.w600,
               ),
@@ -188,7 +223,10 @@ class _QiblaPageState extends State<QiblaPage> {
     required double degrees,
     required double heading,
     required double delta,
+    required String quality,
   }) {
+    final tr = widget.controller.tr;
+    final isLow = delta > 20;
     return Column(
       children: [
         _CompassFrame(
@@ -220,7 +258,7 @@ class _QiblaPageState extends State<QiblaPage> {
         ),
         const SizedBox(height: 10),
         Text(
-          '${degrees.toStringAsFixed(0)} darjah',
+          '${degrees.toStringAsFixed(0)} ${tr('darjah', 'degrees')}',
           style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                 color: Colors.white,
                 fontWeight: FontWeight.w800,
@@ -228,12 +266,39 @@ class _QiblaPageState extends State<QiblaPage> {
         ),
         const SizedBox(height: 4),
         Text(
-          'Arah semasa ${heading.toStringAsFixed(0)}° | Ralat ${delta.toStringAsFixed(0)}°',
+          tr(
+            'Arah semasa ${heading.toStringAsFixed(0)}° | Ralat ${delta.toStringAsFixed(0)}°',
+            'Current heading ${heading.toStringAsFixed(0)}° | Error ${delta.toStringAsFixed(0)}°',
+          ),
           textAlign: TextAlign.center,
           style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                 color: const Color(0xFFB8C4D9),
               ),
         ),
+        const SizedBox(height: 6),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+          decoration: BoxDecoration(
+            color: const Color(0xFF203354),
+            borderRadius: BorderRadius.circular(999),
+            border: Border.all(color: const Color(0xFF3D577D)),
+          ),
+          child: Text(
+            tr('Ketepatan: $quality', 'Accuracy: $quality'),
+            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                  color: const Color(0xFFD4E2F6),
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
+        ),
+        if (isLow) ...[
+          const SizedBox(height: 8),
+          FilledButton.tonalIcon(
+            onPressed: () => _showCalibrationGuide(context),
+            icon: const Icon(Icons.auto_fix_high),
+            label: Text(tr('Kalibrasi sekarang', 'Calibrate now')),
+          ),
+        ],
       ],
     );
   }
@@ -256,28 +321,40 @@ class _QiblaPageState extends State<QiblaPage> {
   }
 
   Future<void> _showCalibrationGuide(BuildContext context) async {
+    final tr = widget.controller.tr;
     await showDialog<void>(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Panduan Kalibrasi Kompas'),
-          content: const Column(
+          title:
+              Text(tr('Panduan Kalibrasi Kompas', 'Compass Calibration Guide')),
+          content: Column(
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text('1. Pegang telefon dalam posisi rata.'),
-              SizedBox(height: 6),
-              Text('2. Gerakkan telefon bentuk angka 8 sebanyak 5-10 kali.'),
-              SizedBox(height: 6),
-              Text('3. Jauhkan telefon daripada magnet atau casing bermagnet.'),
-              SizedBox(height: 6),
-              Text('4. Tunggu bacaan stabil sebelum ikut arah anak panah.'),
+              Text(tr('1. Pegang telefon dalam posisi rata.',
+                  '1. Hold phone flat.')),
+              const SizedBox(height: 6),
+              Text(tr(
+                '2. Gerakkan telefon bentuk angka 8 sebanyak 5-10 kali.',
+                '2. Move phone in an 8-shape 5-10 times.',
+              )),
+              const SizedBox(height: 6),
+              Text(tr(
+                '3. Jauhkan telefon daripada magnet atau casing bermagnet.',
+                '3. Keep phone away from magnets or magnetic cases.',
+              )),
+              const SizedBox(height: 6),
+              Text(tr(
+                '4. Tunggu bacaan stabil sebelum ikut arah anak panah.',
+                '4. Wait for stable readings before following direction.',
+              )),
             ],
           ),
           actions: [
             FilledButton(
               onPressed: () => Navigator.pop(context),
-              child: const Text('Faham'),
+              child: Text(tr('Faham', 'Understood')),
             ),
           ],
         );
@@ -294,6 +371,16 @@ double _normalizeDelta(double value) {
     result += 360;
   }
   return result;
+}
+
+String _accuracyLabel(double delta, String Function(String, String) tr) {
+  if (delta <= 8) {
+    return tr('Tinggi', 'High');
+  }
+  if (delta <= 20) {
+    return tr('Sederhana', 'Medium');
+  }
+  return tr('Rendah (kalibrasi semula)', 'Low (recalibrate)');
 }
 
 class _CompassFrame extends StatelessWidget {

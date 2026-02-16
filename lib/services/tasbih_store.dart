@@ -21,6 +21,12 @@ class TasbihStore {
   static const _fastingAyyamulBidhKey = 'fasting_ayyamul_bidh_enabled';
   static const _tasbihDailyStatsKey = 'tasbih_daily_stats_json';
   static const _prayerCheckinsKey = 'prayer_checkins_json';
+  static const _notificationLeadMinutesKey = 'notification_lead_minutes';
+  static const _tasbihCycleTargetKey = 'tasbih_cycle_target';
+  static const _tasbihAutoResetDailyKey = 'tasbih_auto_reset_daily';
+  static const _tasbihLastResetDateKey = 'tasbih_last_reset_date';
+  static const _languageCodeKey = 'language_code';
+  static const _tasbihLifetimeCountKey = 'tasbih_lifetime_count';
 
   Future<int> loadCount() async {
     final prefs = await SharedPreferences.getInstance();
@@ -105,7 +111,8 @@ class TasbihStore {
     };
   }
 
-  Future<void> savePrayerNotificationToggle(String prayerName, bool value) async {
+  Future<void> savePrayerNotificationToggle(
+      String prayerName, bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool('$_prayerTogglePrefix$prayerName', value);
   }
@@ -250,5 +257,70 @@ class TasbihStore {
   Future<void> savePrayerCheckins(Map<String, List<String>> checkins) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_prayerCheckinsKey, jsonEncode(checkins));
+  }
+
+  Future<int> loadNotificationLeadMinutes() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(_notificationLeadMinutesKey) ?? 0;
+  }
+
+  Future<void> saveNotificationLeadMinutes(int minutes) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_notificationLeadMinutesKey, minutes);
+  }
+
+  Future<int> loadTasbihCycleTarget() async {
+    final prefs = await SharedPreferences.getInstance();
+    final value = prefs.getInt(_tasbihCycleTargetKey) ?? 33;
+    if (value <= 0) {
+      return 33;
+    }
+    return value;
+  }
+
+  Future<void> saveTasbihCycleTarget(int value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_tasbihCycleTargetKey, value);
+  }
+
+  Future<bool> loadTasbihAutoResetDaily() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_tasbihAutoResetDailyKey) ?? false;
+  }
+
+  Future<void> saveTasbihAutoResetDaily(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_tasbihAutoResetDailyKey, value);
+  }
+
+  Future<String?> loadTasbihLastResetDate() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_tasbihLastResetDateKey);
+  }
+
+  Future<void> saveTasbihLastResetDate(String value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_tasbihLastResetDateKey, value);
+  }
+
+  Future<String> loadLanguageCode() async {
+    final prefs = await SharedPreferences.getInstance();
+    final value = prefs.getString(_languageCodeKey) ?? 'ms';
+    return value == 'en' ? 'en' : 'ms';
+  }
+
+  Future<void> saveLanguageCode(String value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_languageCodeKey, value == 'en' ? 'en' : 'ms');
+  }
+
+  Future<int> loadTasbihLifetimeCount() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getInt(_tasbihLifetimeCountKey) ?? 0;
+  }
+
+  Future<void> saveTasbihLifetimeCount(int value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_tasbihLifetimeCountKey, value);
   }
 }
