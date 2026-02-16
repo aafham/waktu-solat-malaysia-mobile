@@ -51,19 +51,6 @@ class _HomePageState extends State<HomePage> {
         onRefresh: _refreshHomeData,
         child: CustomScrollView(
           slivers: [
-            SliverAppBar(
-              pinned: true,
-              toolbarHeight: 52,
-              collapsedHeight: 52,
-              backgroundColor: Theme.of(context).scaffoldBackgroundColor,
-              surfaceTintColor: Colors.transparent,
-              titleSpacing: tokens.cardPadding,
-              title: PinnedMiniHeader(
-                controller: controller,
-                currentPrayer: currentPrayer,
-                nextPrayer: nextPrayer,
-              ),
-            ),
             SliverToBoxAdapter(
               child: Padding(
                 padding: EdgeInsets.fromLTRB(
@@ -80,7 +67,7 @@ class _HomePageState extends State<HomePage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                tr('Waktu Solat', 'Waktu Solat'),
+                                tr('Waktu Solat', 'Prayer Times'),
                                 style: Theme.of(context)
                                     .textTheme
                                     .headlineSmall
@@ -108,11 +95,6 @@ class _HomePageState extends State<HomePage> {
                                   await controller.snoozeNextPrayer(5);
                                   await HapticFeedback.lightImpact();
                                 },
-                              ),
-                              const SizedBox(height: 8),
-                              NextPrayerStrip(
-                                controller: controller,
-                                nextPrayer: nextPrayer,
                               ),
                               SizedBox(height: tokens.sectionGap),
                               TodayScheduleList(
@@ -204,7 +186,7 @@ class _HomePageState extends State<HomePage> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: Text(tr('Batal check-in?', 'Batal check-in?')),
+          title: Text(tr('Batal check-in?', 'Undo check-in?')),
           content: Text(
             tr(
               'Rekod ${entry.name} akan ditanda belum selesai.',
@@ -214,7 +196,7 @@ class _HomePageState extends State<HomePage> {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: Text(tr('Batal', 'Batal')),
+              child: Text(tr('Batal', 'Cancel')),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(context, true),
@@ -265,7 +247,7 @@ class _TimesHeroCardState extends State<TimesHeroCard> {
   void initState() {
     super.initState();
     _syncCountdown();
-    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
+    _ticker = Timer.periodic(const Duration(minutes: 1), (_) {
       if (!mounted) return;
       setState(_syncCountdown);
     });
@@ -299,134 +281,92 @@ class _TimesHeroCardState extends State<TimesHeroCard> {
   Widget build(BuildContext context) {
     final tokens = context.prayerHomeTokens;
     final tr = widget.controller.tr;
-    final current =
-        widget.currentPrayer?.name ?? tr('Belum bermula', 'Belum bermula');
-    final next = widget.nextPrayer;
-    final currentTime = widget.currentPrayer == null
+    final displayPrayer = widget.currentPrayer ?? widget.nextPrayer;
+    final current = displayPrayer?.name ?? tr('Belum bermula', 'Not started');
+    final currentTime = displayPrayer == null
         ? '--:--'
-        : DateFormat('HH:mm', _msLocale).format(widget.currentPrayer!.time);
-    final nextText = next == null
-        ? tr('Tiada waktu seterusnya', 'Tiada waktu seterusnya')
-        : tr(
-            'Seterusnya ${next.name} (${_formatShort(_remaining)})',
-            'Seterusnya ${next.name} (${_formatShort(_remaining)})',
-          );
+        : DateFormat('HH:mm', _msLocale).format(displayPrayer.time);
     final checkedCurrent = widget.currentPrayer != null &&
         widget.controller.isPrayerCompletedToday(widget.currentPrayer!.name);
-
-    final progress = _progressToNextPrayer(
-      now: DateTime.now(),
-      current: widget.currentPrayer,
-      next: widget.nextPrayer,
-    );
+    final canCheckIn = widget.currentPrayer != null;
+    final remainingText = _formatRemaining(_remaining);
 
     final location = widget.controller.activeZone?.location ??
-        tr('Lokasi belum ditentukan', 'Lokasi belum ditentukan');
+        tr('Lokasi belum ditentukan', 'Location unavailable');
     final freshness = widget.controller.prayerDataFreshnessLabel;
+    final statusMeta = '$location • $freshness';
 
     return _HomeCard(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      tr('Waktu Semasa', 'Waktu Semasa'),
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: tokens.textMuted,
-                            fontWeight: FontWeight.w600,
-                          ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      current,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                            fontWeight: FontWeight.w800,
-                            letterSpacing: 0.1,
-                          ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      currentTime,
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                            color: const Color(0xFFF2D57D),
-                            fontWeight: FontWeight.w800,
-                          ),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      nextText,
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                            color: const Color(0xFFDDE7F7),
-                            fontWeight: FontWeight.w500,
-                          ),
-                    ),
-                  ],
+          Text(
+            tr('Waktu Seterusnya', 'NEXT PRAYER'),
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: tokens.textMuted,
+                  fontWeight: FontWeight.w700,
+                  letterSpacing: 0.7,
                 ),
-              ),
-              _HeroCountdownRing(progress: progress, remaining: _remaining),
-            ],
           ),
-          const SizedBox(height: 8),
-          Wrap(
-            spacing: 6,
-            runSpacing: 6,
-            children: [
-              _MetaChip(icon: Icons.place_outlined, label: location),
-              _MetaChip(icon: Icons.bolt_outlined, label: freshness),
-            ],
+          const SizedBox(height: 12),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Row(
+              children: [
+                Text(
+                  current,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 0.1,
+                      ),
+                ),
+                const SizedBox(width: 10),
+                Text(
+                  currentTime,
+                  style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                        color: const Color(0xFFF2D57D),
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
+              ],
+            ),
           ),
-          const SizedBox(height: 8),
+          const SizedBox(height: 12),
+          NextPrayerCountdownText(remainingText: remainingText),
+          const SizedBox(height: 12),
+          _MetaChip(icon: Icons.place_outlined, label: statusMeta),
+          const SizedBox(height: 16),
           Row(
             children: [
               AnimatedSwitcher(
                 duration: tokens.fastAnim,
-                child: checkedCurrent
-                    ? Container(
-                        key: const ValueKey<String>('checked-chip'),
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
-                        ),
-                        decoration: BoxDecoration(
-                          color: const Color(0x263B516D),
-                          borderRadius: BorderRadius.circular(999),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(
-                              Icons.check_circle_rounded,
-                              size: 16,
-                              color: Color(0xFFBFD0E8),
-                            ),
-                            const SizedBox(width: 6),
-                            Text(
-                              tr('Sudah ditanda', 'Sudah ditanda'),
-                              style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                                    color: const Color(0xFFBFD0E8),
-                                    fontWeight: FontWeight.w700,
-                                  ),
-                            ),
-                          ],
-                        ),
+                child: !canCheckIn
+                    ? _HeroStatusPill(
+                        key: const ValueKey<String>('checkin-disabled'),
+                        icon: Icons.schedule_rounded,
+                        label: tr('Check-in buka $currentTime',
+                            'Check-in opens at $currentTime'),
                       )
-                    : OutlinedButton.icon(
-                        key: const ValueKey<String>('checkin'),
-                        onPressed: widget.onCheckIn,
-                        icon: const Icon(Icons.check_rounded, size: 18),
-                        label: Text(tr('Tanda selesai', 'Tanda selesai')),
-                        style: OutlinedButton.styleFrom(
-                          minimumSize: const Size(0, 40),
-                          padding: const EdgeInsets.symmetric(horizontal: 16),
-                        ),
-                      ),
+                    : checkedCurrent
+                        ? _HeroStatusPill(
+                            key: const ValueKey<String>('checked-chip'),
+                            icon: Icons.check_circle_rounded,
+                            label: tr('Sudah ditanda', 'Marked'),
+                          )
+                        : FilledButton.icon(
+                            key: const ValueKey<String>('checkin'),
+                            onPressed: widget.onCheckIn,
+                            icon: const Icon(Icons.check_rounded, size: 18),
+                            label: Text(tr('Tanda selesai', 'Mark done')),
+                            style: FilledButton.styleFrom(
+                              minimumSize: const Size(0, 40),
+                              padding:
+                                  const EdgeInsets.symmetric(horizontal: 16),
+                            ),
+                          ),
               ),
               const Spacer(),
               TextButton(
@@ -435,7 +375,7 @@ class _TimesHeroCardState extends State<TimesHeroCard> {
                   minimumSize: const Size(0, 40),
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                 ),
-                child: Text(tr('Tunda 5 min', 'Tunda 5 min')),
+                child: Text(tr('Tunda 5 min', 'Snooze 5 min')),
               ),
             ],
           ),
@@ -444,90 +384,88 @@ class _TimesHeroCardState extends State<TimesHeroCard> {
     );
   }
 
-  double _progressToNextPrayer({
-    required DateTime now,
-    required PrayerTimeEntry? current,
-    required PrayerTimeEntry? next,
-  }) {
-    if (next == null) {
-      return 0;
-    }
-    final start = current?.time ?? DateTime(now.year, now.month, now.day);
-    final total = next.time.difference(start).inSeconds;
-    if (total <= 0) {
-      return 0;
-    }
-    final elapsed = now.difference(start).inSeconds.clamp(0, total);
-    return (elapsed / total).clamp(0.0, 1.0);
-  }
-
-  String _formatShort(Duration d) {
-    final h = d.inHours;
-    final m = d.inMinutes.remainder(60);
-    if (h > 0) {
-      return '${h}h ${m}m';
-    }
-    return '${m}m';
+  String _formatRemaining(Duration d) {
+    final safe = d.isNegative ? Duration.zero : d;
+    final h = safe.inHours;
+    final m = safe.inMinutes.remainder(60);
+    final hourLabel = h == 1 ? 'hour' : 'hours';
+    final minuteLabel = m == 1 ? 'minute' : 'minutes';
+    return '$h $hourLabel $m $minuteLabel';
   }
 }
 
-class NextPrayerStrip extends StatelessWidget {
-  const NextPrayerStrip({
+class NextPrayerCountdownText extends StatelessWidget {
+  const NextPrayerCountdownText({
     super.key,
-    required this.controller,
-    required this.nextPrayer,
+    required this.remainingText,
   });
 
-  final AppController controller;
-  final PrayerTimeEntry? nextPrayer;
+  final String remainingText;
 
   @override
   Widget build(BuildContext context) {
-    final tokens = context.prayerHomeTokens;
-    final tr = controller.tr;
-    final next = nextPrayer;
-    if (next == null) {
-      return const SizedBox.shrink();
-    }
-    final remaining = next.time.difference(DateTime.now());
-    final safe = remaining.isNegative ? Duration.zero : remaining;
-    final text =
-        '${tr('Seterusnya', 'Seterusnya')}: ${next.name} ${DateFormat('HH:mm', _msLocale).format(next.time)} • ${_formatShort(safe)}';
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          remainingText,
+          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
+                color: const Color(0xFFEAF3FF),
+                fontWeight: FontWeight.w800,
+              ),
+        ),
+        const SizedBox(height: 2),
+        Text(
+          'Before Subuh begins',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                color: const Color(0xFFAFBFDA),
+                fontWeight: FontWeight.w600,
+              ),
+        ),
+      ],
+    );
+  }
+}
+
+class _HeroStatusPill extends StatelessWidget {
+  const _HeroStatusPill({
+    super.key,
+    required this.icon,
+    required this.label,
+  });
+
+  final IconData icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
     return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
       decoration: BoxDecoration(
-        color: const Color(0xFF152745),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: const Color(0x33567798)),
+        color: const Color(0x263B516D),
+        borderRadius: BorderRadius.circular(999),
       ),
       child: Row(
+        mainAxisSize: MainAxisSize.min,
         children: [
-          Icon(Icons.schedule_rounded, size: 16, color: tokens.accent),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(
-              text,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                    color: const Color(0xFFE7F0FF),
-                    fontWeight: FontWeight.w600,
-                  ),
-            ),
+          Icon(
+            icon,
+            size: 16,
+            color: const Color(0xFFBFD0E8),
+          ),
+          const SizedBox(width: 6),
+          Text(
+            label,
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: const Color(0xFFBFD0E8),
+                  fontWeight: FontWeight.w700,
+                ),
           ),
         ],
       ),
     );
-  }
-
-  String _formatShort(Duration d) {
-    final h = d.inHours;
-    final m = d.inMinutes.remainder(60);
-    if (h > 0) {
-      return '${h}j ${m}m';
-    }
-    return '${m}m';
   }
 }
 
@@ -571,9 +509,9 @@ class _TodayScheduleListState extends State<TodayScheduleList> {
       final isCurrent = widget.currentPrayer?.name == entry.name;
       return isCurrent || !done;
     }).toList();
-    final remaining =
-        (controller.todayPrayerTargetCount - controller.todayPrayerCompletedCount)
-            .clamp(0, controller.todayPrayerTargetCount);
+    final remaining = (controller.todayPrayerTargetCount -
+            controller.todayPrayerCompletedCount)
+        .clamp(0, controller.todayPrayerTargetCount);
     final streak = _prayerStreakDays(controller);
     return _HomeCard(
       child: Column(
@@ -582,7 +520,7 @@ class _TodayScheduleListState extends State<TodayScheduleList> {
           Row(
             children: [
               Text(
-                tr('Jadual Hari Ini', 'Jadual Hari Ini'),
+                tr('Jadual Hari Ini', 'Today Schedule'),
                 style: Theme.of(context).textTheme.titleMedium?.copyWith(
                       fontWeight: FontWeight.w700,
                     ),
@@ -596,7 +534,7 @@ class _TodayScheduleListState extends State<TodayScheduleList> {
                   style: Theme.of(context).textTheme.labelLarge?.copyWith(
                         color: tokens.accent,
                         fontWeight: FontWeight.w700,
-                  ),
+                      ),
                 ),
               ),
             ],
@@ -607,12 +545,12 @@ class _TodayScheduleListState extends State<TodayScheduleList> {
             runSpacing: 8,
             children: [
               _InsightChip(
-                label: tr('Selesai', 'Selesai'),
+                label: tr('Selesai', 'Done'),
                 value:
                     '${controller.todayPrayerCompletedCount}/${controller.todayPrayerTargetCount}',
               ),
               _InsightChip(
-                label: tr('Baki', 'Baki'),
+                label: tr('Baki', 'Remaining'),
                 value: '$remaining',
               ),
               _InsightChip(
@@ -670,10 +608,10 @@ class _TodayScheduleListState extends State<TodayScheduleList> {
                     ),
                     Text(
                       _showCompleted
-                          ? tr('Sembunyi selesai', 'Sembunyi selesai')
+                          ? tr('Sembunyi selesai', 'Hide completed')
                           : tr(
                               'Tunjuk selesai (${completedRows.length})',
-                              'Tunjuk selesai (${completedRows.length})',
+                              'Show completed (${completedRows.length})',
                             ),
                       style: Theme.of(context).textTheme.labelMedium?.copyWith(
                             color: const Color(0xFFB9CAE2),
@@ -713,11 +651,11 @@ class _TodayScheduleListState extends State<TodayScheduleList> {
         isCurrent: isCurrent,
         isNext: isNext,
         statusLabel: isCurrent
-            ? tr('SEMASA', 'SEMASA')
+            ? tr('SEMASA', 'NOW')
             : isNext
-                ? tr('Seterusnya', 'Seterusnya')
+                ? tr('Seterusnya', 'Upcoming')
                 : done
-                    ? tr('Selesai', 'Selesai')
+                    ? tr('Selesai', 'Done')
                     : null,
         onTap: () => widget.onTapRow(entry, done),
         onLongPress: () => widget.onLongPressRow(entry, done),
@@ -747,132 +685,6 @@ class _TodayScheduleListState extends State<TodayScheduleList> {
   }
 }
 
-class PinnedMiniHeader extends StatefulWidget {
-  const PinnedMiniHeader({
-    super.key,
-    required this.controller,
-    required this.currentPrayer,
-    required this.nextPrayer,
-  });
-
-  final AppController controller;
-  final PrayerTimeEntry? currentPrayer;
-  final PrayerTimeEntry? nextPrayer;
-
-  @override
-  State<PinnedMiniHeader> createState() => _PinnedMiniHeaderState();
-}
-
-class _PinnedMiniHeaderState extends State<PinnedMiniHeader> {
-  Timer? _ticker;
-  Duration _remaining = Duration.zero;
-
-  @override
-  void initState() {
-    super.initState();
-    _refresh();
-    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (!mounted) return;
-      setState(_refresh);
-    });
-  }
-
-  @override
-  void didUpdateWidget(covariant PinnedMiniHeader oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (oldWidget.nextPrayer?.time != widget.nextPrayer?.time) {
-      _refresh();
-    }
-  }
-
-  @override
-  void dispose() {
-    _ticker?.cancel();
-    super.dispose();
-  }
-
-  void _refresh() {
-    final next = widget.nextPrayer;
-    if (next == null) {
-      _remaining = Duration.zero;
-      return;
-    }
-    final diff = next.time.difference(DateTime.now());
-    _remaining = diff.isNegative ? Duration.zero : diff;
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final tr = widget.controller.tr;
-    final current =
-        widget.currentPrayer?.name ?? tr('Belum bermula', 'Belum bermula');
-    final next = widget.nextPrayer;
-    final nextText = next == null
-        ? tr('Tiada seterusnya', 'Tiada seterusnya')
-        : '${next.name} ${DateFormat('HH:mm', _msLocale).format(next.time)} (${_formatCompact(_remaining)})';
-    return Text(
-      '$current • $nextText',
-      maxLines: 1,
-      overflow: TextOverflow.ellipsis,
-      style: Theme.of(context).textTheme.labelLarge?.copyWith(
-            fontWeight: FontWeight.w700,
-          ),
-    );
-  }
-
-  String _formatCompact(Duration d) {
-    final h = d.inHours;
-    final m = d.inMinutes.remainder(60);
-    if (h > 0) return '${h}j ${m}m';
-    return '${m}m';
-  }
-}
-
-class _HeroCountdownRing extends StatelessWidget {
-  const _HeroCountdownRing({
-    required this.progress,
-    required this.remaining,
-  });
-
-  final double progress;
-  final Duration remaining;
-
-  @override
-  Widget build(BuildContext context) {
-    final tokens = context.prayerHomeTokens;
-    return SizedBox(
-      width: 62,
-      height: 62,
-      child: Stack(
-        alignment: Alignment.center,
-        children: [
-          TweenAnimationBuilder<double>(
-            duration: tokens.baseAnim,
-            tween: Tween<double>(begin: 0, end: progress.clamp(0.0, 1.0)),
-            builder: (context, value, _) {
-              return CircularProgressIndicator(
-                value: value,
-                strokeWidth: 4,
-                backgroundColor: const Color(0xFF2A3651),
-                valueColor: AlwaysStoppedAnimation<Color>(tokens.accent),
-              );
-            },
-          ),
-          Text(
-            '${remaining.inHours.toString().padLeft(2, '0')}\n${remaining.inMinutes.remainder(60).toString().padLeft(2, '0')}',
-            textAlign: TextAlign.center,
-            style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                  fontWeight: FontWeight.w700,
-                  color: tokens.textMuted,
-                  height: 0.95,
-                ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
 class _MetaChip extends StatelessWidget {
   const _MetaChip({
     required this.icon,
@@ -885,7 +697,7 @@ class _MetaChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      constraints: const BoxConstraints(maxWidth: 220),
+      constraints: const BoxConstraints(maxWidth: 320),
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       decoration: BoxDecoration(
         color: const Color(0x1F3E5575),
@@ -997,7 +809,7 @@ class _ScheduleRow extends StatelessWidget {
             ? const Color(0x335F7AA1)
             : visualDone
                 ? const Color(0x223D5475)
-            : const Color(0xFF14233A);
+                : const Color(0xFF14233A);
     final statusColor = isCurrent
         ? tokens.accent
         : visualDone
@@ -1196,7 +1008,7 @@ class _HomeEmptyState extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            tr('Data waktu belum tersedia.', 'Data waktu belum tersedia.'),
+            tr('Data waktu belum tersedia.', 'Prayer times are unavailable.'),
             style: Theme.of(context).textTheme.titleMedium?.copyWith(
                   fontWeight: FontWeight.w700,
                 ),
@@ -1212,7 +1024,7 @@ class _HomeEmptyState extends StatelessWidget {
           const SizedBox(height: 12),
           FilledButton(
             onPressed: controller.refreshPrayerData,
-            child: Text(tr('Muat semula', 'Muat semula')),
+            child: Text(tr('Muat semula', 'Reload')),
           ),
         ],
       ),
@@ -1234,7 +1046,7 @@ class _HomeErrorCard extends StatelessWidget {
         children: [
           Text(
             controller.errorMessage ??
-                tr('Ralat tidak diketahui.', 'Ralat tidak diketahui.'),
+                tr('Ralat tidak diketahui.', 'Unknown error.'),
             style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: const Color(0xFFFFD7D7),
                   fontWeight: FontWeight.w600,
@@ -1247,7 +1059,7 @@ class _HomeErrorCard extends StatelessWidget {
               FilledButton.icon(
                 onPressed: controller.refreshPrayerData,
                 icon: const Icon(Icons.refresh),
-                label: Text(tr('Cuba semula', 'Cuba semula')),
+                label: Text(tr('Cuba semula', 'Try again')),
               ),
               if (controller.errorActionLabel != null)
                 OutlinedButton(

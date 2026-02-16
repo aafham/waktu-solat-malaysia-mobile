@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 
@@ -49,7 +50,7 @@ class _WaktuSolatAppState extends State<WaktuSolatApp>
     );
     controller.initialize();
 
-    Future.delayed(const Duration(seconds: 2), () {
+    Future.delayed(const Duration(milliseconds: 3200), () {
       if (!mounted) return;
       setState(() {
         showSplash = false;
@@ -286,11 +287,11 @@ class _WaktuSolatAppState extends State<WaktuSolatApp>
                               destinations: [
                                 NavigationDestination(
                                   icon: const Icon(Icons.home_outlined),
-                                  label: controller.tr('Waktu', 'Waktu'),
+                                  label: controller.tr('Waktu', 'Times'),
                                 ),
                                 NavigationDestination(
                                   icon: const Icon(Icons.explore),
-                                  label: controller.tr('Qiblat', 'Qiblat'),
+                                  label: controller.tr('Qiblat', 'Qibla'),
                                 ),
                                 NavigationDestination(
                                   icon: const Icon(Icons.touch_app),
@@ -298,7 +299,7 @@ class _WaktuSolatAppState extends State<WaktuSolatApp>
                                 ),
                                 NavigationDestination(
                                   icon: const Icon(Icons.settings),
-                                  label: controller.tr('Tetapan', 'Tetapan'),
+                                  label: controller.tr('Tetapan', 'Settings'),
                                 ),
                               ],
                             ),
@@ -309,60 +310,193 @@ class _WaktuSolatAppState extends State<WaktuSolatApp>
   }
 }
 
-class SplashScreen extends StatelessWidget {
+class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
   @override
+  State<SplashScreen> createState() => _SplashScreenState();
+}
+
+class _SplashScreenState extends State<SplashScreen>
+    with TickerProviderStateMixin {
+  late final AnimationController _entryController;
+  late final AnimationController _loaderController;
+  late final Animation<double> _logoFade;
+  late final Animation<double> _logoScale;
+  late final Animation<double> _textFade;
+  late final Animation<double> _loaderFade;
+
+  @override
+  void initState() {
+    super.initState();
+    _entryController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 860),
+    )..forward();
+    _loaderController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1200),
+    )..repeat();
+
+    _logoFade = CurvedAnimation(
+      parent: _entryController,
+      curve: const Interval(0.0, 0.48, curve: Curves.easeOutCubic),
+    );
+    _logoScale = Tween<double>(begin: 0.92, end: 1.0).animate(
+      CurvedAnimation(
+        parent: _entryController,
+        curve: const Interval(0.0, 0.48, curve: Curves.easeOutBack),
+      ),
+    );
+    _textFade = CurvedAnimation(
+      parent: _entryController,
+      curve: const Interval(0.28, 0.78, curve: Curves.easeOut),
+    );
+    _loaderFade = CurvedAnimation(
+      parent: _entryController,
+      curve: const Interval(0.6, 1.0, curve: Curves.easeOut),
+    );
+  }
+
+  @override
+  void dispose() {
+    _entryController.dispose();
+    _loaderController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: Container(
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF0C1D3A), Color(0xFF07152F)],
+    return AnnotatedRegion<SystemUiOverlayStyle>(
+      value: SystemUiOverlayStyle.light,
+      child: Scaffold(
+        body: Container(
+          decoration: const BoxDecoration(
+            gradient: LinearGradient(
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+              colors: [Color(0xFF091A35), Color(0xFF07142E)],
+            ),
+          ),
+          child: SafeArea(
+            child: Center(
+              child: Padding(
+                padding: const EdgeInsets.all(24),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    FadeTransition(
+                      opacity: _logoFade,
+                      child: ScaleTransition(
+                        scale: _logoScale,
+                        child: Container(
+                          width: 88,
+                          height: 88,
+                          alignment: Alignment.center,
+                          decoration: const BoxDecoration(
+                            shape: BoxShape.circle,
+                            color: Colors.transparent,
+                            boxShadow: [
+                              BoxShadow(
+                                color: Color(0x33F4C542),
+                                blurRadius: 26,
+                                spreadRadius: 1,
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.mosque,
+                            size: 54,
+                            color: Color(0xFFF4C542),
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    FadeTransition(
+                      opacity: _textFade,
+                      child: const Column(
+                        children: [
+                          Text(
+                            'JagaSolat',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 38,
+                              letterSpacing: 0.4,
+                              fontWeight: FontWeight.w800,
+                              height: 1.04,
+                            ),
+                          ),
+                          SizedBox(height: 8),
+                          Text(
+                            'Jangan dok tinggai solat.',
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Color(0xFFC7D3E8),
+                              fontSize: 14,
+                              fontWeight: FontWeight.w500,
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    const SizedBox(height: 28),
+                    FadeTransition(
+                      opacity: _loaderFade,
+                      child: _SplashDotsLoader(animation: _loaderController),
+                    ),
+                  ],
+                ),
+              ),
+            ),
           ),
         ),
-        child: const Center(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              CircleAvatar(
-                radius: 44,
-                backgroundColor: Color(0x1AF4C542),
-                child: Icon(Icons.mosque, size: 48, color: Color(0xFFF4C542)),
-              ),
-              SizedBox(height: 20),
-              Text(
-                'JagaSolat',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 30,
-                  letterSpacing: 0.3,
-                  fontWeight: FontWeight.w800,
+      ),
+    );
+  }
+}
+
+class _SplashDotsLoader extends StatelessWidget {
+  const _SplashDotsLoader({required this.animation});
+
+  final Animation<double> animation;
+
+  @override
+  Widget build(BuildContext context) {
+    const accent = Color(0xFFF4C542);
+    return SizedBox(
+      width: 54,
+      height: 14,
+      child: AnimatedBuilder(
+        animation: animation,
+        builder: (context, _) {
+          final t = animation.value;
+          return Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: List.generate(3, (index) {
+              final phase = (t + index * 0.22) % 1.0;
+              final wave = (1.0 - (phase - 0.5).abs() * 2).clamp(0.0, 1.0);
+              final scale = 0.72 + (wave * 0.45);
+              final opacity = 0.28 + (wave * 0.72);
+              return Opacity(
+                opacity: opacity,
+                child: Transform.scale(
+                  scale: scale,
+                  child: Container(
+                    width: 8,
+                    height: 8,
+                    decoration: const BoxDecoration(
+                      shape: BoxShape.circle,
+                      color: accent,
+                    ),
+                  ),
                 ),
-              ),
-              SizedBox(height: 8),
-              Text(
-                'Waktu Solat Malaysia',
-                style: TextStyle(
-                  color: Color(0xFFC7D3E8),
-                  fontSize: 14,
-                  fontWeight: FontWeight.w500,
-                ),
-              ),
-              SizedBox(height: 20),
-              SizedBox(
-                width: 28,
-                height: 28,
-                child: CircularProgressIndicator(
-                  strokeWidth: 2.8,
-                  color: Color(0xFFF4C542),
-                ),
-              ),
-            ],
-          ),
-        ),
+              );
+            }),
+          );
+        },
       ),
     );
   }

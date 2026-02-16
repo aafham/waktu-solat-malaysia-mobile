@@ -1,5 +1,7 @@
 # JagaSolat (Flutter)
 
+Tagline: `Jangan dok tinggai solat.`
+
 Aplikasi mudah alih untuk bantu pengguna Malaysia jaga amalan harian dengan 3 fokus utama:
 - Waktu Solat
 - Qiblat
@@ -20,13 +22,14 @@ Kemaskini terkini membawa gaya visual gelap yang konsisten di semua page:
 
 ## Navigasi Semasa
 Bottom navigation:
-- `Waktu`
-- `Qiblat`
-- `Zikir`
-- `Tetapan`
+- `Times`
+- `Qibla`
+- `Tasbih`
+- `Settings`
 
 ## Ciri Tambahan
-- Sokongan bahasa `BM/EN` (boleh tukar di `Settings`).
+- UI kini `English-first` secara global.
+- Nama waktu solat kekal istilah standard Malaysia (`Imsak`, `Subuh`, `Zohor`, `Asar`, `Maghrib`, `Isyak`).
 - Lokasi automatik (GPS) + zon manual.
 - Notifikasi waktu solat (tetapan per waktu + lead time awal notifikasi).
 - Travel mode auto tukar zon.
@@ -116,7 +119,22 @@ Kebenaran minimum:
 - Data lambat/tiada: tarik ke bawah untuk muat semula.
 
 ## Log Patch Terkini (Rujukan Next)
-Last update (16 Feb 2026):
+Last update (17 Feb 2026):
+- Branding: nama app kekal `JagaSolat`, tagline splash ditukar ke `Jangan dok tinggai solat.`.
+- Times/Home: countdown ring kanan dibuang sepenuhnya.
+- Countdown dipindah ke kiri bawah dalam hero dengan format English penuh (`5 hours 59 minutes`) dan caption `Before Subuh begins`.
+- Kad kecil `Seterusnya ...` bawah hero dibuang untuk elak duplication.
+- Pinned header atas dibuang terus untuk layout yang lebih bersih.
+- Refresh countdown di hero ditukar kepada setiap 1 minit.
+- Hero card dipolish: hierarchy baru (`NEXT PRAYER`, tajuk + masa sebaris), metadata digabung dalam 1 chip, CTA check-in state dipermudah.
+- Hero action state: pre-check-in guna status pill `Check-in opens at HH:mm`, active guna `Mark done`, selesai guna pill `Marked`.
+- Tasbih: UI polish (ripple + haptic + animated scale + animated progress ring + stats chips + milestone banner).
+- Bahasa app ditukar ke English sepenuhnya melalui `AppController.tr()`; string fallback BM hardcoded dibersihkan.
+- Navigation label ditukar ke `Times/Qibla/Tasbih/Settings`.
+- Splash screen dipolish: entrance animation staggered (logo/text/loader), matte gradient, dan loader ditukar ke `3 dots pulse` (bukan circular).
+- Tempoh splash dipanjangkan ke ~`3.2s` supaya animation lebih terasa.
+
+Previous update (16 Feb 2026):
 - Home page dikemas dengan hierarchy yang lebih jelas (hero + jadual).
 - `QuickAction` dalam Home dibuang untuk elak `double navigation`.
 - Bahasa pada Home dan bottom nav diseragamkan ke BM.
@@ -130,8 +148,8 @@ Last update (16 Feb 2026):
 - Micro-polish spacing/touch target dibuat untuk konsistensi.
 
 Next patch (cadangan kerja seterusnya):
-- [ ] Tambah toggle setting untuk default `Tunjuk/Sembunyi selesai` (persist dalam storage).
-- [ ] Tambah animasi micro-interaction pada check-in/undo (scale + color pulse yang lebih jelas).
-- [ ] Perhalus i18n semula (elak string BM hardcoded, guna `tr()` secara konsisten).
-- [ ] Tambah test widget untuk Home (status row, collapse behavior, dan quick insights).
-- [ ] Semak accessibility pass (kontras + saiz teks minimum + semantics label untuk screen reader).
+- [ ] Standardize remaining hardcoded non-English strings in notification + service error messages.
+- [ ] Add widget tests for hero state transition (`Check-in opens` -> `Mark done` -> `Marked`).
+- [ ] Add a splash timing config constant (easy tuning without touching logic).
+- [ ] Add accessibility pass for hero actions (tap target + semantics labels).
+- [ ] Decide final tagline language policy (keep localized tagline vs full-English branding).

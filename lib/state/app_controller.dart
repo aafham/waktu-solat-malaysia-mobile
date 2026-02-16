@@ -64,7 +64,7 @@ class AppController extends ChangeNotifier {
   int notificationLeadMinutes = 0;
   int tasbihCycleTarget = 33;
   bool tasbihAutoResetDaily = false;
-  String languageCode = 'ms';
+  String languageCode = 'en';
   int tasbihLifetimeCount = 0;
 
   Map<String, bool> prayerNotificationToggles = <String, bool>{};
@@ -559,7 +559,7 @@ class AppController extends ChangeNotifier {
   }
 
   String tr(String bm, String en) {
-    return isEnglish ? en : bm;
+    return en;
   }
 
   Future<void> completeOnboarding() async {
@@ -839,15 +839,15 @@ class AppController extends ChangeNotifier {
   String _friendlyError(Object error) {
     final text = error.toString().toLowerCase();
     if (text.contains('location') || text.contains('lokasi')) {
-      return 'Lokasi tidak tersedia. Sila aktifkan GPS atau pilih zon manual.';
+      return 'Location is unavailable. Please enable GPS or choose a manual zone.';
     }
     if (text.contains('timeout')) {
-      return 'Sambungan perlahan. Tarik ke bawah untuk cuba semula.';
+      return 'Connection is slow. Pull down to try again.';
     }
     if (text.contains('tidak tersedia')) {
-      return 'Data belum tersedia dari pelayan. Data simpanan akan digunakan bila ada.';
+      return 'Data is not yet available from server. Cached data will be used when available.';
     }
-    return 'Tidak dapat memuat data sekarang. Sila cuba semula sekejap lagi.';
+    return 'Unable to load data right now. Please try again shortly.';
   }
 
   String? get errorActionLabel {
@@ -856,14 +856,14 @@ class AppController extends ChangeNotifier {
     }
     if (_lastErrorRaw.contains('location') ||
         _lastErrorRaw.contains('lokasi')) {
-      return 'Buka tetapan lokasi';
+      return 'Open location settings';
     }
     if (_lastErrorRaw.contains('notification') ||
         _lastErrorRaw.contains('notifikasi')) {
-      return 'Buka tetapan aplikasi';
+      return 'Open app settings';
     }
     if (_lastErrorRaw.contains('server') || _lastErrorRaw.contains('timeout')) {
-      return 'Guna zon manual';
+      return 'Use manual zone';
     }
     return null;
   }
@@ -873,15 +873,15 @@ class AppController extends ChangeNotifier {
     if (label == null) {
       return;
     }
-    if (label == 'Buka tetapan lokasi') {
+    if (label == 'Open location settings') {
       await Geolocator.openLocationSettings();
       return;
     }
-    if (label == 'Buka tetapan aplikasi') {
+    if (label == 'Open app settings') {
       await Geolocator.openAppSettings();
       return;
     }
-    if (label == 'Guna zon manual') {
+    if (label == 'Use manual zone') {
       await setAutoLocation(false);
       return;
     }
@@ -956,9 +956,9 @@ class AppController extends ChangeNotifier {
     final next = nextPrayer;
     final countdown = timeToNextPrayer;
     final payload = <String, String>{
-      'widget_title': 'Waktu Solat',
+      'widget_title': 'Prayer Times',
       'widget_subtitle': next == null
-          ? 'Tiada waktu seterusnya'
+          ? 'No next prayer'
           : '${next.name} ${next.time.hour.toString().padLeft(2, '0')}:${next.time.minute.toString().padLeft(2, '0')}',
       'widget_countdown': _formatWidgetCountdown(countdown),
       'widget_tasbih': '$tasbihCount',

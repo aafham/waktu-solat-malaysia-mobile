@@ -72,25 +72,11 @@ class _TasbihScreenState extends State<TasbihScreen> {
                           fontWeight: FontWeight.w700,
                         ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    tr(
-                      'Target: $target • Pusingan: $cycle',
-                      'Target: $target • Cycle: $cycle',
-                    ),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: TasbihTokens.textMuted,
-                        ),
-                  ),
-                  const SizedBox(height: 2),
-                  Text(
-                    tr(
-                      'Hari ini ${controller.tasbihTodayCount} • Jumlah ${controller.tasbihLifetimeCount}',
-                      'Today ${controller.tasbihTodayCount} • Total ${controller.tasbihLifetimeCount}',
-                    ),
-                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: TasbihTokens.textMuted,
-                        ),
+                  const SizedBox(height: TasbihTokens.s12),
+                  TasbihStatsChips(
+                    controller: controller,
+                    target: target,
+                    cycle: cycle,
                   ),
                 ],
               ),
@@ -197,37 +183,72 @@ class _TasbihScreenState extends State<TasbihScreen> {
     final input = TextEditingController(
       text: widget.controller.tasbihCycleTarget.toString(),
     );
-    final value = await showDialog<int>(
+    final value = await showModalBottomSheet<int>(
       context: context,
+      useSafeArea: true,
+      backgroundColor: TasbihTokens.controlPanel,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(
+          top: Radius.circular(TasbihTokens.radius + 6),
+        ),
+      ),
       builder: (context) {
-        return AlertDialog(
-          title: Text(tr('Target Tersuai', 'Custom target')),
-          content: TextField(
-            controller: input,
-            keyboardType: TextInputType.number,
-            decoration: InputDecoration(
-              hintText: tr('Contoh: 100', 'Example: 100'),
-            ),
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(
+            TasbihTokens.s24,
+            TasbihTokens.s16,
+            TasbihTokens.s24,
+            TasbihTokens.s24,
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(tr('Batal', 'Cancel')),
-            ),
-            FilledButton(
-              onPressed: () {
-                final parsed = int.tryParse(input.text.trim());
-                if (parsed == null || parsed < 1) {
-                  return;
-                }
-                Navigator.pop(context, parsed);
-              },
-              child: Text(tr('Simpan', 'Save')),
-            ),
-          ],
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(
+                tr('Target Tersuai', 'Custom target'),
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.w700,
+                    ),
+              ),
+              const SizedBox(height: TasbihTokens.s12),
+              TextField(
+                controller: input,
+                keyboardType: TextInputType.number,
+                autofocus: true,
+                decoration: InputDecoration(
+                  hintText: tr('Contoh: 100', 'Example: 100'),
+                ),
+              ),
+              const SizedBox(height: TasbihTokens.s16),
+              Row(
+                children: [
+                  Expanded(
+                    child: OutlinedButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: Text(tr('Batal', 'Cancel')),
+                    ),
+                  ),
+                  const SizedBox(width: TasbihTokens.s8),
+                  Expanded(
+                    child: FilledButton(
+                      onPressed: () {
+                        final parsed = int.tryParse(input.text.trim());
+                        if (parsed == null || parsed < 1) {
+                          return;
+                        }
+                        Navigator.pop(context, parsed);
+                      },
+                      child: Text(tr('Simpan', 'Save')),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
         );
       },
     );
+    input.dispose();
     if (value != null && value >= 1) {
       await widget.controller.setTasbihCycleTarget(value);
     }
@@ -306,28 +327,11 @@ class _TasbihScreenState extends State<TasbihScreen> {
     final target = widget.controller.tasbihCycleTarget <= 0
         ? 33
         : widget.controller.tasbihCycleTarget;
-    final beforeCycle = before % target;
-    final afterCycle = after % target;
-    final hitTarget = afterCycle == 0 && after > 0;
-    final hit33 = before < 33 && after >= 33;
-    final hit66 = before < 66 && after >= 66;
-    final hit99 = before < 99 && after >= 99;
+    final beforeStep = before ~/ target;
+    final afterStep = after ~/ target;
+    final hitTarget = after > 0 && afterStep > beforeStep;
 
-    String? label;
-    if (hitTarget) {
-      label = widget.controller.tr(
-        'Target capai: $target',
-        'Target reached: $target',
-      );
-    } else if (hit99) {
-      label = '99';
-    } else if (hit66) {
-      label = '66';
-    } else if (hit33) {
-      label = '33';
-    }
-
-    if (label == null || beforeCycle == afterCycle) {
+    if (!hitTarget) {
       return;
     }
 
@@ -335,7 +339,10 @@ class _TasbihScreenState extends State<TasbihScreen> {
     _milestoneTimer?.cancel();
     if (!mounted) return;
     setState(() {
-      _milestoneLabel = label;
+      _milestoneLabel = widget.controller.tr(
+        'Target tercapai ✅',
+        'Target reached ✅',
+      );
       _pulseGlow = 1;
     });
     Future<void>.delayed(const Duration(milliseconds: 240), () {
@@ -384,74 +391,154 @@ class TasbihHeroDial extends StatelessWidget {
       button: true,
       label: tr('Tambah kiraan tasbih', 'Increase tasbih count'),
       child: AnimatedScale(
-        scale: pressed ? 1.03 : 1.0,
+        scale: pressed ? 0.985 : 1.0,
         duration: pressed ? TasbihTokens.tapScaleIn : TasbihTokens.tapScaleOut,
         curve: Curves.easeOut,
-        child: InkResponse(
-          onTap: onTap,
-          radius: size / 2,
-          splashColor: TasbihTokens.accent.withValues(alpha: 0.24),
-          highlightShape: BoxShape.circle,
-          child: AnimatedContainer(
-            duration: TasbihTokens.milestoneAnim,
-            width: size,
-            height: size,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              color: TasbihTokens.panelSoft,
-              boxShadow: [
-                BoxShadow(
-                  color: TasbihTokens.accent.withValues(alpha: 0.14 * glow),
-                  blurRadius: 30 + (8 * glow),
-                  spreadRadius: 2 + (4 * glow),
-                ),
-              ],
-            ),
-            child: Stack(
-              alignment: Alignment.center,
-              children: [
-                SizedBox.expand(
-                  child: CustomPaint(
-                    painter: _TasbihRingPainter(progress: progress),
+        child: Material(
+          type: MaterialType.transparency,
+          child: InkResponse(
+            onTap: onTap,
+            radius: size / 2,
+            containedInkWell: true,
+            customBorder: const CircleBorder(),
+            splashColor: TasbihTokens.accent.withValues(alpha: 0.24),
+            highlightShape: BoxShape.circle,
+            child: AnimatedContainer(
+              duration: TasbihTokens.milestoneAnim,
+              width: size,
+              height: size,
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                color: TasbihTokens.panelSoft,
+                boxShadow: [
+                  BoxShadow(
+                    color: TasbihTokens.accent.withValues(alpha: 0.14 * glow),
+                    blurRadius: 30 + (8 * glow),
+                    spreadRadius: 2 + (4 * glow),
                   ),
-                ),
-                Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(
-                      '$count',
-                      style: Theme.of(context).textTheme.displaySmall?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
+                ],
+              ),
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  SizedBox.expand(
+                    child: TweenAnimationBuilder<double>(
+                      duration: TasbihTokens.progressAnim,
+                      curve: Curves.easeOutCubic,
+                      tween: Tween<double>(begin: 0, end: progress),
+                      builder: (context, value, _) {
+                        return CustomPaint(
+                          painter: _TasbihRingPainter(progress: value),
+                        );
+                      },
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '$inCycle / $target',
-                      style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  ),
+                  Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          '$count',
+                          style:
+                              Theme.of(context).textTheme.displaySmall?.copyWith(
+                                    fontWeight: FontWeight.w700,
+                                  ),
+                        ),
+                      ),
+                      const SizedBox(height: TasbihTokens.s8),
+                      Text(
+                        '$inCycle / $target',
+                        style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                              color: TasbihTokens.textMuted,
+                              fontWeight: FontWeight.w700,
+                            ),
+                      ),
+                    ],
+                  ),
+                  Positioned(
+                    bottom: TasbihTokens.s24,
+                    child: Text(
+                      tr('Tekan untuk tambah', 'Tap to add'),
+                      style: Theme.of(context).textTheme.labelMedium?.copyWith(
                             color: TasbihTokens.textMuted,
                             fontWeight: FontWeight.w600,
                           ),
                     ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '${(progress * 100).round()}%',
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: TasbihTokens.textMuted,
-                          ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      tr('Tap anywhere', 'Tap anywhere'),
-                      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                            color: TasbihTokens.textMuted,
-                          ),
-                    ),
-                  ],
-                ),
-              ],
+                  ),
+                ],
+              ),
             ),
           ),
         ),
+      ),
+    );
+  }
+}
+
+class TasbihStatsChips extends StatelessWidget {
+  const TasbihStatsChips({
+    super.key,
+    required this.controller,
+    required this.target,
+    required this.cycle,
+  });
+
+  final AppController controller;
+  final int target;
+  final int cycle;
+
+  @override
+  Widget build(BuildContext context) {
+    final tr = controller.tr;
+    return Wrap(
+      spacing: TasbihTokens.s8,
+      runSpacing: TasbihTokens.s8,
+      children: [
+        _StatChip(
+          label: tr('Target', 'Target'),
+          value: '$target',
+        ),
+        _StatChip(
+          label: tr('Pusingan', 'Cycle'),
+          value: '$cycle',
+        ),
+        _StatChip(
+          label: tr('Hari ini', 'Today'),
+          value: '${controller.tasbihTodayCount}',
+        ),
+      ],
+    );
+  }
+}
+
+class _StatChip extends StatelessWidget {
+  const _StatChip({
+    required this.label,
+    required this.value,
+  });
+
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(
+        horizontal: TasbihTokens.s12,
+        vertical: 6,
+      ),
+      decoration: BoxDecoration(
+        color: const Color(0x1A3C5478),
+        borderRadius: BorderRadius.circular(999),
+        border: Border.all(color: const Color(0x345C7EA6)),
+      ),
+      child: Text(
+        '$label $value',
+        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+              color: const Color(0xFFE8F1FF),
+              fontWeight: FontWeight.w700,
+            ),
       ),
     );
   }
@@ -502,7 +589,7 @@ class TasbihControlPanel extends StatelessWidget {
               ButtonSegment<int>(value: 33, label: Text(tr('33', '33'))),
               ButtonSegment<int>(value: 99, label: Text(tr('99', '99'))),
               ButtonSegment<int>(
-                  value: -1, label: Text(tr('Custom', 'Custom'))),
+                  value: -1, label: Text(tr('Tersuai', 'Custom'))),
             ],
             selected: <int>{selectedTarget},
             onSelectionChanged: (value) => onSelectTarget(value.first),
@@ -510,16 +597,32 @@ class TasbihControlPanel extends StatelessWidget {
           const SizedBox(height: TasbihTokens.s8),
           Row(
             children: [
-              IconButton.filledTonal(
-                onPressed: onUndo,
-                tooltip: tr('Undo', 'Undo'),
-                icon: const Icon(Icons.undo_rounded),
+              Semantics(
+                button: true,
+                label: tr('Undo kiraan tasbih', 'Undo tasbih count'),
+                child: IconButton.filledTonal(
+                  onPressed: onUndo,
+                  tooltip: tr('Undo', 'Undo'),
+                  style: IconButton.styleFrom(
+                    backgroundColor: onUndo == null
+                        ? const Color(0x22344762)
+                        : null,
+                    foregroundColor: onUndo == null
+                        ? const Color(0xFF6F819E)
+                        : null,
+                  ),
+                  icon: const Icon(Icons.undo_rounded),
+                ),
               ),
               const SizedBox(width: 10),
-              IconButton.filledTonal(
-                onPressed: onReset,
-                tooltip: tr('Reset', 'Reset'),
-                icon: const Icon(Icons.restart_alt_rounded),
+              Semantics(
+                button: true,
+                label: tr('Reset kiraan tasbih', 'Reset tasbih count'),
+                child: IconButton.filledTonal(
+                  onPressed: onReset,
+                  tooltip: tr('Reset', 'Reset'),
+                  icon: const Icon(Icons.restart_alt_rounded),
+                ),
               ),
             ],
           ),
@@ -574,10 +677,7 @@ class MilestoneBanner extends StatelessWidget {
                 borderRadius: BorderRadius.circular(999),
               ),
               child: Text(
-                controller.tr(
-                  'Milestone capai: $label',
-                  'Milestone reached: $label',
-                ),
+                label!,
                 style: Theme.of(context).textTheme.labelLarge?.copyWith(
                       color: TasbihTokens.accent,
                       fontWeight: FontWeight.w700,
@@ -609,7 +709,7 @@ class _TasbihRingPainter extends CustomPainter {
       ..style = PaintingStyle.stroke
       ..strokeWidth = stroke
       ..strokeCap = StrokeCap.round
-      ..color = TasbihTokens.accent;
+      ..color = TasbihTokens.accentStrong;
 
     canvas.drawCircle(center, radius, track);
     final sweep = (2 * math.pi) * progress;
@@ -627,3 +727,4 @@ class _TasbihRingPainter extends CustomPainter {
     return oldDelegate.progress != progress;
   }
 }
+
