@@ -1,45 +1,79 @@
 # Waktu Solat Malaysia Mobile (Flutter)
 
-Aplikasi Android (APK) untuk pengguna Malaysia dengan ciri:
-- Waktu solat ikut zon Malaysia
-- Auto detect lokasi pengguna (GPS)
-- Kompas kiblat
-- Tasbih digital
-- Notifikasi masuk waktu (bunyi default + vibrate)
-- Splash screen semasa app dibuka
+Aplikasi mudah alih untuk pengguna Malaysia yang memaparkan waktu solat, kompas kiblat, tasbih digital, serta notifikasi masuk waktu dengan reka bentuk moden dan konsisten.
 
-## Status projek
-Project Flutter ini sudah lengkap dengan struktur utama termasuk folder platform Android.
+## Ciri Utama
+- Waktu solat harian mengikut zon Malaysia.
+- Jadual bulanan dengan penapis `Semua / Subuh / Maghrib`.
+- Pengesanan lokasi automatik (GPS) + pilihan zon manual.
+- `Travel mode` untuk tukar zon automatik bila lokasi berubah.
+- Kompas kiblat dengan paparan arah, status aktif, dan bacaan darjah.
+- Panduan kalibrasi kompas dalam aplikasi.
+- Tasbih digital dengan preset zikir, mod fokus, haptic, dan kiraan batch.
+- Analitik tasbih: kiraan hari ini, 7 hari, streak, dan rekod terbaik.
+- Notifikasi waktu solat dengan tetapan per-waktu, profil bunyi, tunda 5/10 minit, dan action lock-screen.
+- Pratonton bunyi notifikasi per waktu terus dari tetapan.
+- Peringatan puasa sunat (Isnin/Khamis dan Ayyamul Bidh).
+- Cache setempat untuk sokongan rangkaian tidak stabil.
+- Tetapan aksesibiliti: skala teks dan mod kontras tinggi.
+- Sandaran/pulih tetapan melalui JSON.
+- Eksport jadual ke format iCal (`.ics`) untuk integrasi kalendar.
+- Onboarding ringkas untuk pengguna kali pertama.
+- Widget Android paparan `next prayer + countdown + tasbih`.
+
+## Kemaskini Terkini
+- Tema aplikasi diseragamkan (warna, kad, butang, input, navigation bar, snackbar).
+- Semua teks UI dikonsistenkan ke Bahasa Melayu.
+- Onboarding baharu (3 skrin) untuk flow awal pengguna.
+- Skrin `Waktu` diperkemas dengan hierarchy seksyen lebih jelas dan kad info yang kemas.
+- Skrin `Waktu` ditambah action kongsi iCal harian.
+- Skrin `Bulanan` ditambah ringkasan bulan (Subuh terawal, Maghrib terlewat, jumlah hari).
+- Skrin `Bulanan` ditambah action kongsi iCal bulanan.
+- Skrin `Kiblat` ditambah bacaan `Arah semasa` dan `Ralat` dalam darjah.
+- Skrin `Kiblat` ditambah wizard kalibrasi sensor.
+- Skrin `Tasbih` ditambah progress khusus preset selain progress pusingan 33.
+- Skrin `Tasbih` ditambah statistik harian/mingguan/streak.
+- Skrin `Tetapan` diperkemas dengan tajuk berikon dan struktur lebih teratur.
+- Tetapan notifikasi kini sokong pratonton bunyi, reminder puasa, dan travel mode.
 
 ## Prasyarat
-Pastikan mesin anda ada:
 - Flutter SDK
 - Android Studio + Android SDK
-- Peranti fizikal Android atau emulator
+- Peranti Android fizikal atau emulator
 
-Semak dengan:
-
+Semak setup:
 ```bash
 flutter doctor
 ```
 
-Jika command `flutter` tak dikenali, tambah Flutter ke PATH (Windows):
-- Contoh path: `C:\src\flutter\bin`
-- Tutup dan buka semula terminal selepas update PATH
+Jika command `flutter` tidak dikenali (Windows), tambah Flutter ke PATH.
+Contoh: `C:\src\flutter\bin`
 
-## Quick Start (dari repo ini)
-Jalankan command berikut di root project:
-
+## Quick Start
+Jalankan dari root projek:
 ```bash
 flutter pub get
 flutter run
 ```
 
-## Konfigurasi Android (wajib)
+## Ujian & Analisis
+```bash
+flutter test
+flutter analyze
+```
+
+## Build APK
+```bash
+flutter build apk --release
+```
+
+Output:
+- `build/app/outputs/flutter-apk/app-release.apk`
+
+## Konfigurasi Android (Manifest)
 Fail: `android/app/src/main/AndroidManifest.xml`
 
-### 1) Tambah permission dalam tag `<manifest>`
-
+Kebenaran minimum:
 ```xml
 <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
@@ -49,8 +83,7 @@ Fail: `android/app/src/main/AndroidManifest.xml`
 <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 ```
 
-### 2) Tambah receiver dalam tag `<application>`
-
+Receiver notifikasi:
 ```xml
 <receiver
     android:name="com.dexterous.flutterlocalnotifications.ScheduledNotificationReceiver"
@@ -66,39 +99,57 @@ Fail: `android/app/src/main/AndroidManifest.xml`
 </receiver>
 ```
 
-## Build APK release
-
-```bash
-flutter build apk --release
+Receiver widget homescreen:
+```xml
+<receiver
+    android:name=".TasbihWidgetProvider"
+    android:exported="false">
+    <intent-filter>
+        <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+    </intent-filter>
+    <meta-data
+        android:name="android.appwidget.provider"
+        android:resource="@xml/tasbih_widget_info" />
+</receiver>
 ```
 
-Lokasi APK:
-- `build/app/outputs/flutter-apk/app-release.apk`
-
-## Struktur kod ringkas
-- `lib/main.dart` - entry app + splash screen + bottom navigation
-- `lib/state/app_controller.dart` - state utama app
-- `lib/services/prayer_service.dart` - API waktu solat + pemilihan zon
-- `lib/services/location_service.dart` - GPS/permission lokasi
-- `lib/services/notification_service.dart` - jadual notifikasi waktu solat
+## Struktur Kod Ringkas
+- `lib/main.dart` - inisialisasi app, tema global, navigasi bawah
+- `lib/state/app_controller.dart` - state utama dan aliran data
+- `lib/services/prayer_service.dart` - API waktu solat, parser, retry, cache
+- `lib/services/location_service.dart` - GPS dan permission
+- `lib/services/notification_service.dart` - jadual notifikasi, tunda
+- `lib/features/onboarding/onboarding_page.dart` - onboarding pengguna kali pertama
 - `lib/services/qibla_service.dart` - kiraan arah kiblat
-- `lib/services/tasbih_store.dart` - simpanan tasbih + settings
-- `lib/features/home/home_page.dart` - paparan waktu solat
-- `lib/qibla_page.dart` - kompas kiblat
-- `lib/features/tasbih/tasbih_page.dart` - tasbih digital
-- `lib/features/settings/settings_page.dart` - tetapan app
+- `lib/services/tasbih_store.dart` - simpanan kiraan/tetapan
+- `lib/features/home/home_page.dart` - dashboard waktu + countdown + quick actions
+- `lib/features/monthly/monthly_page.dart` - jadual bulanan + peta haba + ringkasan
+- `lib/features/qibla/qibla_page.dart` - paparan kompas kiblat
+- `lib/features/tasbih/tasbih_page.dart` - tasbih digital + mod fokus + preset
+- `lib/features/settings/settings_page.dart` - tetapan notifikasi/lokasi/paparan/data
+- `test/prayer_service_test.dart` - ujian unit parser API
 
-## Sumber API
-- `https://api.solat.my/v2/locations`
-- `https://api.solat.my/v2/times/{ZONE_CODE}`
+## API Digunakan
+- `https://solat.my/api/locations`
+- `https://solat.my/api/daily/{ZONE_CODE}`
+- `https://solat.my/api/monthly/{ZONE_CODE}`
 
-## Nota teknikal
-- Timezone notifikasi diset ke `Asia/Kuala_Lumpur`.
-- Notifikasi sekarang guna bunyi default Android.
-- Untuk azan custom, letak fail audio di `android/app/src/main/res/raw/` dan setkan custom notification sound channel.
+## Nota Teknikal
+- Locale default aplikasi: `ms_MY`.
+- Timezone notifikasi: `Asia/Kuala_Lumpur`.
+- Data zon/waktu disimpan dalam `SharedPreferences` untuk fallback.
+- Refresh auto ketika hari bertukar.
+- Cache bulanan dipanaskan untuk bulan semasa + bulan seterusnya.
 
-## Troubleshooting ringkas
-- `flutter`/`dart` tak dijumpai: semak PATH dan restart terminal.
-- Notifikasi tak keluar: semak permission notification (Android 13+) dan battery optimization.
-- Kompas tak stabil: kalibrasi sensor kompas peranti.
-- Lokasi gagal: hidupkan GPS dan beri permission lokasi.
+## Troubleshooting Ringkas
+- `flutter`/`dart` tidak dijumpai: semak PATH dan restart terminal.
+- Notifikasi tidak keluar: semak permission notifikasi dan battery optimization.
+- Penggera tepat disekat: benarkan `Alarms & reminders` untuk aplikasi.
+- Kompas tidak stabil: kalibrasi sensor (gerakan angka 8).
+- Lokasi gagal: aktifkan GPS atau guna zon manual.
+- Data lambat/tiada: tarik ke bawah untuk muat semula.
+
+## Limitasi Semasa
+- iCal dikongsi sebagai teks `.ics` (belum export fail fizikal `.ics`).
+- Widget homescreen refresh ikut kitaran widget Android (bukan real-time per saat).
+- Telemetri masih setempat (belum integrasi backend observability).

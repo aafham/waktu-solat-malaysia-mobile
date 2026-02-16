@@ -1,61 +1,355 @@
-import 'dart:math';
+ï»¿import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_compass/flutter_compass.dart';
 
 import '../../state/app_controller.dart';
 
-class QiblaPage extends StatelessWidget {
+class QiblaPage extends StatefulWidget {
   const QiblaPage({super.key, required this.controller});
 
   final AppController controller;
 
   @override
+  State<QiblaPage> createState() => _QiblaPageState();
+}
+
+class _QiblaPageState extends State<QiblaPage> {
+  bool _enabled = false;
+
+  @override
   Widget build(BuildContext context) {
+    final hasQibla = widget.controller.qiblaBearing != null;
+
     return SafeArea(
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('Kompas Kiblat', style: Theme.of(context).textTheme.headlineSmall),
-            const SizedBox(height: 12),
-            Text(
-              controller.qiblaBearing == null
-                  ? 'Arah kiblat belum tersedia.'
-                  : 'Arah kiblat: ${controller.qiblaBearing!.toStringAsFixed(1)}° dari utara',
+      child: ListView(
+        padding: const EdgeInsets.fromLTRB(14, 14, 14, 96),
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(22),
+              gradient: const LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: [Color(0xFF071414), Color(0xFF112521)],
+              ),
+              border: Border.all(color: const Color(0xFF28433D)),
             ),
-            const SizedBox(height: 24),
-            Expanded(
-              child: Center(
-                child: StreamBuilder<CompassEvent>(
-                  stream: FlutterCompass.events,
-                  builder: (context, snapshot) {
-                    final heading = snapshot.data?.heading;
-                    if (heading == null || controller.qiblaBearing == null) {
-                      return const Text('Sensor kompas atau lokasi belum tersedia.');
-                    }
-
-                    final turn = ((controller.qiblaBearing! - heading) / 360);
-
-                    return Column(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        Transform.rotate(
-                          angle: 2 * pi * turn,
-                          child: const Icon(Icons.navigation, size: 180, color: Colors.teal),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 16, 16, 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'KOMPAS KIBLAT',
+                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: const Color(0xFFA4C7BF),
+                          letterSpacing: 1.2,
                         ),
-                        const SizedBox(height: 16),
-                        Text('Heading: ${heading.toStringAsFixed(1)}°'),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    'Arah ke Kaabah',
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w700,
+                        ),
+                  ),
+                  const SizedBox(height: 8),
+                  Text(
+                    hasQibla
+                        ? 'Arah kiblat telah dikira berdasarkan lokasi semasa anda.'
+                        : 'Arah kiblat belum tersedia. Sila aktifkan lokasi dahulu.',
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                          color: const Color(0xFFD4E8E1),
+                        ),
+                  ),
+                  const SizedBox(height: 10),
+                  Row(
+                    children: [
+                      Container(
+                        width: 8,
+                        height: 8,
+                        decoration: BoxDecoration(
+                          color: _enabled && hasQibla
+                              ? const Color(0xFF4BCF90)
+                              : const Color(0xFFE8564B),
+                          shape: BoxShape.circle,
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        _enabled && hasQibla ? 'Aktif' : 'Tidak aktif',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                              color: const Color(0xFFE3F1ED),
+                              fontWeight: FontWeight.w600,
+                            ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: FilledButton(
+                          onPressed: hasQibla
+                              ? () {
+                                  setState(() {
+                                    _enabled = true;
+                                  });
+                                }
+                              : null,
+                          style: FilledButton.styleFrom(
+                            backgroundColor: const Color(0xFF57CC99),
+                            foregroundColor: const Color(0xFF083326),
+                            minimumSize: const Size.fromHeight(48),
+                          ),
+                          child: const Text(
+                            'Aktifkan Kompas',
+                            style: TextStyle(fontWeight: FontWeight.w700),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      OutlinedButton(
+                        onPressed: () => _showCalibrationGuide(context),
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: const Color(0xFFCDEBE3),
+                          side: const BorderSide(color: Color(0xFF5F8078)),
+                        ),
+                        child: const Text('Kalibrasi'),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 6),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF0D1F1C),
+                      borderRadius: BorderRadius.circular(10),
+                      border: Border.all(color: const Color(0xFF2A4A42)),
+                    ),
+                    child: Row(
+                      children: [
+                        const Icon(Icons.tune, size: 16, color: Color(0xFF89D5BF)),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            'Ketepatan disaran: ralat bawah 10 darjah.',
+                            style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                                  color: const Color(0xFFC8E2DB),
+                                ),
+                          ),
+                        ),
                       ],
-                    );
-                  },
-                ),
+                    ),
+                  ),
+                  Text(
+                    'Cara guna: Pastikan telefon rata. Anak panah menunjuk ke arah Kaabah.',
+                    style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: const Color(0xFFB9D4CC),
+                        ),
+                  ),
+                  const SizedBox(height: 14),
+                  if (!_enabled || !hasQibla)
+                    _buildDisabledCompass(context)
+                  else
+                    StreamBuilder<CompassEvent>(
+                      stream: FlutterCompass.events,
+                      builder: (context, snapshot) {
+                        final heading = snapshot.data?.heading;
+                        if (heading == null) {
+                          return _buildDisabledCompass(context);
+                        }
+                        final turn =
+                            ((widget.controller.qiblaBearing! - heading) / 360);
+                        final delta = _normalizeDelta(
+                          widget.controller.qiblaBearing! - heading,
+                        ).abs();
+                        return _buildActiveCompass(
+                          context,
+                          turn: turn,
+                          degrees: widget.controller.qiblaBearing!,
+                          heading: heading,
+                          delta: delta,
+                        );
+                      },
+                    ),
+                ],
               ),
             ),
-          ],
+          ),
+          const SizedBox(height: 10),
+          Center(
+            child: Text(
+              'Sumber data: JAKIM e-Solat dan Malaysia Waktu Solat API.',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: const Color(0xFF51645F),
+                  ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildDisabledCompass(BuildContext context) {
+    return Column(
+      children: [
+        _CompassFrame(
+          child: Center(
+            child: Text(
+              'Kompas belum aktif',
+              style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: const Color(0xFFA7C2BA),
+                  ),
+            ),
+          ),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          '--',
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                color: const Color(0xFFE3F1ED),
+                fontWeight: FontWeight.w700,
+              ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildActiveCompass(
+    BuildContext context, {
+    required double turn,
+    required double degrees,
+    required double heading,
+    required double delta,
+  }) {
+    return Column(
+      children: [
+        _CompassFrame(
+          child: Stack(
+            alignment: Alignment.center,
+            children: [
+              Container(
+                width: 210,
+                height: 210,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: const Color(0xFF2F4A45)),
+                ),
+              ),
+              Transform.rotate(
+                angle: 2 * pi * turn,
+                child: const Icon(
+                  Icons.navigation,
+                  size: 112,
+                  color: Color(0xFF57CC99),
+                ),
+              ),
+              _directionLabel('U', Alignment.topCenter),
+              _directionLabel('T', Alignment.centerRight),
+              _directionLabel('S', Alignment.bottomCenter),
+              _directionLabel('B', Alignment.centerLeft),
+            ],
+          ),
+        ),
+        const SizedBox(height: 10),
+        Text(
+          '${degrees.toStringAsFixed(0)} darjah',
+          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                color: const Color(0xFFE3F1ED),
+                fontWeight: FontWeight.w800,
+              ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          'Arah semasa: ${heading.toStringAsFixed(0)} darjah | Ralat: ${delta.toStringAsFixed(0)} darjah',
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: const Color(0xFFC7DED8),
+              ),
+        ),
+      ],
+    );
+  }
+
+  Widget _directionLabel(String text, Alignment alignment) {
+    return Align(
+      alignment: alignment,
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Text(
+          text,
+          style: const TextStyle(
+            color: Color(0xFFB3D3CB),
+            fontWeight: FontWeight.w700,
+            fontSize: 13,
+          ),
         ),
       ),
+    );
+  }
+
+  Future<void> _showCalibrationGuide(BuildContext context) async {
+    await showDialog<void>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Panduan Kalibrasi Kompas'),
+          content: const Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text('1. Pegang telefon dalam posisi rata.'),
+              SizedBox(height: 6),
+              Text('2. Gerakkan telefon bentuk angka 8 sebanyak 5-10 kali.'),
+              SizedBox(height: 6),
+              Text('3. Jauhkan telefon daripada magnet atau casing bermagnet.'),
+              SizedBox(height: 6),
+              Text('4. Tunggu bacaan stabil sebelum ikut arah anak panah.'),
+            ],
+          ),
+          actions: [
+            FilledButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Faham'),
+            ),
+          ],
+        );
+      },
+    );
+  }
+}
+
+double _normalizeDelta(double value) {
+  var result = value % 360;
+  if (result > 180) {
+    result -= 360;
+  } else if (result < -180) {
+    result += 360;
+  }
+  return result;
+}
+
+class _CompassFrame extends StatelessWidget {
+  const _CompassFrame({required this.child});
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 246,
+      height: 246,
+      decoration: BoxDecoration(
+        shape: BoxShape.circle,
+        border: Border.all(
+          color: const Color(0xFF3A5A53),
+          width: 1.4,
+        ),
+      ),
+      child: child,
     );
   }
 }
