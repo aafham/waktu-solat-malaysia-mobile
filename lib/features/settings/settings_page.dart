@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 
 import '../../models/prayer_models.dart';
 import '../../state/app_controller.dart';
@@ -33,176 +32,91 @@ class _SettingsPageState extends State<SettingsPage> {
 
     return SafeArea(
       child: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.fromLTRB(16, 16, 16, 100),
         children: [
-          Text('Tetapan', style: Theme.of(context).textTheme.headlineSmall),
-          const SizedBox(height: 4),
           Text(
-            'Urus notifikasi, lokasi, paparan dan sandaran data.',
-            style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+            'Tetapan',
+            style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.w800,
                 ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'Tetapan ringkas untuk Waktu Solat, Qiblat dan Zikir.',
           ),
           const SizedBox(height: 12),
           _SectionCard(
+            title: 'Notifikasi Waktu Solat',
             icon: Icons.notifications_active_outlined,
-            title: 'Notifikasi',
             child: Column(
               children: [
                 SwitchListTile(
-                  title: const Text('Aktifkan notifikasi waktu solat'),
+                  title: const Text('Hidupkan notifikasi'),
+                  subtitle: const Text('Peringatan bila masuk waktu solat'),
                   value: controller.notifyEnabled,
                   onChanged: controller.setNotifyEnabled,
                 ),
                 SwitchListTile(
-                  title: const Text('Aktifkan getaran notifikasi'),
+                  title: const Text('Getaran'),
+                  subtitle: const Text('Telefon bergetar semasa notifikasi'),
                   value: controller.vibrateEnabled,
                   onChanged: controller.notifyEnabled
                       ? controller.setVibrateEnabled
                       : null,
                 ),
-                SwitchListTile(
-                  title: const Text('Mod Ramadan'),
-                  subtitle: const Text('Fokus paparan Imsak & Maghrib'),
-                  value: controller.ramadhanMode,
-                  onChanged: controller.setRamadhanMode,
-                ),
-                const Divider(),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'Notifikasi ikut waktu',
-                    style: Theme.of(context).textTheme.titleSmall,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                ...controller.prayerNotificationToggles.entries.map(
-                  (entry) => SwitchListTile(
-                    title: Text(entry.key),
-                    value: entry.value,
-                    onChanged: controller.notifyEnabled
-                        ? (value) =>
-                            controller.setPrayerNotifyEnabled(entry.key, value)
-                        : null,
-                  ),
-                ),
                 const SizedBox(height: 4),
                 Align(
                   alignment: Alignment.centerLeft,
-                  child: Text(
-                    'Bunyi notifikasi ikut waktu',
-                    style: Theme.of(context).textTheme.titleSmall,
+                  child: FilledButton.tonalIcon(
+                    onPressed: controller.notifyEnabled
+                        ? () {
+                            final prayer = controller.nextPrayer?.name ?? 'Subuh';
+                            controller.previewPrayerSound(prayer);
+                          }
+                        : null,
+                    icon: const Icon(Icons.play_circle_outline),
+                    label: const Text('Uji bunyi notifikasi'),
                   ),
                 ),
-                const SizedBox(height: 6),
-                ...controller.prayerNotificationToggles.keys.map(
-                  (name) => Padding(
-                    padding: const EdgeInsets.only(bottom: 8),
-                    child: Row(
-                      children: [
-                        Expanded(
-                          child: DropdownButtonFormField<String>(
-                            initialValue:
-                                controller.prayerSoundProfiles[name] ?? 'default',
-                            decoration: InputDecoration(
-                              labelText: 'Bunyi $name',
-                              border: const OutlineInputBorder(),
-                            ),
-                            items: const [
-                              DropdownMenuItem(
-                                value: 'default',
-                                child: Text('Biasa'),
-                              ),
-                              DropdownMenuItem(
-                                value: 'silent',
-                                child: Text('Senyap'),
-                              ),
-                            ],
-                            onChanged: controller.notifyEnabled
-                                ? (value) {
-                                    if (value != null) {
-                                      controller.setPrayerSoundProfile(name, value);
-                                    }
-                                  }
-                                : null,
-                          ),
-                        ),
-                        const SizedBox(width: 8),
-                        IconButton.filledTonal(
-                          tooltip: 'Pratonton bunyi',
-                          onPressed: controller.notifyEnabled
-                              ? () => controller.previewPrayerSound(name)
-                              : null,
-                          icon: const Icon(Icons.play_arrow),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                if (!controller.exactAlarmAllowed)
-                  Card(
-                    color: Colors.orange.shade50,
-                    child: const Padding(
-                      padding: EdgeInsets.all(12),
-                      child: Text(
-                        'Penggera tepat mungkin disekat. Semak Tetapan telefon > Penggera & peringatan.',
+                const SizedBox(height: 8),
+                ExpansionTile(
+                  tilePadding: EdgeInsets.zero,
+                  childrenPadding: EdgeInsets.zero,
+                  title: const Text('Pilihan ikut waktu (lanjutan)'),
+                  subtitle: const Text('Boleh dibiar default jika tidak pasti'),
+                  children: [
+                    ...controller.prayerNotificationToggles.entries.map(
+                      (entry) => SwitchListTile(
+                        title: Text(entry.key),
+                        value: entry.value,
+                        onChanged: controller.notifyEnabled
+                            ? (value) =>
+                                controller.setPrayerNotifyEnabled(entry.key, value)
+                            : null,
                       ),
                     ),
-                  ),
-                const SizedBox(height: 8),
-                Align(
-                  alignment: Alignment.centerLeft,
-                  child: Text(
-                    'Peringatan puasa sunat',
-                    style: Theme.of(context).textTheme.titleSmall,
-                  ),
-                ),
-                SwitchListTile(
-                  title: const Text('Isnin & Khamis'),
-                  subtitle: const Text('Peringatan malam dan hampir Imsak'),
-                  value: controller.fastingMondayThursdayEnabled,
-                  onChanged: controller.notifyEnabled
-                      ? controller.setFastingMondayThursdayEnabled
-                      : null,
-                ),
-                SwitchListTile(
-                  title: const Text('Ayyamul Bidh (13-15 Hijrah)'),
-                  subtitle: const Text('Peringatan puasa bulanan hijrah'),
-                  value: controller.fastingAyyamulBidhEnabled,
-                  onChanged: controller.notifyEnabled
-                      ? controller.setFastingAyyamulBidhEnabled
-                      : null,
+                  ],
                 ),
               ],
             ),
           ),
           const SizedBox(height: 10),
           _SectionCard(
+            title: 'Lokasi & Zon',
             icon: Icons.place_outlined,
-            title: 'Lokasi',
             child: Column(
               children: [
                 SwitchListTile(
                   title: const Text('Kesan lokasi automatik'),
+                  subtitle: const Text('Disyorkan untuk kebanyakan pengguna'),
                   value: controller.autoLocation,
                   onChanged: controller.setAutoLocation,
                 ),
-                SwitchListTile(
-                  title: const Text('Travel mode (auto tukar zon)'),
-                  subtitle: const Text('Semak lokasi berkala bila anda bergerak'),
-                  value: controller.travelModeEnabled,
-                  onChanged: controller.autoLocation
-                      ? controller.setTravelModeEnabled
-                      : null,
-                ),
-                _buildZoneShortcutChips(controller, zones),
-                const SizedBox(height: 8),
                 if (!controller.autoLocation) ...[
                   TextField(
                     controller: _searchController,
                     decoration: const InputDecoration(
                       labelText: 'Cari zon',
-                      border: OutlineInputBorder(),
                       prefixIcon: Icon(Icons.search),
                     ),
                     onChanged: (value) {
@@ -221,24 +135,12 @@ class _SettingsPageState extends State<SettingsPage> {
                         .map(
                           (zone) => DropdownMenuItem<String>(
                             value: zone.code,
-                            child: Row(
-                              children: [
-                                Expanded(child: Text(zone.label)),
-                                Icon(
-                                  controller.isZoneFavorite(zone.code)
-                                      ? Icons.star
-                                      : Icons.star_border,
-                                  size: 18,
-                                  color: Colors.amber,
-                                ),
-                              ],
-                            ),
+                            child: Text(zone.label),
                           ),
                         )
                         .toList(),
                     decoration: const InputDecoration(
                       labelText: 'Pilih zon manual',
-                      border: OutlineInputBorder(),
                     ),
                     onChanged: (value) {
                       if (value != null) {
@@ -247,51 +149,44 @@ class _SettingsPageState extends State<SettingsPage> {
                     },
                   ),
                   const SizedBox(height: 8),
-                  Card(
-                    child: Column(
-                      children: filteredZones.take(12).map((zone) {
-                        return ListTile(
-                          dense: true,
-                          title: Text(zone.label),
-                          trailing: IconButton(
-                            tooltip: 'Kegemaran',
-                            onPressed: () =>
-                                controller.toggleFavoriteZone(zone.code),
-                            icon: Icon(
-                              controller.isZoneFavorite(zone.code)
-                                  ? Icons.star
-                                  : Icons.star_border,
-                              color: Colors.amber,
-                            ),
-                          ),
-                          onTap: () => controller.setManualZone(zone.code),
-                        );
-                      }).toList(),
-                    ),
+                  _FavoriteZoneChips(
+                    controller: controller,
+                    zones: zones,
                   ),
                 ],
+                if (zones.isEmpty)
+                  Card(
+                    color: Colors.orange.shade50,
+                    child: const Padding(
+                      padding: EdgeInsets.all(12),
+                      child: Text('Data zon belum siap dimuatkan. Sila cuba semula.'),
+                    ),
+                  ),
               ],
             ),
           ),
           const SizedBox(height: 10),
           _SectionCard(
-            icon: Icons.palette_outlined,
-            title: 'Paparan',
+            title: 'Paparan Mesra Mata',
+            icon: Icons.text_fields,
             child: Column(
               children: [
-                ListTile(
-                  title: const Text('Saiz teks'),
-                  subtitle: Slider(
-                    value: controller.textScale,
-                    min: 0.9,
-                    max: 1.4,
-                    divisions: 5,
-                    label: controller.textScale.toStringAsFixed(2),
-                    onChanged: (value) => controller.setTextScale(value),
-                  ),
+                SegmentedButton<double>(
+                  segments: const [
+                    ButtonSegment<double>(value: 0.9, label: Text('Kecil')),
+                    ButtonSegment<double>(value: 1.0, label: Text('Biasa')),
+                    ButtonSegment<double>(value: 1.2, label: Text('Besar')),
+                    ButtonSegment<double>(value: 1.4, label: Text('Sangat Besar')),
+                  ],
+                  selected: <double>{_closestTextScale(controller.textScale)},
+                  onSelectionChanged: (selection) {
+                    controller.setTextScale(selection.first);
+                  },
                 ),
+                const SizedBox(height: 8),
                 SwitchListTile(
-                  title: const Text('Mod kontras tinggi'),
+                  title: const Text('Kontras tinggi'),
+                  subtitle: const Text('Mudah dibaca untuk semua peringkat umur'),
                   value: controller.highContrast,
                   onChanged: controller.setHighContrast,
                 ),
@@ -300,70 +195,33 @@ class _SettingsPageState extends State<SettingsPage> {
           ),
           const SizedBox(height: 10),
           _SectionCard(
-            icon: Icons.storage_outlined,
-            title: 'Data & Sandaran',
+            title: 'Zikir',
+            icon: Icons.touch_app,
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                FilledButton.icon(
-                  onPressed: controller.refreshPrayerData,
-                  icon: const Icon(Icons.refresh),
-                  label: const Text('Muat semula data sekarang'),
+                ListTile(
+                  contentPadding: EdgeInsets.zero,
+                  leading: const Icon(Icons.countertops),
+                  title: const Text('Kiraan semasa'),
+                  subtitle: Text('${controller.tasbihCount}'),
                 ),
-                const SizedBox(height: 10),
-                Wrap(
-                  spacing: 8,
-                  runSpacing: 8,
-                  children: [
-                    OutlinedButton.icon(
-                      onPressed: () async {
-                        final jsonText = controller.exportSettingsJson();
-                        await Clipboard.setData(ClipboardData(text: jsonText));
-                        if (context.mounted) {
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text('Sandaran JSON disalin ke papan klip'),
-                            ),
-                          );
-                        }
-                      },
-                      icon: const Icon(Icons.download),
-                      label: const Text('Sandaran'),
-                    ),
-                    OutlinedButton.icon(
-                      onPressed: () => _showImportDialog(context, controller),
-                      icon: const Icon(Icons.upload),
-                      label: const Text('Pulih'),
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 12),
-                ExpansionTile(
-                  title: const Text('Log kesihatan (setempat)'),
-                  subtitle: const Text('Ringkas untuk semak kestabilan aplikasi'),
-                  children: controller.healthLogs
-                      .take(20)
-                      .map(
-                        (line) => ListTile(
-                          dense: true,
-                          title: Text(
-                            line,
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                        ),
-                      )
-                      .toList(),
+                OutlinedButton.icon(
+                  onPressed: controller.tasbihCount == 0
+                      ? null
+                      : () => _confirmResetTasbih(controller),
+                  icon: const Icon(Icons.restart_alt),
+                  label: const Text('Tetapkan semula kiraan zikir'),
                 ),
               ],
             ),
           ),
-          const SizedBox(height: 12),
+          const SizedBox(height: 10),
           Card(
             child: Padding(
               padding: const EdgeInsets.all(12),
               child: Text(
-                'Nota: Untuk azan kustom, letak fail audio di android/app/src/main/res/raw dan konfigurasi saluran bunyi Android.',
-                style: Theme.of(context).textTheme.bodySmall,
+                'Tip mesra pengguna: jika anda kurang pasti, kekalkan tetapan default. Hanya ubah Lokasi dan Saiz Teks bila perlu.',
+                style: Theme.of(context).textTheme.bodyMedium,
               ),
             ),
           ),
@@ -372,60 +230,97 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  Future<void> _showImportDialog(
-    BuildContext context,
-    AppController controller,
-  ) async {
-    final input = TextEditingController();
-    await showDialog<void>(
+  double _closestTextScale(double value) {
+    const options = <double>[0.9, 1.0, 1.2, 1.4];
+    var best = options.first;
+    var bestDiff = (value - best).abs();
+    for (final option in options.skip(1)) {
+      final diff = (value - option).abs();
+      if (diff < bestDiff) {
+        best = option;
+        bestDiff = diff;
+      }
+    }
+    return best;
+  }
+
+  Future<void> _confirmResetTasbih(AppController controller) async {
+    final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Pulihkan Tetapan JSON'),
-          content: TextField(
-            controller: input,
-            maxLines: 8,
-            decoration: const InputDecoration(
-              hintText: 'Tampal JSON sandaran di sini',
-              border: OutlineInputBorder(),
-            ),
-          ),
+          title: const Text('Tetapkan semula kiraan zikir?'),
+          content: const Text('Kiraan akan kembali ke 0.'),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () => Navigator.pop(context, false),
               child: const Text('Batal'),
             ),
             FilledButton(
-              onPressed: () async {
-                try {
-                  await controller.importSettingsJson(input.text.trim());
-                  if (context.mounted) {
-                    Navigator.pop(context);
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Tetapan berjaya dipulihkan')),
-                    );
-                  }
-                } catch (_) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text('Format JSON tidak sah')),
-                    );
-                  }
-                }
-              },
-              child: const Text('Pulihkan'),
+              onPressed: () => Navigator.pop(context, true),
+              child: const Text('Ya, semula'),
             ),
           ],
         );
       },
     );
-    input.dispose();
+    if (confirmed == true) {
+      await controller.resetTasbih();
+    }
   }
+}
 
-  Widget _buildZoneShortcutChips(
-    AppController controller,
-    List<PrayerZone> zones,
-  ) {
+class _SectionCard extends StatelessWidget {
+  const _SectionCard({
+    required this.title,
+    required this.icon,
+    required this.child,
+  });
+
+  final String title;
+  final IconData icon;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return Card(
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(
+              children: [
+                Icon(icon, color: Theme.of(context).colorScheme.primary),
+                const SizedBox(width: 8),
+                Text(
+                  title,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.w800,
+                      ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            child,
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _FavoriteZoneChips extends StatelessWidget {
+  const _FavoriteZoneChips({
+    required this.controller,
+    required this.zones,
+  });
+
+  final AppController controller;
+  final List<PrayerZone> zones;
+
+  @override
+  Widget build(BuildContext context) {
     PrayerZone? byCode(String code) {
       for (final zone in zones) {
         if (zone.code == code) {
@@ -464,46 +359,6 @@ class _SettingsPageState extends State<SettingsPage> {
             ),
           )
           .toList(),
-    );
-  }
-}
-
-class _SectionCard extends StatelessWidget {
-  const _SectionCard({
-    required this.icon,
-    required this.title,
-    required this.child,
-  });
-
-  final IconData icon;
-  final String title;
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      child: Padding(
-        padding: const EdgeInsets.all(12),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Icon(icon, size: 18, color: Theme.of(context).colorScheme.primary),
-                const SizedBox(width: 8),
-                Text(
-                  title,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w700,
-                      ),
-                ),
-              ],
-            ),
-            const SizedBox(height: 6),
-            child,
-          ],
-        ),
-      ),
     );
   }
 }

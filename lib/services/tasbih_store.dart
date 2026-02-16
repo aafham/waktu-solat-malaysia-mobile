@@ -20,6 +20,7 @@ class TasbihStore {
   static const _fastingMonThuKey = 'fasting_mon_thu_enabled';
   static const _fastingAyyamulBidhKey = 'fasting_ayyamul_bidh_enabled';
   static const _tasbihDailyStatsKey = 'tasbih_daily_stats_json';
+  static const _prayerCheckinsKey = 'prayer_checkins_json';
 
   Future<int> loadCount() async {
     final prefs = await SharedPreferences.getInstance();
@@ -222,5 +223,32 @@ class TasbihStore {
   Future<void> saveTasbihDailyStats(Map<String, int> stats) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_tasbihDailyStatsKey, jsonEncode(stats));
+  }
+
+  Future<Map<String, List<String>>> loadPrayerCheckins() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_prayerCheckinsKey);
+    if (raw == null || raw.isEmpty) {
+      return <String, List<String>>{};
+    }
+    try {
+      final parsed = jsonDecode(raw);
+      if (parsed is! Map<String, dynamic>) {
+        return <String, List<String>>{};
+      }
+      return parsed.map((key, value) {
+        final list = value is List
+            ? value.map((item) => item.toString()).toList()
+            : <String>[];
+        return MapEntry(key, list);
+      });
+    } catch (_) {
+      return <String, List<String>>{};
+    }
+  }
+
+  Future<void> savePrayerCheckins(Map<String, List<String>> checkins) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_prayerCheckinsKey, jsonEncode(checkins));
   }
 }

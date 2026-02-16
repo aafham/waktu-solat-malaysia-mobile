@@ -7,7 +7,7 @@
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
-        android:label="waktu_solat_malaysia_mobile"
+        android:label="JagaSolat"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher">
         <activity

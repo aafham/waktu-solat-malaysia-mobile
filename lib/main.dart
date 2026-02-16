@@ -3,7 +3,6 @@ import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 
 import 'features/home/home_page.dart';
-import 'features/monthly/monthly_page.dart';
 import 'features/onboarding/onboarding_page.dart';
 import 'features/qibla/qibla_page.dart';
 import 'features/settings/settings_page.dart';
@@ -63,25 +62,27 @@ class _WaktuSolatAppState extends State<WaktuSolatApp> {
 
   @override
   Widget build(BuildContext context) {
-    const surfaceBg = Color(0xFFE7EEEC);
-    const cardBg = Color(0xFFF2F6F5);
-    const primary = Color(0xFF0A7E70);
-    const secondary = Color(0xFF7FBEB3);
+    const surfaceBg = Color(0xFF07152F);
+    const cardBg = Color(0xFF102544);
+    const cardBgSoft = Color(0xFF143053);
+    const primary = Color(0xFFF3C623);
+    const secondary = Color(0xFF5DADE2);
 
     final baseTheme = ThemeData(
-      colorScheme: const ColorScheme.light(
+      brightness: Brightness.dark,
+      colorScheme: const ColorScheme.dark(
         primary: primary,
-        onPrimary: Colors.white,
+        onPrimary: Color(0xFF1A1400),
         secondary: secondary,
-        onSecondary: Color(0xFF12312C),
+        onSecondary: Color(0xFF04111F),
         surface: cardBg,
-        onSurface: Color(0xFF1A2A27),
+        onSurface: Color(0xFFF2F5F9),
       ),
       scaffoldBackgroundColor: surfaceBg,
-      dividerColor: const Color(0xFFD0DFDB),
+      dividerColor: const Color(0xFF2A4363),
       appBarTheme: const AppBarTheme(
         backgroundColor: Colors.transparent,
-        foregroundColor: Color(0xFF1A2A27),
+        foregroundColor: Color(0xFFF2F5F9),
         elevation: 0,
         scrolledUnderElevation: 0,
       ),
@@ -96,7 +97,7 @@ class _WaktuSolatAppState extends State<WaktuSolatApp> {
       filledButtonTheme: FilledButtonThemeData(
         style: FilledButton.styleFrom(
           backgroundColor: primary,
-          foregroundColor: Colors.white,
+          foregroundColor: const Color(0xFF1A1400),
           minimumSize: const Size(0, 48),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(999),
@@ -105,9 +106,9 @@ class _WaktuSolatAppState extends State<WaktuSolatApp> {
       ),
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
-          foregroundColor: const Color(0xFF0A6358),
+          foregroundColor: const Color(0xFFEAF2FF),
           minimumSize: const Size(0, 48),
-          side: const BorderSide(color: Color(0xFF8AAEA8)),
+          side: const BorderSide(color: Color(0xFF4A6183)),
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(999),
           ),
@@ -119,49 +120,49 @@ class _WaktuSolatAppState extends State<WaktuSolatApp> {
         ),
       ),
       switchTheme: SwitchThemeData(
-        thumbColor: MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.selected)) {
-            return const Color(0xFF0A7E70);
+        thumbColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return const Color(0xFFF3C623);
           }
-          return const Color(0xFFE1EAE7);
+          return const Color(0xFFBBC9DD);
         }),
-        trackColor: MaterialStateProperty.resolveWith((states) {
-          if (states.contains(MaterialState.selected)) {
-            return const Color(0xFF97CFC5);
+        trackColor: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return const Color(0xFF6B5A1D);
           }
-          return const Color(0xFFC8D6D2);
+          return const Color(0xFF324A6B);
         }),
       ),
       chipTheme: ChipThemeData(
-        backgroundColor: const Color(0xFFD4E7E2),
-        selectedColor: const Color(0xFFB5D8D0),
-        side: const BorderSide(color: Color(0xFF9ABCB5)),
+        backgroundColor: cardBgSoft,
+        selectedColor: const Color(0xFF2A4970),
+        side: const BorderSide(color: Color(0xFF365577)),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
       navigationBarTheme: const NavigationBarThemeData(
-        backgroundColor: Color(0xFFDDE9E6),
-        indicatorColor: Color(0xFFC0DFD8),
+        backgroundColor: Color(0xFF0C1F3D),
+        indicatorColor: Color(0xFFF3C623),
         surfaceTintColor: Colors.transparent,
-        iconTheme: MaterialStatePropertyAll(
-          IconThemeData(color: Color(0xFF4B5855)),
+        iconTheme: WidgetStatePropertyAll(
+          IconThemeData(color: Color(0xFFB7C6DC)),
         ),
-        labelTextStyle: MaterialStatePropertyAll(
+        labelTextStyle: WidgetStatePropertyAll(
           TextStyle(
-            color: Color(0xFF2F3E3B),
+            color: Color(0xFFEAF2FF),
             fontWeight: FontWeight.w600,
           ),
         ),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
-        fillColor: const Color(0xFFF1F6F4),
+        fillColor: cardBgSoft,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFB7CBC6)),
+          borderSide: const BorderSide(color: Color(0xFF3E5D82)),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: Color(0xFFB7CBC6)),
+          borderSide: const BorderSide(color: Color(0xFF3E5D82)),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -170,7 +171,7 @@ class _WaktuSolatAppState extends State<WaktuSolatApp> {
       ),
       snackBarTheme: const SnackBarThemeData(
         behavior: SnackBarBehavior.floating,
-        backgroundColor: Color(0xFF163D36),
+        backgroundColor: Color(0xFF12213A),
         contentTextStyle: TextStyle(color: Colors.white),
       ),
       useMaterial3: true,
@@ -190,7 +191,7 @@ class _WaktuSolatAppState extends State<WaktuSolatApp> {
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Waktu Solat Malaysia',
+      title: 'JagaSolat',
       theme: controller.highContrast ? highContrastTheme : baseTheme,
       home: showSplash
           ? const SplashScreen()
@@ -198,8 +199,14 @@ class _WaktuSolatAppState extends State<WaktuSolatApp> {
               animation: controller,
               builder: (context, _) {
                 final pages = <Widget>[
-                  HomePage(controller: controller),
-                  MonthlyPage(controller: controller),
+                  HomePage(
+                    controller: controller,
+                    onNavigateToTab: (index) {
+                      setState(() {
+                        tabIndex = index;
+                      });
+                    },
+                  ),
                   QiblaPage(controller: controller),
                   TasbihPage(controller: controller),
                   SettingsPage(controller: controller),
@@ -236,10 +243,9 @@ class _WaktuSolatAppState extends State<WaktuSolatApp> {
                                 });
                               },
                               destinations: const [
-                                NavigationDestination(icon: Icon(Icons.access_time), label: 'Waktu'),
-                                NavigationDestination(icon: Icon(Icons.calendar_month), label: 'Bulanan'),
-                                NavigationDestination(icon: Icon(Icons.explore), label: 'Kiblat'),
-                                NavigationDestination(icon: Icon(Icons.touch_app), label: 'Tasbih'),
+                                NavigationDestination(icon: Icon(Icons.home_outlined), label: 'Waktu'),
+                                NavigationDestination(icon: Icon(Icons.explore), label: 'Qiblat'),
+                                NavigationDestination(icon: Icon(Icons.touch_app), label: 'Zikir'),
                                 NavigationDestination(icon: Icon(Icons.settings), label: 'Tetapan'),
                               ],
                             ),
@@ -256,15 +262,15 @@ class SplashScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Scaffold(
-      backgroundColor: Color(0xFF00695C),
+      backgroundColor: Color(0xFF07152F),
       body: Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Icon(Icons.mosque, size: 84, color: Colors.white),
+            Icon(Icons.mosque, size: 84, color: Color(0xFFF3C623)),
             SizedBox(height: 20),
             Text(
-              'Waktu Solat Malaysia',
+              'JagaSolat',
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 24,
@@ -272,7 +278,7 @@ class SplashScreen extends StatelessWidget {
               ),
             ),
             SizedBox(height: 12),
-            CircularProgressIndicator(color: Colors.white),
+            CircularProgressIndicator(color: Color(0xFFF3C623)),
           ],
         ),
       ),

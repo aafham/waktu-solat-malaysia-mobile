@@ -66,6 +66,7 @@ class AppController extends ChangeNotifier {
   List<String> favoriteZones = <String>[];
   List<String> recentZones = <String>[];
   Map<String, int> tasbihDailyStats = <String, int>{};
+  Map<String, List<String>> prayerCheckinsByDate = <String, List<String>>{};
   final List<String> healthLogs = <String>[];
 
   Timer? _refreshTimer;
@@ -94,6 +95,28 @@ class AppController extends ChangeNotifier {
       return 0;
     }
     return tasbihDailyStats.values.reduce((a, b) => a > b ? a : b);
+  }
+  List<String> get todayPrayerCheckins =>
+      prayerCheckinsByDate[_dateKey(DateTime.now())] ?? <String>[];
+  int get todayPrayerCompletedCount => todayPrayerCheckins.length;
+  int get todayPrayerTargetCount {
+    final names = dailyPrayerTimes?.entries.map((e) => e.name).toList() ?? <String>[];
+    final filtered = names
+        .where((name) =>
+            name == 'Subuh' ||
+            name == 'Zohor' ||
+            name == 'Asar' ||
+            name == 'Maghrib' ||
+            name == 'Isyak')
+        .toList();
+    return filtered.isEmpty ? 5 : filtered.length;
+  }
+  double get todayPrayerProgress {
+    final target = todayPrayerTargetCount;
+    if (target == 0) {
+      return 0;
+    }
+    return (todayPrayerCompletedCount / target).clamp(0.0, 1.0);
   }
   int get tasbihStreakDays {
     var streak = 0;
@@ -139,6 +162,7 @@ class AppController extends ChangeNotifier {
     fastingAyyamulBidhEnabled =
         await _tasbihStore.loadFastingAyyamulBidhEnabled();
     tasbihDailyStats = await _tasbihStore.loadTasbihDailyStats();
+    prayerCheckinsByDate = await _tasbihStore.loadPrayerCheckins();
 
     zones = await _prayerService.fetchZones();
     await _notificationService.initialize();
@@ -466,6 +490,7 @@ class AppController extends ChangeNotifier {
       'prayerSoundProfiles': prayerSoundProfiles,
       'favoriteZones': favoriteZones,
       'recentZones': recentZones,
+      'prayerCheckinsByDate': prayerCheckinsByDate,
     });
   }
 
@@ -508,6 +533,15 @@ class AppController extends ChangeNotifier {
     if (rec is List) {
       recentZones = rec.map((e) => e.toString()).toList();
     }
+    final checkins = parsed['prayerCheckinsByDate'];
+    if (checkins is Map<String, dynamic>) {
+      prayerCheckinsByDate = checkins.map((key, value) {
+        final list = value is List
+            ? value.map((item) => item.toString()).toList()
+            : <String>[];
+        return MapEntry(key, list);
+      });
+    }
 
     await _tasbihStore.saveNotifyEnabled(notifyEnabled);
     await _tasbihStore.saveVibrateEnabled(vibrateEnabled);
@@ -523,6 +557,7 @@ class AppController extends ChangeNotifier {
     );
     await _tasbihStore.saveFavoriteZones(favoriteZones);
     await _tasbihStore.saveRecentZones(recentZones);
+    await _tasbihStore.savePrayerCheckins(prayerCheckinsByDate);
     for (final entry in prayerNotificationToggles.entries) {
       await _tasbihStore.savePrayerNotificationToggle(entry.key, entry.value);
     }
@@ -571,7 +606,7 @@ class AppController extends ChangeNotifier {
         final start = _icsDate(entry.time);
         final end = _icsDate(entry.time.add(const Duration(minutes: 20)));
         b.writeln('BEGIN:VEVENT');
-        b.writeln('UID:${entry.name}-${start}@waktusolat');
+        b.writeln('UID:${entry.name}-$start@waktusolat');
         b.writeln('DTSTAMP:${_icsDate(DateTime.now())}');
         b.writeln('DTSTART:$start');
         b.writeln('DTEND:$end');
@@ -597,7 +632,7 @@ class AppController extends ChangeNotifier {
       final start = _icsDate(entry.time);
       final end = _icsDate(entry.time.add(const Duration(minutes: 20)));
       b.writeln('BEGIN:VEVENT');
-      b.writeln('UID:${entry.name}-${start}@waktusolat');
+      b.writeln('UID:${entry.name}-$start@waktusolat');
       b.writeln('DTSTAMP:${_icsDate(DateTime.now())}');
       b.writeln('DTSTART:$start');
       b.writeln('DTEND:$end');
@@ -628,8 +663,51 @@ class AppController extends ChangeNotifier {
 
   bool isZoneFavorite(String zoneCode) => favoriteZones.contains(zoneCode);
 
+  bool isPrayerCompletedToday(String prayerName) {
+    return todayPrayerCheckins.contains(prayerName);
+  }
+
+  Future<void> togglePrayerCompletedToday(String prayerName) async {
+    final key = _dateKey(DateTime.now());
+    final current = List<String>.from(prayerCheckinsByDate[key] ?? <String>[]);
+    if (current.contains(prayerName)) {
+      current.remove(prayerName);
+    } else {
+      current.add(prayerName);
+    }
+    prayerCheckinsByDate[key] = current;
+    await _tasbihStore.savePrayerCheckins(prayerCheckinsByDate);
+    notifyListeners();
+  }
+
+  Future<void> markCurrentPrayerAsDone() async {
+    final current = _currentPrayerForNow();
+    if (current == null) {
+      return;
+    }
+    if (isPrayerCompletedToday(current.name)) {
+      return;
+    }
+    await togglePrayerCompletedToday(current.name);
+  }
+
   bool _isDifferentDay(DateTime a, DateTime b) =>
       a.year != b.year || a.month != b.month || a.day != b.day;
+
+  PrayerTimeEntry? _currentPrayerForNow() {
+    final entries = dailyPrayerTimes?.entries;
+    if (entries == null || entries.isEmpty) {
+      return null;
+    }
+    final now = DateTime.now();
+    PrayerTimeEntry? current;
+    for (final entry in entries) {
+      if (entry.time.isBefore(now) || entry.time.isAtSameMomentAs(now)) {
+        current = entry;
+      }
+    }
+    return current;
+  }
 
   String _friendlyError(Object error) {
     final text = error.toString().toLowerCase();
