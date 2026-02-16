@@ -81,6 +81,7 @@ class AppController extends ChangeNotifier {
   DateTime _lastDayCheck = DateTime.now();
   bool _refreshing = false;
   Timer? _retryTimer;
+  Timer? _fastingRescheduleDebounce;
   int _retryAttempt = 0;
 
   int get apiSuccessCount => _prayerService.apiSuccessCount;
@@ -353,7 +354,18 @@ class AppController extends ChangeNotifier {
         return entry;
       }
     }
-    return null;
+    PrayerTimeEntry? subuh;
+    for (final entry in entries) {
+      if (entry.name == 'Subuh') {
+        subuh = entry;
+        break;
+      }
+    }
+    final fallback = subuh ?? entries.first;
+    return PrayerTimeEntry(
+      name: fallback.name,
+      time: fallback.time.add(const Duration(days: 1)),
+    );
   }
 
   Duration? get timeToNextPrayer {
@@ -390,6 +402,21 @@ class AppController extends ChangeNotifier {
   Future<void> resetTasbih() async {
     tasbihCount = 0;
     await _tasbihStore.saveCount(tasbihCount);
+    await _updateWidgetData();
+    notifyListeners();
+  }
+
+  Future<void> decrementTasbih() async {
+    if (tasbihCount <= 0) {
+      return;
+    }
+    tasbihCount -= 1;
+    if (tasbihLifetimeCount > 0) {
+      tasbihLifetimeCount -= 1;
+    }
+    await _tasbihStore.saveCount(tasbihCount);
+    await _tasbihStore.saveTasbihLifetimeCount(tasbihLifetimeCount);
+    await _subtractTasbihDaily(1);
     await _updateWidgetData();
     notifyListeners();
   }
@@ -459,10 +486,13 @@ class AppController extends ChangeNotifier {
   }
 
   Future<void> setRamadhanMode(bool value) async {
+    if (ramadhanMode == value) {
+      return;
+    }
     ramadhanMode = value;
-    await _tasbihStore.saveRamadhanMode(value);
-    await _scheduleFastingReminders();
     notifyListeners();
+    await _tasbihStore.saveRamadhanMode(value);
+    _queueFastingReminderReschedule();
   }
 
   Future<void> setPrayerSoundProfile(String prayerName, String profile) async {
@@ -487,17 +517,23 @@ class AppController extends ChangeNotifier {
   }
 
   Future<void> setFastingMondayThursdayEnabled(bool value) async {
+    if (fastingMondayThursdayEnabled == value) {
+      return;
+    }
     fastingMondayThursdayEnabled = value;
-    await _tasbihStore.saveFastingMonThuEnabled(value);
-    await _scheduleFastingReminders();
     notifyListeners();
+    await _tasbihStore.saveFastingMonThuEnabled(value);
+    _queueFastingReminderReschedule();
   }
 
   Future<void> setFastingAyyamulBidhEnabled(bool value) async {
+    if (fastingAyyamulBidhEnabled == value) {
+      return;
+    }
     fastingAyyamulBidhEnabled = value;
-    await _tasbihStore.saveFastingAyyamulBidhEnabled(value);
-    await _scheduleFastingReminders();
     notifyListeners();
+    await _tasbihStore.saveFastingAyyamulBidhEnabled(value);
+    _queueFastingReminderReschedule();
   }
 
   Future<void> setTasbihCycleTarget(int value) async {
@@ -884,6 +920,13 @@ class AppController extends ChangeNotifier {
     }
   }
 
+  void _queueFastingReminderReschedule() {
+    _fastingRescheduleDebounce?.cancel();
+    _fastingRescheduleDebounce = Timer(const Duration(milliseconds: 350), () {
+      unawaited(_scheduleFastingReminders());
+    });
+  }
+
   Future<void> _checkTravelAutoZone() async {
     if (!autoLocation || !travelModeEnabled || zones.isEmpty || _refreshing) {
       return;
@@ -947,6 +990,15 @@ class AppController extends ChangeNotifier {
     await _tasbihStore.saveTasbihDailyStats(tasbihDailyStats);
   }
 
+  Future<void> _subtractTasbihDaily(int count) async {
+    await _ensureTasbihDailyReset();
+    final key = _dateKey(DateTime.now());
+    final current = tasbihDailyStats[key] ?? 0;
+    final next = (current - count).clamp(0, 999999999);
+    tasbihDailyStats[key] = next;
+    await _tasbihStore.saveTasbihDailyStats(tasbihDailyStats);
+  }
+
   Future<void> _ensureTasbihDailyReset({bool forceWriteDate = false}) async {
     final todayKey = _dateKey(DateTime.now());
     final lastReset = await _tasbihStore.loadTasbihLastResetDate();
@@ -987,6 +1039,7 @@ class AppController extends ChangeNotifier {
     _refreshTimer?.cancel();
     _travelTimer?.cancel();
     _retryTimer?.cancel();
+    _fastingRescheduleDebounce?.cancel();
     _notificationResponseSub?.cancel();
     _notificationService.dispose();
     super.dispose();

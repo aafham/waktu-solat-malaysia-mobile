@@ -13,6 +13,7 @@ import 'services/prayer_service.dart';
 import 'services/qibla_service.dart';
 import 'services/tasbih_store.dart';
 import 'state/app_controller.dart';
+import 'theme/app_tokens.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -184,6 +185,27 @@ class _WaktuSolatAppState extends State<WaktuSolatApp>
         backgroundColor: Color(0xFF12213A),
         contentTextStyle: TextStyle(color: Colors.white),
       ),
+      extensions: const <ThemeExtension<dynamic>>[
+        PrayerHomeTokens(
+          grid: 8,
+          radius: 16,
+          sectionGap: 16,
+          cardPadding: 16,
+          surface: Color(0xFF1A243D),
+          surfaceMuted: Color(0xFF121D33),
+          textMuted: Color(0xFF9FB0C8),
+          accent: Color(0xFFF4C542),
+          accentSoft: Color(0x33F4C542),
+          shadow: BoxShadow(
+            color: Color(0x22000000),
+            blurRadius: 18,
+            offset: Offset(0, 8),
+          ),
+          fastAnim: Duration(milliseconds: 180),
+          baseAnim: Duration(milliseconds: 260),
+          slowAnim: Duration(milliseconds: 360),
+        ),
+      ],
       useMaterial3: true,
     );
     final highContrastTheme = ThemeData(
@@ -207,70 +229,77 @@ class _WaktuSolatAppState extends State<WaktuSolatApp>
           debugShowCheckedModeBanner: false,
           title: 'JagaSolat',
           theme: controller.highContrast ? highContrastTheme : baseTheme,
+          builder: (context, child) {
+            if (child == null) {
+              return const SizedBox.shrink();
+            }
+            return AnimatedOpacity(
+              opacity: controller.isLoading ? 0.98 : 1,
+              duration: const Duration(milliseconds: 180),
+              child: child,
+            );
+          },
           home: showSplash
               ? const SplashScreen()
               : Scaffold(
-                  body: controller.isLoading
-                      ? const Center(child: CircularProgressIndicator())
-                      : !controller.onboardingSeen && !dismissedOnboarding
-                          ? OnboardingPage(
-                              controller: controller,
-                              onSelesai: () async {
-                                await controller.completeOnboarding();
-                                setState(() {
-                                  dismissedOnboarding = true;
-                                });
-                              },
-                            )
-                          : MediaQuery(
-                              data: MediaQuery.of(context).copyWith(
-                                textScaler:
-                                    TextScaler.linear(controller.textScale),
-                              ),
-                              child: <Widget>[
-                                HomePage(
-                                  controller: controller,
-                                  onNavigateToTab: (index) {
-                                    setState(() {
-                                      tabIndex = index;
-                                    });
-                                  },
-                                ),
-                                QiblaPage(controller: controller),
-                                TasbihPage(controller: controller),
-                                SettingsPage(controller: controller),
-                              ][tabIndex],
-                            ),
-                  bottomNavigationBar: controller.isLoading ||
-                          (!controller.onboardingSeen && !dismissedOnboarding)
-                      ? null
-                      : NavigationBar(
-                          height: 72,
-                          selectedIndex: tabIndex,
-                          onDestinationSelected: (idx) {
+                  body: !controller.onboardingSeen && !dismissedOnboarding
+                      ? OnboardingPage(
+                          controller: controller,
+                          onSelesai: () async {
+                            await controller.completeOnboarding();
                             setState(() {
-                              tabIndex = idx;
+                              dismissedOnboarding = true;
                             });
                           },
-                          destinations: [
-                            NavigationDestination(
-                              icon: const Icon(Icons.home_outlined),
-                              label: controller.tr('Waktu', 'Times'),
+                        )
+                      : MediaQuery(
+                          data: MediaQuery.of(context).copyWith(
+                            textScaler: TextScaler.linear(controller.textScale),
+                          ),
+                          child: <Widget>[
+                            HomePage(
+                              controller: controller,
+                              onNavigateToTab: (index) {
+                                setState(() {
+                                  tabIndex = index;
+                                });
+                              },
                             ),
-                            NavigationDestination(
-                              icon: const Icon(Icons.explore),
-                              label: controller.tr('Qiblat', 'Qibla'),
-                            ),
-                            NavigationDestination(
-                              icon: const Icon(Icons.touch_app),
-                              label: controller.tr('Zikir', 'Tasbih'),
-                            ),
-                            NavigationDestination(
-                              icon: const Icon(Icons.settings),
-                              label: controller.tr('Tetapan', 'Settings'),
-                            ),
-                          ],
+                            QiblaPage(controller: controller),
+                            TasbihPage(controller: controller),
+                            SettingsPage(controller: controller),
+                          ][tabIndex],
                         ),
+                  bottomNavigationBar:
+                      (!controller.onboardingSeen && !dismissedOnboarding)
+                          ? null
+                          : NavigationBar(
+                              height: 72,
+                              selectedIndex: tabIndex,
+                              onDestinationSelected: (idx) {
+                                setState(() {
+                                  tabIndex = idx;
+                                });
+                              },
+                              destinations: [
+                                NavigationDestination(
+                                  icon: const Icon(Icons.home_outlined),
+                                  label: controller.tr('Waktu', 'Times'),
+                                ),
+                                NavigationDestination(
+                                  icon: const Icon(Icons.explore),
+                                  label: controller.tr('Qiblat', 'Qibla'),
+                                ),
+                                NavigationDestination(
+                                  icon: const Icon(Icons.touch_app),
+                                  label: controller.tr('Zikir', 'Tasbih'),
+                                ),
+                                NavigationDestination(
+                                  icon: const Icon(Icons.settings),
+                                  label: controller.tr('Tetapan', 'Settings'),
+                                ),
+                              ],
+                            ),
                 ),
         );
       },
