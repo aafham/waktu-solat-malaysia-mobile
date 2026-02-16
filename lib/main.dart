@@ -150,19 +150,28 @@ class _WaktuSolatAppState extends State<WaktuSolatApp>
         side: const BorderSide(color: Color(0xFF365577)),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
-      navigationBarTheme: const NavigationBarThemeData(
-        backgroundColor: Color(0xFF0C1D3A),
-        indicatorColor: Color(0xFF3A4560),
+      navigationBarTheme: NavigationBarThemeData(
+        backgroundColor: const Color(0xFF0C1D3A),
+        indicatorColor: const Color(0xFF4A5B80),
         surfaceTintColor: Colors.transparent,
-        iconTheme: WidgetStatePropertyAll(
-          IconThemeData(color: Color(0xFFB7C6DC)),
-        ),
-        labelTextStyle: WidgetStatePropertyAll(
-          TextStyle(
-            color: Color(0xFFEAF2FF),
+        iconTheme: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return const IconThemeData(color: Color(0xFFF4C542));
+          }
+          return const IconThemeData(color: Color(0xFF9BB0CF));
+        }),
+        labelTextStyle: WidgetStateProperty.resolveWith((states) {
+          if (states.contains(WidgetState.selected)) {
+            return const TextStyle(
+              color: Color(0xFFFFFFFF),
+              fontWeight: FontWeight.w700,
+            );
+          }
+          return const TextStyle(
+            color: Color(0xFFBFD0E8),
             fontWeight: FontWeight.w600,
-          ),
-        ),
+          );
+        }),
       ),
       inputDecorationTheme: InputDecorationTheme(
         filled: true,
@@ -191,15 +200,15 @@ class _WaktuSolatAppState extends State<WaktuSolatApp>
           radius: 16,
           sectionGap: 16,
           cardPadding: 16,
-          surface: Color(0xFF1A243D),
-          surfaceMuted: Color(0xFF121D33),
+          surface: Color(0xFF192842),
+          surfaceMuted: Color(0xFF14233A),
           textMuted: Color(0xFF9FB0C8),
           accent: Color(0xFFF4C542),
           accentSoft: Color(0x33F4C542),
           shadow: BoxShadow(
-            color: Color(0x22000000),
-            blurRadius: 18,
-            offset: Offset(0, 8),
+            color: Color(0x2B000000),
+            blurRadius: 20,
+            offset: Offset(0, 10),
           ),
           fastAnim: Duration(milliseconds: 180),
           baseAnim: Duration(milliseconds: 260),
@@ -257,14 +266,7 @@ class _WaktuSolatAppState extends State<WaktuSolatApp>
                             textScaler: TextScaler.linear(controller.textScale),
                           ),
                           child: <Widget>[
-                            HomePage(
-                              controller: controller,
-                              onNavigateToTab: (index) {
-                                setState(() {
-                                  tabIndex = index;
-                                });
-                              },
-                            ),
+                            HomePage(controller: controller),
                             QiblaPage(controller: controller),
                             TasbihPage(controller: controller),
                             SettingsPage(controller: controller),
@@ -284,19 +286,19 @@ class _WaktuSolatAppState extends State<WaktuSolatApp>
                               destinations: [
                                 NavigationDestination(
                                   icon: const Icon(Icons.home_outlined),
-                                  label: controller.tr('Waktu', 'Times'),
+                                  label: controller.tr('Waktu', 'Waktu'),
                                 ),
                                 NavigationDestination(
                                   icon: const Icon(Icons.explore),
-                                  label: controller.tr('Qiblat', 'Qibla'),
+                                  label: controller.tr('Qiblat', 'Qiblat'),
                                 ),
                                 NavigationDestination(
                                   icon: const Icon(Icons.touch_app),
-                                  label: controller.tr('Zikir', 'Tasbih'),
+                                  label: controller.tr('Tasbih', 'Tasbih'),
                                 ),
                                 NavigationDestination(
                                   icon: const Icon(Icons.settings),
-                                  label: controller.tr('Tetapan', 'Settings'),
+                                  label: controller.tr('Tetapan', 'Tetapan'),
                                 ),
                               ],
                             ),

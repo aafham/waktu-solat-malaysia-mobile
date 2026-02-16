@@ -114,3 +114,24 @@ Kebenaran minimum:
 - Kompas tidak stabil: buat kalibrasi sensor (gerakan angka 8).
 - Lokasi gagal: aktifkan GPS atau guna zon manual.
 - Data lambat/tiada: tarik ke bawah untuk muat semula.
+
+## Log Patch Terkini (Rujukan Next)
+Last update (16 Feb 2026):
+- Home page dikemas dengan hierarchy yang lebih jelas (hero + jadual).
+- `QuickAction` dalam Home dibuang untuk elak `double navigation`.
+- Bahasa pada Home dan bottom nav diseragamkan ke BM.
+- Pinned header dipendekkan supaya tidak terlalu padat.
+- Status jadual diperkukuh (`SEMASA`, `Seterusnya`, `Selesai`) dengan visual berbeza.
+- Hero action diringankan: bila selesai, guna chip `Sudah ditanda` + CTA `Tunda 5 min`.
+- Metadata lokasi/freshness ditukar kepada chip.
+- Ditambah `NextPrayerStrip` (ringkasan waktu seterusnya).
+- Ditambah `pull-to-refresh` sebenar pada Home (`RefreshIndicator`).
+- Ditambah quick insights (`Selesai`, `Baki`, `Streak`) dan collapse untuk row selesai.
+- Micro-polish spacing/touch target dibuat untuk konsistensi.
+
+Next patch (cadangan kerja seterusnya):
+- [ ] Tambah toggle setting untuk default `Tunjuk/Sembunyi selesai` (persist dalam storage).
+- [ ] Tambah animasi micro-interaction pada check-in/undo (scale + color pulse yang lebih jelas).
+- [ ] Perhalus i18n semula (elak string BM hardcoded, guna `tr()` secara konsisten).
+- [ ] Tambah test widget untuk Home (status row, collapse behavior, dan quick insights).
+- [ ] Semak accessibility pass (kontras + saiz teks minimum + semantics label untuk screen reader).
