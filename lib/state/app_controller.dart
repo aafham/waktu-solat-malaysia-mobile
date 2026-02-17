@@ -559,7 +559,7 @@ class AppController extends ChangeNotifier {
   }
 
   String tr(String bm, String en) {
-    return en;
+    return isEnglish ? en : bm;
   }
 
   Future<void> completeOnboarding() async {
