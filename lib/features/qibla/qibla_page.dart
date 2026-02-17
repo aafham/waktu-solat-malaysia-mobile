@@ -78,8 +78,7 @@ class _QiblaScreenState extends State<QiblaScreen> {
 
     final rotationTurns =
         (!hasQibla || _heading == null) ? 0.0 : (qibla - _heading!) / 360;
-    final statusText =
-        isActive ? tr('Active', 'Active') : tr('Paused', 'Paused');
+    final statusText = isActive ? tr('Aktif', 'Active') : tr('Jeda', 'Paused');
     final gpsText = hasQibla
         ? tr('GPS tersedia', 'GPS ready')
         : tr('GPS tidak tersedia', 'GPS unavailable');
@@ -547,7 +546,7 @@ class QiblaInfoSheet extends StatelessWidget {
               tilePadding: EdgeInsets.zero,
               childrenPadding: const EdgeInsets.only(bottom: 8),
               title: Text(
-                tr('Details', 'Details'),
+                controller.t('qibla_details'),
                 style: Theme.of(context).textTheme.labelLarge?.copyWith(
                       color: const Color(0xFFDCE7F8),
                     ),

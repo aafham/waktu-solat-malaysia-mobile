@@ -77,6 +77,7 @@ class NotificationService {
     Set<String>? enabledPrayerNames,
     Map<String, String>? prayerSoundProfiles,
     int leadMinutes = 0,
+    bool respectSilentMode = true,
   }) async {
     await initialize();
     for (var id = 100; id < 220; id++) {
@@ -129,6 +130,9 @@ class NotificationService {
               ? null
               : RawResourceAndroidNotificationSound(rawResource),
           enableVibration: enableVibration,
+          audioAttributesUsage: respectSilentMode
+              ? AudioAttributesUsage.notification
+              : AudioAttributesUsage.alarm,
           actions: <AndroidNotificationAction>[
             const AndroidNotificationAction(
               'snooze_5',
@@ -204,6 +208,7 @@ class NotificationService {
     required String prayerName,
     required String soundProfile,
     required bool enableVibration,
+    bool respectSilentMode = true,
   }) async {
     await initialize();
     final isSilent = soundProfile == 'silent';
@@ -222,6 +227,9 @@ class NotificationService {
             ? null
             : RawResourceAndroidNotificationSound(rawResource),
         enableVibration: enableVibration,
+        audioAttributesUsage: respectSilentMode
+            ? AudioAttributesUsage.notification
+            : AudioAttributesUsage.alarm,
       ),
     );
 

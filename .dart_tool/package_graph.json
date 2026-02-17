@@ -11,6 +11,7 @@
         "flutter",
         "flutter_compass",
         "flutter_local_notifications",
+        "flutter_localizations",
         "geolocator",
         "http",
         "intl",
@@ -133,7 +134,7 @@
     },
     {
       "name": "intl",
-      "version": "0.19.0",
+      "version": "0.20.2",
       "dependencies": [
         "clock",
         "meta",
@@ -166,6 +167,15 @@
       "name": "cupertino_icons",
       "version": "1.0.8",
       "dependencies": []
+    },
+    {
+      "name": "flutter_localizations",
+      "version": "0.0.0",
+      "dependencies": [
+        "flutter",
+        "intl",
+        "path"
+      ]
     },
     {
       "name": "flutter",

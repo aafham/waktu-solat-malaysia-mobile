@@ -11,7 +11,7 @@ Aplikasi mudah alih untuk bantu pengguna Malaysia jaga amalan harian dengan 3 fo
 Kemaskini terkini membawa gaya visual gelap yang konsisten di semua page:
 - Palette navy gelap + kad biru-kelabu rounded.
 - Splash screen Android + Flutter yang konsisten.
-- `Settings` dirombak ke gaya card sections.
+- `Settings` dirombak kepada `progressive disclosure` (main page ringkas + subpages detail).
 - Page `Zikir` dikemas dari segi hierarchy, kontras, progress ring, dan milestone.
 - Page `Qiblat` dikemas dengan struktur status + kompas + panduan kalibrasi yang lebih jelas.
 
@@ -28,13 +28,19 @@ Bottom navigation:
 - `Settings`
 
 ## Ciri Tambahan
-- UI kini `English-first` secara global.
+- Sokongan bahasa BM/EN konsisten (Material + app labels ikut language setting).
 - Nama waktu solat kekal istilah standard Malaysia (`Imsak`, `Subuh`, `Zohor`, `Asar`, `Maghrib`, `Isyak`).
 - Lokasi automatik (GPS) + zon manual.
-- Notifikasi waktu solat (tetapan per waktu + lead time awal notifikasi).
+- Fallback permission lokasi: jika lokasi ditolak, app paksa aliran pilih zon manual (search + recent).
+- Notifikasi waktu solat (tetapan per waktu + lead time + bunyi azan global/per-waktu + `respect silent mode`).
 - Travel mode auto tukar zon.
 - Reminder puasa (`Ramadhan`, `Isnin/Khamis`, `Ayyamul Bidh`).
+- Hijri offset setting `-2..+2` (diguna pada preview puasa dan logik peringatan puasa).
 - Mod kontras tinggi dan saiz teks boleh laras.
+- Tetapan kiraan solat: calculation method, Asar method, high latitude rule, dan manual minute adjustment per waktu.
+- Action reset semua manual minute adjustments dengan confirmation.
+- Tasbih settings: sasaran `33/99/100/custom`, auto reset harian, reset kiraan, statistik ringkas.
+- Prayer History 7 hari (ringkasan done/target per hari).
 - Onboarding setup awal (notifikasi + lokasi automatik).
 - Simpanan setempat (`SharedPreferences`) untuk fallback data.
 - Android home widget (paparan waktu seterusnya + countdown + tasbih).
@@ -87,17 +93,21 @@ Kebenaran minimum:
 ## Struktur Kod Ringkas
 - `lib/main.dart` - inisialisasi app, tema global, splash, navigasi bawah.
 - `lib/state/app_controller.dart` - state utama dan aliran data.
-- `lib/features/home/home_page.dart` - skrin Waktu Solat (hero, countdown, check-in, freshness pill).
+- `lib/features/home/home_page.dart` - skrin Waktu Solat (hero, countdown, check-in, freshness pill, CTA history).
+- `lib/features/home/history_page.dart` - ringkasan sejarah solat 7 hari.
 - `lib/features/qibla/qibla_page.dart` - skrin Qiblat + indikator ketepatan.
 - `lib/features/tasbih/tasbih_page.dart` - skrin Zikir + progress ring/milestone.
-- `lib/features/settings/settings_page.dart` - tetapan gaya kad + toggle BM/EN.
+- `lib/features/settings/settings_page.dart` - settings main + subpages (`Notifications`, `Prayer Times`, `Prayer Calculation`, `Appearance`, `Fasting`, `Tasbih`, `About`).
+- `lib/features/settings/hijri_offset_setting.dart` - komponen offset Hijri `-2..+2`.
+- `lib/l10n/app_localizations.dart` - localization key map BM/EN (runtime).
 - `lib/features/onboarding/onboarding_page.dart` - onboarding + setup awal.
 - `lib/features/monthly/monthly_page.dart` - jadual bulanan + eksport.
 - `lib/services/prayer_service.dart` - API waktu solat, parser, cache.
+- `lib/services/prayer_calculation_service.dart` - kiraan waktu solat tempatan (astronomi) untuk fallback/override preference.
 - `lib/services/location_service.dart` - GPS dan permission.
 - `lib/services/notification_service.dart` - jadual notifikasi + lead time.
 - `lib/services/qibla_service.dart` - kiraan arah kiblat.
-- `lib/services/tasbih_store.dart` - simpanan kiraan/tetapan/language.
+- `lib/services/tasbih_store.dart` - simpanan kiraan/tetapan/language + settings tambahan (silent mode, calculation prefs, manual adjustments).
 
 ## API Digunakan
 - `https://solat.my/api/locations`
@@ -110,6 +120,9 @@ Kebenaran minimum:
 - Refresh automatik bila hari bertukar.
 - Data zon/waktu disimpan setempat untuk kegunaan offline sementara.
 - Auto retry fetch data (maksimum 3 cubaan berturutan).
+- `Prayer calculation method / asar / high latitude` kini disimpan sebagai preference pengguna (UI + persistence) dan mempengaruhi kiraan tempatan.
+- `Manual minute adjustments` diaplikasikan pada paparan waktu harian dan notifikasi terjadual.
+- Bila API harian gagal, app fallback ke `local prayer calculation` berdasarkan zon aktif + preference pengguna.
 
 ## Troubleshooting Ringkas
 - `flutter`/`dart` tidak dijumpai: semak PATH dan restart terminal.
@@ -119,6 +132,62 @@ Kebenaran minimum:
 - Data lambat/tiada: tarik ke bawah untuk muat semula.
 
 ## Log Patch Terkini (Rujukan Next)
+Latest update (17 Feb 2026 - Final Polish & Completeness Patch):
+- i18n diperkemas:
+  - tambah `flutter_localizations` delegate di `MaterialApp`,
+  - tambah localization key map (`lib/l10n/app_localizations.dart`) untuk label utama termasuk `Times/Qibla/Tasbih/Settings`,
+  - hardcoded strings kritikal diganti (contoh `Before Subuh begins`, `Tap to add`, `Details`).
+- Times screen polish:
+  - CTA `Snooze 5 min` ditukar ke `TextButton.icon`,
+  - caption countdown diperkemas sebagai teks sekunder,
+  - next prayer resolver diperkukuh (sort + fallback next day).
+- Settings completeness:
+  - About page ditambah `version`, `build`, `data source`, `privacy`, `feedback`.
+  - Prayer Calculation ada action `Reset all adjustments` + confirmation dialog.
+  - Prayer Times ada fallback permission lokasi: bila denied/detect off, zone picker manual dipaparkan sebagai aliran wajib (searchable + recent).
+- Fungsi must-have ditambah:
+  - `Permission onboarding/fallback` untuk lokasi ditolak,
+  - `Prayer History` screen untuk 7 hari terakhir,
+  - `Hijri offset` setting `-2..+2` dengan aplikasi pada preview/logik reminder puasa.
+- Validation:
+  - `flutter analyze` lulus,
+  - `flutter test` lulus.
+
+Latest update (17 Feb 2026 - Functionality & Test Patch):
+- Tambah `PrayerCalculationService` (kiraan astronomi tempatan) dan wire ke `AppController`.
+- Fallback tempatan aktif bila API waktu solat gagal.
+- Preference kiraan (`method`, `asar`, `high latitude`) kini trigger kiraan semula waktu secara langsung.
+- Notifications diperkukuh:
+  - bunyi azan global + per-waktu,
+  - `respect silent mode` diintegrasi hingga ke scheduling/preview.
+- Persistence setting baharu ditambah di `TasbihStore` + export/import settings.
+- Ditambah widget tests baharu untuk flow Settings kritikal:
+  - zone/change zone,
+  - select all/clear notifikasi,
+  - azan sound picker,
+  - fasting preview,
+  - custom tasbih target.
+- Test & analysis: lulus (`flutter analyze`, `flutter test`).
+
+Latest update (17 Feb 2026 - Settings Next Patch):
+- Settings UX dipolish dengan aliran `progressive disclosure` yang lebih minimal.
+- Prayer Times detail:
+  - `Zone` dipaparkan jelas untuk mod auto/manual.
+  - `Change zone` bottom sheet ditambah (search + recent + loading/empty state).
+- Prayer Calculation subpage ditambah:
+  - calculation method picker,
+  - Asar method,
+  - high latitude rule,
+  - manual minute adjustments per prayer.
+- Notifications detail ditambah:
+  - `Azan sound` picker modal,
+  - `Respect silent mode` toggle,
+  - quick actions `Select all` / `Clear` untuk prayer chips.
+- Fasting detail ditambah `Preview upcoming dates` (5 tarikh seterusnya).
+- Tasbih detail: `Custom` target kini fully functional + nilai custom semasa dipaparkan.
+- State/persistence baru ditambah dalam `AppController` + `TasbihStore`.
+- `NotificationService` kini support `respectSilentMode` pada jadual notifikasi dan preview bunyi.
+
 Last update (17 Feb 2026):
 - Branding: nama app kekal `JagaSolat`, tagline splash ditukar ke `Jangan dok tinggai solat.`.
 - Times/Home: countdown ring kanan dibuang sepenuhnya.
@@ -129,7 +198,7 @@ Last update (17 Feb 2026):
 - Hero card dipolish: hierarchy baru (`NEXT PRAYER`, tajuk + masa sebaris), metadata digabung dalam 1 chip, CTA check-in state dipermudah.
 - Hero action state: pre-check-in guna status pill `Check-in opens at HH:mm`, active guna `Mark done`, selesai guna pill `Marked`.
 - Tasbih: UI polish (ripple + haptic + animated scale + animated progress ring + stats chips + milestone banner).
-- Bahasa app ditukar ke English sepenuhnya melalui `AppController.tr()`; string fallback BM hardcoded dibersihkan.
+- Bahasa app diseragamkan melalui `AppController.tr()` berdasarkan pilihan BM/EN pengguna.
 - Navigation label ditukar ke `Times/Qibla/Tasbih/Settings`.
 - Splash screen dipolish: entrance animation staggered (logo/text/loader), matte gradient, dan loader ditukar ke `3 dots pulse` (bukan circular).
 - Tempoh splash dipanjangkan ke ~`3.2s` supaya animation lebih terasa.

@@ -27,6 +27,12 @@ class TasbihStore {
   static const _tasbihLastResetDateKey = 'tasbih_last_reset_date';
   static const _languageCodeKey = 'language_code';
   static const _tasbihLifetimeCountKey = 'tasbih_lifetime_count';
+  static const _respectSilentModeKey = 'respect_silent_mode';
+  static const _calcMethodKey = 'prayer_calc_method';
+  static const _asarMethodKey = 'asar_method';
+  static const _highLatitudeRuleKey = 'high_latitude_rule';
+  static const _manualAdjustmentsKey = 'manual_prayer_adjustments_json';
+  static const _hijriOffsetDaysKey = 'hijri_offset_days';
 
   Future<int> loadCount() async {
     final prefs = await SharedPreferences.getInstance();
@@ -322,5 +328,78 @@ class TasbihStore {
   Future<void> saveTasbihLifetimeCount(int value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setInt(_tasbihLifetimeCountKey, value);
+  }
+
+  Future<bool> loadRespectSilentMode() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_respectSilentModeKey) ?? true;
+  }
+
+  Future<void> saveRespectSilentMode(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_respectSilentModeKey, value);
+  }
+
+  Future<String> loadPrayerCalculationMethod() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_calcMethodKey) ?? 'JAKIM';
+  }
+
+  Future<void> savePrayerCalculationMethod(String value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_calcMethodKey, value);
+  }
+
+  Future<String> loadAsarMethod() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_asarMethodKey) ?? "Shafi'i";
+  }
+
+  Future<void> saveAsarMethod(String value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_asarMethodKey, value);
+  }
+
+  Future<String> loadHighLatitudeRule() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getString(_highLatitudeRuleKey) ?? 'Middle of the Night';
+  }
+
+  Future<void> saveHighLatitudeRule(String value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_highLatitudeRuleKey, value);
+  }
+
+  Future<Map<String, int>> loadManualPrayerAdjustments() async {
+    final prefs = await SharedPreferences.getInstance();
+    final raw = prefs.getString(_manualAdjustmentsKey);
+    if (raw == null || raw.isEmpty) {
+      return <String, int>{};
+    }
+    try {
+      final parsed = jsonDecode(raw);
+      if (parsed is! Map<String, dynamic>) {
+        return <String, int>{};
+      }
+      return parsed.map((k, v) => MapEntry(k, (v as num?)?.toInt() ?? 0));
+    } catch (_) {
+      return <String, int>{};
+    }
+  }
+
+  Future<void> saveManualPrayerAdjustments(Map<String, int> value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setString(_manualAdjustmentsKey, jsonEncode(value));
+  }
+
+  Future<int> loadHijriOffsetDays() async {
+    final prefs = await SharedPreferences.getInstance();
+    final value = prefs.getInt(_hijriOffsetDaysKey) ?? 0;
+    return value.clamp(-2, 2);
+  }
+
+  Future<void> saveHijriOffsetDays(int value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setInt(_hijriOffsetDaysKey, value.clamp(-2, 2));
   }
 }

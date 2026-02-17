@@ -5,9 +5,11 @@ import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../l10n/app_localizations.dart';
 import '../models/prayer_models.dart';
 import '../services/location_service.dart';
 import '../services/notification_service.dart';
+import '../services/prayer_calculation_service.dart';
 import '../services/prayer_service.dart';
 import '../services/qibla_service.dart';
 import '../services/tasbih_store.dart';
@@ -17,17 +19,20 @@ class AppController extends ChangeNotifier {
     required PrayerService prayerService,
     required LocationService locationService,
     required NotificationService notificationService,
+    required PrayerCalculationService prayerCalculationService,
     required QiblaService qiblaService,
     required TasbihStore tasbihStore,
   })  : _prayerService = prayerService,
         _locationService = locationService,
         _notificationService = notificationService,
+        _prayerCalculationService = prayerCalculationService,
         _qiblaService = qiblaService,
         _tasbihStore = tasbihStore;
 
   final PrayerService _prayerService;
   final LocationService _locationService;
   final NotificationService _notificationService;
+  final PrayerCalculationService _prayerCalculationService;
   final QiblaService _qiblaService;
   final TasbihStore _tasbihStore;
 
@@ -59,8 +64,10 @@ class AppController extends ChangeNotifier {
   bool exactAlarmAllowed = true;
   bool onboardingSeen = false;
   bool travelModeEnabled = true;
+  bool locationPermissionDenied = false;
   bool fastingMondayThursdayEnabled = false;
   bool fastingAyyamulBidhEnabled = false;
+  bool respectSilentMode = true;
   int notificationLeadMinutes = 0;
   int tasbihCycleTarget = 33;
   bool tasbihAutoResetDaily = false;
@@ -69,6 +76,11 @@ class AppController extends ChangeNotifier {
 
   Map<String, bool> prayerNotificationToggles = <String, bool>{};
   Map<String, String> prayerSoundProfiles = <String, String>{};
+  String prayerCalculationMethod = 'JAKIM';
+  String asarMethod = "Shafi'i";
+  String highLatitudeRule = 'Middle of the Night';
+  Map<String, int> manualPrayerAdjustments = <String, int>{};
+  int hijriOffsetDays = 0;
   List<String> favoriteZones = <String>[];
   List<String> recentZones = <String>[];
   Map<String, int> tasbihDailyStats = <String, int>{};
@@ -83,6 +95,7 @@ class AppController extends ChangeNotifier {
   Timer? _retryTimer;
   Timer? _fastingRescheduleDebounce;
   int _retryAttempt = 0;
+  String? _errorActionCode;
 
   int get apiSuccessCount => _prayerService.apiSuccessCount;
   int get apiFailureCount => _prayerService.apiFailureCount;
@@ -92,6 +105,31 @@ class AppController extends ChangeNotifier {
       zones.isNotEmpty || dailyPrayerTimes != null || !isLoading;
   int get tasbihTodayCount => tasbihDailyStats[_dateKey(DateTime.now())] ?? 0;
   bool get isEnglish => languageCode == 'en';
+  bool get requiresManualZonePicker =>
+      !autoLocation || locationPermissionDenied;
+  List<String> get prayerNamesOrdered => const <String>[
+        'Imsak',
+        'Subuh',
+        'Syuruk',
+        'Zohor',
+        'Asar',
+        'Maghrib',
+        'Isyak',
+      ];
+  List<String> get availableSoundProfiles => const <String>[
+        'default',
+        'silent',
+      ];
+  String get globalAzanSoundProfile {
+    for (final name in prayerNamesOrdered) {
+      final profile = prayerSoundProfiles[name];
+      if (profile != null && profile.isNotEmpty) {
+        return profile;
+      }
+    }
+    return 'default';
+  }
+
   int get tasbihWeekCount {
     final now = DateTime.now();
     var total = 0;
@@ -134,6 +172,23 @@ class AppController extends ChangeNotifier {
     return (todayPrayerCompletedCount / target).clamp(0.0, 1.0);
   }
 
+  List<Map<String, Object>> get prayerHistory7Days {
+    final now = DateTime.now();
+    final target = todayPrayerTargetCount == 0 ? 5 : todayPrayerTargetCount;
+    final rows = <Map<String, Object>>[];
+    for (var i = 0; i < 7; i++) {
+      final day = now.subtract(Duration(days: i));
+      final key = _dateKey(day);
+      final done = (prayerCheckinsByDate[key] ?? const <String>[]).length;
+      rows.add(<String, Object>{
+        'date': day,
+        'done': done,
+        'target': target,
+      });
+    }
+    return rows;
+  }
+
   int get tasbihStreakDays {
     var streak = 0;
     var cursor = DateTime.now();
@@ -155,7 +210,9 @@ class AppController extends ChangeNotifier {
         : tr('${age.inMinutes} min lalu', '${age.inMinutes} min ago');
     final source = isUsingCachedPrayerData
         ? tr('Data simpanan', 'Cached data')
-        : tr('Data langsung', 'Live data');
+        : lastPrayerDataSource == 'local_calc'
+            ? tr('Kiraan tempatan', 'Local calculation')
+            : tr('Data langsung', 'Live data');
     return '$source | $ageText';
   }
 
@@ -182,6 +239,7 @@ class AppController extends ChangeNotifier {
         await _tasbihStore.loadFastingMonThuEnabled();
     fastingAyyamulBidhEnabled =
         await _tasbihStore.loadFastingAyyamulBidhEnabled();
+    respectSilentMode = await _tasbihStore.loadRespectSilentMode();
     tasbihDailyStats = await _tasbihStore.loadTasbihDailyStats();
     prayerCheckinsByDate = await _tasbihStore.loadPrayerCheckins();
     notificationLeadMinutes = await _tasbihStore.loadNotificationLeadMinutes();
@@ -189,6 +247,12 @@ class AppController extends ChangeNotifier {
     tasbihAutoResetDaily = await _tasbihStore.loadTasbihAutoResetDaily();
     languageCode = await _tasbihStore.loadLanguageCode();
     tasbihLifetimeCount = await _tasbihStore.loadTasbihLifetimeCount();
+    prayerCalculationMethod = await _tasbihStore.loadPrayerCalculationMethod();
+    asarMethod = await _tasbihStore.loadAsarMethod();
+    highLatitudeRule = await _tasbihStore.loadHighLatitudeRule();
+    manualPrayerAdjustments = await _tasbihStore.loadManualPrayerAdjustments();
+    hijriOffsetDays = await _tasbihStore.loadHijriOffsetDays();
+    _normalizeManualAdjustments();
     if (tasbihLifetimeCount == 0 && tasbihCount > 0) {
       tasbihLifetimeCount = tasbihCount;
       await _tasbihStore.saveTasbihLifetimeCount(tasbihLifetimeCount);
@@ -243,13 +307,30 @@ class AppController extends ChangeNotifier {
       final cacheBefore = _prayerService.cacheHitCount;
 
       if (autoLocation) {
-        position = await _locationService.getCurrentPosition();
-        activeZone = _prayerService.nearestZone(
-          latitude: position!.latitude,
-          longitude: position!.longitude,
-          zones: zones,
-        );
-      } else {
+        try {
+          position = await _locationService.getCurrentPosition();
+          locationPermissionDenied = false;
+          activeZone = _prayerService.nearestZone(
+            latitude: position!.latitude,
+            longitude: position!.longitude,
+            zones: zones,
+          );
+        } catch (e) {
+          final text = e.toString().toLowerCase();
+          if (text.contains('permission') ||
+              text.contains('denied') ||
+              text.contains('ditolak')) {
+            locationPermissionDenied = true;
+            autoLocation = false;
+            await _tasbihStore.saveAutoLocation(false);
+          } else {
+            rethrow;
+          }
+        }
+      }
+
+      if (!autoLocation) {
+        position = null;
         activeZone = zones.firstWhere(
           (z) => z.code == manualZoneCode,
           orElse: () => zones.isNotEmpty
@@ -269,17 +350,44 @@ class AppController extends ChangeNotifier {
       await _tasbihStore.saveManualZone(zoneCode);
       await _pushRecentZone(zoneCode);
 
-      dailyPrayerTimes = await _prayerService.fetchDailyPrayerTimes(zoneCode);
+      DailyPrayerTimes fetched;
+      var source = 'unknown';
+      try {
+        fetched = await _prayerService.fetchDailyPrayerTimes(zoneCode);
+        if (_prayerService.apiSuccessCount > successBefore) {
+          source = 'live';
+        } else if (_prayerService.cacheHitCount > cacheBefore) {
+          source = 'cache';
+        }
+      } catch (_) {
+        source = 'local_calc';
+        fetched = _prayerCalculationService.calculateDaily(
+          zone: activeZone!,
+          date: DateTime.now(),
+          calculationMethod: prayerCalculationMethod,
+          asarMethod: asarMethod,
+          highLatitudeRule: highLatitudeRule,
+        );
+        _pushHealthLog('daily_local_calc:$zoneCode');
+      }
+
+      final shouldOverrideApi = _isCustomCalculationPreferenceEnabled();
+      final baseDaily = shouldOverrideApi
+          ? _prayerCalculationService.calculateDaily(
+              zone: activeZone!,
+              date: DateTime.now(),
+              calculationMethod: prayerCalculationMethod,
+              asarMethod: asarMethod,
+              highLatitudeRule: highLatitudeRule,
+            )
+          : fetched;
+
+      dailyPrayerTimes = _applyManualAdjustmentsToDaily(baseDaily);
       _pushHealthLog('daily_ok:$zoneCode');
       lastPrayerDataUpdatedAt = DateTime.now();
-      if (_prayerService.apiSuccessCount > successBefore) {
-        lastPrayerDataSource = 'live';
-      } else if (_prayerService.cacheHitCount > cacheBefore) {
-        lastPrayerDataSource = 'cache';
-      } else {
-        lastPrayerDataSource = 'unknown';
-      }
+      lastPrayerDataSource = shouldOverrideApi ? 'local_calc' : source;
       _lastErrorRaw = '';
+      _errorActionCode = null;
 
       final lat = position?.latitude ?? activeZone?.latitude;
       final lng = position?.longitude ?? activeZone?.longitude;
@@ -299,6 +407,7 @@ class AppController extends ChangeNotifier {
               .toSet(),
           prayerSoundProfiles: prayerSoundProfiles,
           leadMinutes: notificationLeadMinutes,
+          respectSilentMode: respectSilentMode,
         );
       } catch (_) {
         // Non-critical: data waktu solat sudah berjaya diambil.
@@ -309,6 +418,10 @@ class AppController extends ChangeNotifier {
     } catch (e) {
       _pushHealthLog('daily_err:${e.runtimeType}');
       _lastErrorRaw = e.toString().toLowerCase();
+      if (_lastErrorRaw.contains('notification') ||
+          _lastErrorRaw.contains('notifikasi')) {
+        _errorActionCode = 'open_app';
+      }
       errorMessage = _friendlyError(e);
       _scheduleAutoRetry();
     } finally {
@@ -347,21 +460,22 @@ class AppController extends ChangeNotifier {
     if (entries == null || entries.isEmpty) {
       return null;
     }
+    final sorted = [...entries]..sort((a, b) => a.time.compareTo(b.time));
 
     final now = DateTime.now();
-    for (final entry in entries) {
+    for (final entry in sorted) {
       if (entry.time.isAfter(now)) {
         return entry;
       }
     }
     PrayerTimeEntry? subuh;
-    for (final entry in entries) {
+    for (final entry in sorted) {
       if (entry.name == 'Subuh') {
         subuh = entry;
         break;
       }
     }
-    final fallback = subuh ?? entries.first;
+    final fallback = subuh ?? sorted.first;
     return PrayerTimeEntry(
       name: fallback.name,
       time: fallback.time.add(const Duration(days: 1)),
@@ -437,6 +551,9 @@ class AppController extends ChangeNotifier {
 
   Future<void> setAutoLocation(bool value) async {
     autoLocation = value;
+    if (value) {
+      locationPermissionDenied = false;
+    }
     await _tasbihStore.saveAutoLocation(value);
     await refreshPrayerData();
     await refreshMonthlyData();
@@ -501,12 +618,59 @@ class AppController extends ChangeNotifier {
     await refreshPrayerData();
   }
 
+  Future<void> setAllPrayerSoundProfiles(String profile) async {
+    for (final name in prayerNamesOrdered) {
+      prayerSoundProfiles[name] = profile;
+      await _tasbihStore.savePrayerSoundProfile(name, profile);
+    }
+    await refreshPrayerData();
+  }
+
+  Future<void> setRespectSilentMode(bool value) async {
+    respectSilentMode = value;
+    await _tasbihStore.saveRespectSilentMode(value);
+    await refreshPrayerData();
+  }
+
+  Future<void> setPrayerCalculationMethod(String value) async {
+    prayerCalculationMethod = value;
+    await _tasbihStore.savePrayerCalculationMethod(value);
+    await refreshPrayerData();
+  }
+
+  Future<void> setAsarMethod(String value) async {
+    asarMethod = value;
+    await _tasbihStore.saveAsarMethod(value);
+    await refreshPrayerData();
+  }
+
+  Future<void> setHighLatitudeRule(String value) async {
+    highLatitudeRule = value;
+    await _tasbihStore.saveHighLatitudeRule(value);
+    await refreshPrayerData();
+  }
+
+  Future<void> setManualPrayerAdjustment(String prayerName, int minutes) async {
+    manualPrayerAdjustments[prayerName] = minutes.clamp(-30, 30).toInt();
+    await _tasbihStore.saveManualPrayerAdjustments(manualPrayerAdjustments);
+    await refreshPrayerData();
+  }
+
+  Future<void> setAllPrayerNotifications(bool value) async {
+    for (final name in prayerNamesOrdered) {
+      prayerNotificationToggles[name] = value;
+      await _tasbihStore.savePrayerNotificationToggle(name, value);
+    }
+    await refreshPrayerData();
+  }
+
   Future<void> previewPrayerSound(String prayerName) async {
     final profile = prayerSoundProfiles[prayerName] ?? 'default';
     await _notificationService.showPrayerSoundPreview(
       prayerName: prayerName,
       soundProfile: profile,
       enableVibration: vibrateEnabled,
+      respectSilentMode: respectSilentMode,
     );
   }
 
@@ -558,8 +722,43 @@ class AppController extends ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> setHijriOffsetDays(int value) async {
+    hijriOffsetDays = value.clamp(-2, 2);
+    await _tasbihStore.saveHijriOffsetDays(hijriOffsetDays);
+    _queueFastingReminderReschedule();
+    notifyListeners();
+  }
+
+  Future<void> resetAllManualPrayerAdjustments() async {
+    manualPrayerAdjustments = <String, int>{
+      for (final name in prayerNamesOrdered) name: 0,
+    };
+    await _tasbihStore.saveManualPrayerAdjustments(manualPrayerAdjustments);
+    await refreshPrayerData();
+  }
+
+  String t(String key, {Map<String, String> params = const {}}) {
+    return AppLocalizations(languageCode).text(key, params: params);
+  }
+
   String tr(String bm, String en) {
     return isEnglish ? en : bm;
+  }
+
+  String displayPrayerName(String prayerName) {
+    if (!isEnglish) {
+      return prayerName;
+    }
+    const names = <String, String>{
+      'Imsak': 'Imsak',
+      'Subuh': 'Fajr',
+      'Syuruk': 'Sunrise',
+      'Zohor': 'Dhuhr',
+      'Asar': 'Asr',
+      'Maghrib': 'Maghrib',
+      'Isyak': 'Isha',
+    };
+    return names[prayerName] ?? prayerName;
   }
 
   Future<void> completeOnboarding() async {
@@ -592,8 +791,13 @@ class AppController extends ChangeNotifier {
       'travelModeEnabled': travelModeEnabled,
       'fastingMondayThursdayEnabled': fastingMondayThursdayEnabled,
       'fastingAyyamulBidhEnabled': fastingAyyamulBidhEnabled,
+      'respectSilentMode': respectSilentMode,
       'prayerNotificationToggles': prayerNotificationToggles,
       'prayerSoundProfiles': prayerSoundProfiles,
+      'prayerCalculationMethod': prayerCalculationMethod,
+      'asarMethod': asarMethod,
+      'highLatitudeRule': highLatitudeRule,
+      'manualPrayerAdjustments': manualPrayerAdjustments,
       'favoriteZones': favoriteZones,
       'recentZones': recentZones,
       'prayerCheckinsByDate': prayerCheckinsByDate,
@@ -601,6 +805,7 @@ class AppController extends ChangeNotifier {
       'tasbihCycleTarget': tasbihCycleTarget,
       'tasbihAutoResetDaily': tasbihAutoResetDaily,
       'languageCode': languageCode,
+      'hijriOffsetDays': hijriOffsetDays,
       'tasbihLifetimeCount': tasbihLifetimeCount,
     });
   }
@@ -621,6 +826,8 @@ class AppController extends ChangeNotifier {
             fastingMondayThursdayEnabled;
     fastingAyyamulBidhEnabled = parsed['fastingAyyamulBidhEnabled'] as bool? ??
         fastingAyyamulBidhEnabled;
+    respectSilentMode =
+        parsed['respectSilentMode'] as bool? ?? respectSilentMode;
 
     final toggles = parsed['prayerNotificationToggles'];
     if (toggles is Map<String, dynamic>) {
@@ -632,6 +839,18 @@ class AppController extends ChangeNotifier {
       prayerSoundProfiles = sounds.map(
         (k, v) => MapEntry(k, (v ?? 'default').toString()),
       );
+    }
+    prayerCalculationMethod =
+        parsed['prayerCalculationMethod'] as String? ?? prayerCalculationMethod;
+    asarMethod = parsed['asarMethod'] as String? ?? asarMethod;
+    highLatitudeRule =
+        parsed['highLatitudeRule'] as String? ?? highLatitudeRule;
+    final adjustments = parsed['manualPrayerAdjustments'];
+    if (adjustments is Map<String, dynamic>) {
+      manualPrayerAdjustments = adjustments.map(
+        (k, v) => MapEntry(k, (v as num?)?.toInt() ?? 0),
+      );
+      _normalizeManualAdjustments();
     }
 
     final fav = parsed['favoriteZones'];
@@ -661,6 +880,9 @@ class AppController extends ChangeNotifier {
     languageCode = (parsed['languageCode'] as String? ?? languageCode) == 'en'
         ? 'en'
         : 'ms';
+    hijriOffsetDays =
+        ((parsed['hijriOffsetDays'] as num?)?.toInt() ?? hijriOffsetDays)
+            .clamp(-2, 2);
     tasbihLifetimeCount =
         (parsed['tasbihLifetimeCount'] as num?)?.toInt() ?? tasbihLifetimeCount;
 
@@ -676,6 +898,11 @@ class AppController extends ChangeNotifier {
     await _tasbihStore.saveFastingAyyamulBidhEnabled(
       fastingAyyamulBidhEnabled,
     );
+    await _tasbihStore.saveRespectSilentMode(respectSilentMode);
+    await _tasbihStore.savePrayerCalculationMethod(prayerCalculationMethod);
+    await _tasbihStore.saveAsarMethod(asarMethod);
+    await _tasbihStore.saveHighLatitudeRule(highLatitudeRule);
+    await _tasbihStore.saveManualPrayerAdjustments(manualPrayerAdjustments);
     await _tasbihStore.saveFavoriteZones(favoriteZones);
     await _tasbihStore.saveRecentZones(recentZones);
     await _tasbihStore.savePrayerCheckins(prayerCheckinsByDate);
@@ -683,6 +910,7 @@ class AppController extends ChangeNotifier {
     await _tasbihStore.saveTasbihCycleTarget(tasbihCycleTarget);
     await _tasbihStore.saveTasbihAutoResetDaily(tasbihAutoResetDaily);
     await _tasbihStore.saveLanguageCode(languageCode);
+    await _tasbihStore.saveHijriOffsetDays(hijriOffsetDays);
     await _tasbihStore.saveTasbihLifetimeCount(tasbihLifetimeCount);
     for (final entry in prayerNotificationToggles.entries) {
       await _tasbihStore.savePrayerNotificationToggle(entry.key, entry.value);
@@ -818,6 +1046,48 @@ class AppController extends ChangeNotifier {
     await togglePrayerCompletedToday(current.name);
   }
 
+  List<DailyPrayerTimes> upcomingFastingReminderDates({int limit = 5}) {
+    if (limit <= 0) {
+      return const <DailyPrayerTimes>[];
+    }
+    final monthly = monthlyPrayerTimes;
+    if (monthly == null) {
+      return const <DailyPrayerTimes>[];
+    }
+    final days = <DailyPrayerTimes>[
+      ...monthly.days,
+      ...(nextMonthlyPrayerTimes?.days ?? const <DailyPrayerTimes>[]),
+    ]..sort((a, b) => a.date.compareTo(b.date));
+    final today = DateTime.now();
+    final start = DateTime(today.year, today.month, today.day);
+    final result = <DailyPrayerTimes>[];
+    for (final day in days) {
+      final current = DateTime(day.date.year, day.date.month, day.date.day);
+      if (current.isBefore(start)) {
+        continue;
+      }
+      if (_isFastingTargetDay(day)) {
+        result.add(day);
+      }
+      if (result.length >= limit) {
+        break;
+      }
+    }
+    return result;
+  }
+
+  String formatHijriWithOffset(String? hijriRaw) {
+    final value = hijriRaw?.trim() ?? '';
+    if (value.isEmpty) {
+      return '-';
+    }
+    if (hijriOffsetDays == 0) {
+      return value;
+    }
+    final sign = hijriOffsetDays > 0 ? '+' : '';
+    return '$value ($sign$hijriOffsetDays)';
+  }
+
   bool _isDifferentDay(DateTime a, DateTime b) =>
       a.year != b.year || a.month != b.month || a.day != b.day;
 
@@ -838,50 +1108,57 @@ class AppController extends ChangeNotifier {
 
   String _friendlyError(Object error) {
     final text = error.toString().toLowerCase();
+    if (_errorActionCode == 'open_app') {
+      return t('error_generic');
+    }
     if (text.contains('location') || text.contains('lokasi')) {
-      return 'Location is unavailable. Please enable GPS or choose a manual zone.';
+      _errorActionCode = 'open_location';
+      return t('error_location_unavailable');
     }
     if (text.contains('timeout')) {
-      return 'Connection is slow. Pull down to try again.';
+      _errorActionCode = 'manual_zone';
+      return t('error_slow_connection');
     }
     if (text.contains('tidak tersedia')) {
-      return 'Data is not yet available from server. Cached data will be used when available.';
+      _errorActionCode = 'manual_zone';
+      return t('error_server_unavailable');
     }
-    return 'Unable to load data right now. Please try again shortly.';
+    if (_errorActionCode != 'open_app') {
+      _errorActionCode = null;
+    }
+    return t('error_generic');
   }
 
   String? get errorActionLabel {
     if (errorMessage == null) {
       return null;
     }
-    if (_lastErrorRaw.contains('location') ||
-        _lastErrorRaw.contains('lokasi')) {
-      return 'Open location settings';
+    switch (_errorActionCode) {
+      case 'open_location':
+        return t('error_action_open_location');
+      case 'open_app':
+        return t('error_action_open_app');
+      case 'manual_zone':
+        return t('error_action_manual_zone');
+      default:
+        return null;
     }
-    if (_lastErrorRaw.contains('notification') ||
-        _lastErrorRaw.contains('notifikasi')) {
-      return 'Open app settings';
-    }
-    if (_lastErrorRaw.contains('server') || _lastErrorRaw.contains('timeout')) {
-      return 'Use manual zone';
-    }
-    return null;
   }
 
   Future<void> runErrorAction() async {
-    final label = errorActionLabel;
-    if (label == null) {
+    final code = _errorActionCode;
+    if (code == null) {
       return;
     }
-    if (label == 'Open location settings') {
+    if (code == 'open_location') {
       await Geolocator.openLocationSettings();
       return;
     }
-    if (label == 'Open app settings') {
+    if (code == 'open_app') {
       await Geolocator.openAppSettings();
       return;
     }
-    if (label == 'Use manual zone') {
+    if (code == 'manual_zone') {
       await setAutoLocation(false);
       return;
     }
@@ -895,6 +1172,130 @@ class AppController extends ChangeNotifier {
     if (healthLogs.length > 40) {
       healthLogs.removeLast();
     }
+  }
+
+  bool _isFastingTargetDay(DailyPrayerTimes day) {
+    final weekday = day.date.weekday;
+    final monThu = fastingMondayThursdayEnabled &&
+        (weekday == DateTime.monday || weekday == DateTime.thursday);
+    var hijriDay = _extractHijriDay(day.hijriDate);
+    var hijriMonth = _extractHijriMonth(day.hijriDate);
+    if (hijriDay != null && hijriMonth != null && hijriOffsetDays != 0) {
+      final adjusted = _applyHijriOffset(
+        day: hijriDay,
+        month: hijriMonth,
+        offset: hijriOffsetDays,
+      );
+      hijriDay = adjusted.$1;
+      hijriMonth = adjusted.$2;
+    }
+    final ramadan = ramadhanMode && hijriMonth == 9;
+    final ayyamulBidh = fastingAyyamulBidhEnabled &&
+        hijriDay != null &&
+        hijriDay >= 13 &&
+        hijriDay <= 15;
+    return ramadan || monThu || ayyamulBidh;
+  }
+
+  int? _extractHijriDay(String? hijri) {
+    if (hijri == null || hijri.trim().isEmpty) {
+      return null;
+    }
+    final token = hijri.trim().split(RegExp(r'\s+')).first;
+    return int.tryParse(token);
+  }
+
+  int? _extractHijriMonth(String? hijri) {
+    if (hijri == null || hijri.trim().isEmpty) {
+      return null;
+    }
+    final tokens = hijri.trim().split(RegExp(r'\s+'));
+    if (tokens.length < 2) {
+      return null;
+    }
+    final monthToken = tokens[1].toLowerCase();
+    const monthMap = <String, int>{
+      'muharam': 1,
+      'safar': 2,
+      'rabiulawal': 3,
+      'rabiulakhir': 4,
+      'jamadilawal': 5,
+      'jamadilakhir': 6,
+      'rejab': 7,
+      'syaaban': 8,
+      'ramadan': 9,
+      'syawal': 10,
+      'zulkaedah': 11,
+      'zulhijjah': 12,
+    };
+    return monthMap[monthToken];
+  }
+
+  (int, int) _applyHijriOffset({
+    required int day,
+    required int month,
+    required int offset,
+  }) {
+    var d = day;
+    var m = month;
+    if (offset == 0) {
+      return (d, m);
+    }
+    d += offset;
+    while (d > 30) {
+      d -= 30;
+      m += 1;
+      if (m > 12) {
+        m = 1;
+      }
+    }
+    while (d < 1) {
+      d += 30;
+      m -= 1;
+      if (m < 1) {
+        m = 12;
+      }
+    }
+    return (d, m);
+  }
+
+  DailyPrayerTimes _applyManualAdjustmentsToDaily(DailyPrayerTimes source) {
+    if (manualPrayerAdjustments.isEmpty ||
+        manualPrayerAdjustments.values.every((v) => v == 0)) {
+      return source;
+    }
+    final entries = source.entries.map((entry) {
+      final adjust = manualPrayerAdjustments[entry.name] ?? 0;
+      if (adjust == 0) {
+        return entry;
+      }
+      return PrayerTimeEntry(
+        name: entry.name,
+        time: entry.time.add(Duration(minutes: adjust)),
+      );
+    }).toList(growable: false);
+    return DailyPrayerTimes(
+      zone: source.zone,
+      date: source.date,
+      entries: entries,
+      hijriDate: source.hijriDate,
+    );
+  }
+
+  void _normalizeManualAdjustments() {
+    final next = <String, int>{};
+    for (final name in prayerNamesOrdered) {
+      next[name] = (manualPrayerAdjustments[name] ?? 0).clamp(-30, 30).toInt();
+    }
+    manualPrayerAdjustments = next;
+  }
+
+  bool _isCustomCalculationPreferenceEnabled() {
+    final methodCustom = prayerCalculationMethod.toUpperCase() != 'JAKIM';
+    final asarCustom = !asarMethod.toLowerCase().contains("shafi");
+    final highLatCustom =
+        highLatitudeRule.toLowerCase() != 'middle of the night';
+    return methodCustom || asarCustom || highLatCustom;
   }
 
   Future<void> _scheduleFastingReminders() async {
@@ -956,10 +1357,10 @@ class AppController extends ChangeNotifier {
     final next = nextPrayer;
     final countdown = timeToNextPrayer;
     final payload = <String, String>{
-      'widget_title': 'Prayer Times',
+      'widget_title': tr('Waktu Solat', 'Prayer Times'),
       'widget_subtitle': next == null
-          ? 'No next prayer'
-          : '${next.name} ${next.time.hour.toString().padLeft(2, '0')}:${next.time.minute.toString().padLeft(2, '0')}',
+          ? tr('Tiada waktu seterusnya', 'No next prayer')
+          : '${displayPrayerName(next.name)} ${next.time.hour.toString().padLeft(2, '0')}:${next.time.minute.toString().padLeft(2, '0')}',
       'widget_countdown': _formatWidgetCountdown(countdown),
       'widget_tasbih': '$tasbihCount',
     };

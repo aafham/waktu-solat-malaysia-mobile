@@ -440,10 +440,12 @@ class TasbihHeroDial extends StatelessWidget {
                         fit: BoxFit.scaleDown,
                         child: Text(
                           '$count',
-                          style:
-                              Theme.of(context).textTheme.displaySmall?.copyWith(
-                                    fontWeight: FontWeight.w700,
-                                  ),
+                          style: Theme.of(context)
+                              .textTheme
+                              .displaySmall
+                              ?.copyWith(
+                                fontWeight: FontWeight.w700,
+                              ),
                         ),
                       ),
                       const SizedBox(height: TasbihTokens.s8),
@@ -459,7 +461,7 @@ class TasbihHeroDial extends StatelessWidget {
                   Positioned(
                     bottom: TasbihTokens.s24,
                     child: Text(
-                      tr('Tekan untuk tambah', 'Tap to add'),
+                      controller.t('tasbih_tap_add'),
                       style: Theme.of(context).textTheme.labelMedium?.copyWith(
                             color: TasbihTokens.textMuted,
                             fontWeight: FontWeight.w600,
@@ -604,12 +606,10 @@ class TasbihControlPanel extends StatelessWidget {
                   onPressed: onUndo,
                   tooltip: tr('Undo', 'Undo'),
                   style: IconButton.styleFrom(
-                    backgroundColor: onUndo == null
-                        ? const Color(0x22344762)
-                        : null,
-                    foregroundColor: onUndo == null
-                        ? const Color(0xFF6F819E)
-                        : null,
+                    backgroundColor:
+                        onUndo == null ? const Color(0x22344762) : null,
+                    foregroundColor:
+                        onUndo == null ? const Color(0xFF6F819E) : null,
                   ),
                   icon: const Icon(Icons.undo_rounded),
                 ),
@@ -727,4 +727,3 @@ class _TasbihRingPainter extends CustomPainter {
     return oldDelegate.progress != progress;
   }
 }
-

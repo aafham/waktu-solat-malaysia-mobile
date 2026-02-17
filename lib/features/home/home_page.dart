@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../../models/prayer_models.dart';
 import '../../state/app_controller.dart';
 import '../../theme/app_tokens.dart';
+import 'history_page.dart';
 
 const _msLocale = 'ms_MY';
 const _mainPrayerOrder = <String>['Subuh', 'Zohor', 'Asar', 'Maghrib', 'Isyak'];
@@ -149,10 +150,7 @@ class _HomePageState extends State<HomePage> {
     if (after > before) {
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(widget.controller.tr(
-            'Check-in berjaya.',
-            'Check-in berjaya.',
-          )),
+          content: Text(widget.controller.t('times_checkin_success')),
         ),
       );
     }
@@ -164,7 +162,7 @@ class _HomePageState extends State<HomePage> {
         SnackBar(
           content: Text(widget.controller.tr(
             'Tekan lama untuk undo.',
-            'Tekan lama untuk undo.',
+            'Long press to undo.',
           )),
         ),
       );
@@ -190,7 +188,7 @@ class _HomePageState extends State<HomePage> {
           content: Text(
             tr(
               'Rekod ${entry.name} akan ditanda belum selesai.',
-              'Rekod ${entry.name} akan ditanda belum selesai.',
+              '${widget.controller.displayPrayerName(entry.name)} will be marked as not completed.',
             ),
           ),
           actions: [
@@ -282,10 +280,15 @@ class _TimesHeroCardState extends State<TimesHeroCard> {
     final tokens = context.prayerHomeTokens;
     final tr = widget.controller.tr;
     final displayPrayer = widget.currentPrayer ?? widget.nextPrayer;
-    final current = displayPrayer?.name ?? tr('Belum bermula', 'Not started');
+    final current = displayPrayer == null
+        ? tr('Belum bermula', 'Not started')
+        : widget.controller.displayPrayerName(displayPrayer.name);
     final currentTime = displayPrayer == null
         ? '--:--'
-        : DateFormat('HH:mm', _msLocale).format(displayPrayer.time);
+        : DateFormat(
+            'HH:mm',
+            widget.controller.isEnglish ? 'en_US' : _msLocale,
+          ).format(displayPrayer.time);
     final checkedCurrent = widget.currentPrayer != null &&
         widget.controller.isPrayerCompletedToday(widget.currentPrayer!.name);
     final canCheckIn = widget.currentPrayer != null;
@@ -335,7 +338,10 @@ class _TimesHeroCardState extends State<TimesHeroCard> {
             ),
           ),
           const SizedBox(height: 12),
-          NextPrayerCountdownText(remainingText: remainingText),
+          NextPrayerCountdownText(
+            remainingText: remainingText,
+            caption: widget.controller.t('times_before_next'),
+          ),
           const SizedBox(height: 12),
           _MetaChip(icon: Icons.place_outlined, label: statusMeta),
           const SizedBox(height: 16),
@@ -347,8 +353,10 @@ class _TimesHeroCardState extends State<TimesHeroCard> {
                     ? _HeroStatusPill(
                         key: const ValueKey<String>('checkin-disabled'),
                         icon: Icons.schedule_rounded,
-                        label: tr('Check-in buka $currentTime',
-                            'Check-in opens at $currentTime'),
+                        label: widget.controller.t(
+                          'times_checkin_open_at',
+                          params: <String, String>{'time': currentTime},
+                        ),
                       )
                     : checkedCurrent
                         ? _HeroStatusPill(
@@ -369,13 +377,14 @@ class _TimesHeroCardState extends State<TimesHeroCard> {
                           ),
               ),
               const Spacer(),
-              TextButton(
+              TextButton.icon(
                 onPressed: widget.onSnooze,
                 style: TextButton.styleFrom(
                   minimumSize: const Size(0, 40),
                   padding: const EdgeInsets.symmetric(horizontal: 12),
                 ),
-                child: Text(tr('Tunda 5 min', 'Snooze 5 min')),
+                icon: const Icon(Icons.snooze_outlined, size: 18),
+                label: Text(widget.controller.t('times_snooze_5')),
               ),
             ],
           ),
@@ -388,8 +397,13 @@ class _TimesHeroCardState extends State<TimesHeroCard> {
     final safe = d.isNegative ? Duration.zero : d;
     final h = safe.inHours;
     final m = safe.inMinutes.remainder(60);
-    final hourLabel = h == 1 ? 'hour' : 'hours';
-    final minuteLabel = m == 1 ? 'minute' : 'minutes';
+    final tr = widget.controller.tr;
+    final hourLabel = widget.controller.isEnglish
+        ? (h == 1 ? 'hour' : 'hours')
+        : tr('jam', 'hours');
+    final minuteLabel = widget.controller.isEnglish
+        ? (m == 1 ? 'minute' : 'minutes')
+        : tr('minit', 'minutes');
     return '$h $hourLabel $m $minuteLabel';
   }
 }
@@ -398,9 +412,11 @@ class NextPrayerCountdownText extends StatelessWidget {
   const NextPrayerCountdownText({
     super.key,
     required this.remainingText,
+    required this.caption,
   });
 
   final String remainingText;
+  final String caption;
 
   @override
   Widget build(BuildContext context) {
@@ -416,7 +432,7 @@ class NextPrayerCountdownText extends StatelessWidget {
         ),
         const SizedBox(height: 2),
         Text(
-          'Before Subuh begins',
+          caption,
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
           style: Theme.of(context).textTheme.labelSmall?.copyWith(
@@ -525,6 +541,20 @@ class _TodayScheduleListState extends State<TodayScheduleList> {
                       fontWeight: FontWeight.w700,
                     ),
               ),
+              const SizedBox(width: 6),
+              TextButton.icon(
+                onPressed: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => HistoryPage(controller: controller),
+                  ),
+                ),
+                icon: const Icon(Icons.history_outlined, size: 16),
+                label: Text(controller.t('history_title')),
+                style: TextButton.styleFrom(
+                  minimumSize: const Size(44, 32),
+                  visualDensity: VisualDensity.compact,
+                ),
+              ),
               const Spacer(),
               AnimatedSwitcher(
                 duration: tokens.baseAnim,
@@ -580,10 +610,7 @@ class _TodayScheduleListState extends State<TodayScheduleList> {
           ),
           const SizedBox(height: 8),
           Text(
-            tr(
-              'Tekan untuk tandakan, tekan lama untuk undo.',
-              'Tekan untuk tandakan, tekan lama untuk undo.',
-            ),
+            controller.t('times_tap_to_mark'),
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
                   color: const Color(0xFFBECDE2),
                   fontWeight: FontWeight.w600,
@@ -645,7 +672,7 @@ class _TodayScheduleListState extends State<TodayScheduleList> {
     return Padding(
       padding: const EdgeInsets.only(bottom: 8),
       child: _ScheduleRow(
-        title: entry.name,
+        title: controller.displayPrayerName(entry.name),
         subtitle: DateFormat('HH:mm', _msLocale).format(entry.time),
         isDone: done,
         isCurrent: isCurrent,
@@ -1015,10 +1042,7 @@ class _HomeEmptyState extends StatelessWidget {
           ),
           const SizedBox(height: 8),
           Text(
-            tr(
-              'Tarik ke bawah untuk cuba semula.',
-              'Tarik ke bawah untuk cuba semula.',
-            ),
+            controller.t('times_pull_refresh'),
             style: Theme.of(context).textTheme.bodyMedium,
           ),
           const SizedBox(height: 12),
