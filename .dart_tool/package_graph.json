@@ -14,6 +14,7 @@
         "geolocator",
         "http",
         "intl",
+        "provider",
         "share_plus",
         "shared_preferences",
         "timezone",
@@ -802,6 +803,22 @@
         "collection",
         "source_span",
         "string_scanner"
+      ]
+    },
+    {
+      "name": "provider",
+      "version": "6.1.5+1",
+      "dependencies": [
+        "collection",
+        "flutter",
+        "nested"
+      ]
+    },
+    {
+      "name": "nested",
+      "version": "1.0.0",
+      "dependencies": [
+        "flutter"
       ]
     }
   ],
