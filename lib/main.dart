@@ -1,10 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
-import 'package:waktu_solat_malaysia/theme/app_theme.dart';
-import 'package:waktu_solat_malaysia/widgets/splash_screen.dart';
+import 'package:waktu_solat_malaysia_mobile/theme/app_theme.dart';
+import 'package:waktu_solat_malaysia_mobile/widgets/splash_screen.dart';
 
 import 'features/home/home_page.dart';
 import 'features/onboarding/onboarding_page.dart';
@@ -37,7 +36,7 @@ class WaktuSolatApp extends StatelessWidget {
         notificationService: NotificationService(),
         qiblaService: QiblaService(),
         tasbihStore: TasbihStore(),
-      )..initialize(),
+      ),
       child: const _WaktuSolatAppView(),
     );
   }
@@ -60,7 +59,12 @@ class _WaktuSolatAppViewState extends State<_WaktuSolatAppView>
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    context.read<AppController>().initialize();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) {
+        return;
+      }
+      context.read<AppController>().initialize();
+    });
 
     Future.delayed(const Duration(milliseconds: 3200), () {
       if (!mounted) return;
