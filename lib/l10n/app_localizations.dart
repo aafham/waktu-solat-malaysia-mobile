@@ -81,6 +81,14 @@ class AppLocalizations {
       'ms': 'Laraskan tarikh Hijri untuk paparan dan peringatan puasa.',
       'en': 'Adjust Hijri date for display and fasting reminders.'
     },
+    'hijri_unavailable': {
+      'ms': 'Hijri tidak tersedia',
+      'en': 'Hijri unavailable'
+    },
+    'hijri_today_preview': {
+      'ms': 'Hijri hari ini: {date} (offset {offset})',
+      'en': 'Today Hijri: {date} (offset {offset})'
+    },
     'error_location_unavailable': {
       'ms': 'Lokasi tidak tersedia. Sila aktifkan GPS atau pilih zon manual.',
       'en':

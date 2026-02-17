@@ -1,3 +1,6 @@
+import 'dart:async';
+
+import 'package:app_links/app_links.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:intl/date_symbol_data_local.dart';
@@ -18,6 +21,7 @@ import 'services/prayer_calculation_service.dart';
 import 'services/prayer_service.dart';
 import 'services/qibla_service.dart';
 import 'services/tasbih_store.dart';
+import 'services/widget_update_service.dart';
 import 'state/app_controller.dart';
 
 Future<void> main() async {
@@ -40,6 +44,7 @@ class WaktuSolatApp extends StatelessWidget {
         prayerCalculationService: const PrayerCalculationService(),
         qiblaService: QiblaService(),
         tasbihStore: TasbihStore(),
+        widgetUpdateService: const WidgetUpdateService(),
       ),
       child: const _WaktuSolatAppView(),
     );
@@ -58,6 +63,8 @@ class _WaktuSolatAppViewState extends State<_WaktuSolatAppView>
   int tabIndex = 0;
   bool showSplash = true;
   bool dismissedOnboarding = false;
+  AppLinks? _appLinks;
+  StreamSubscription<Uri>? _deepLinkSub;
 
   @override
   void initState() {
@@ -68,6 +75,7 @@ class _WaktuSolatAppViewState extends State<_WaktuSolatAppView>
         return;
       }
       context.read<AppController>().initialize();
+      unawaited(_setupDeepLinks());
     });
 
     Future.delayed(const Duration(milliseconds: 3200), () {
@@ -80,6 +88,7 @@ class _WaktuSolatAppViewState extends State<_WaktuSolatAppView>
 
   @override
   void dispose() {
+    _deepLinkSub?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -89,6 +98,28 @@ class _WaktuSolatAppViewState extends State<_WaktuSolatAppView>
     if (state == AppLifecycleState.resumed) {
       context.read<AppController>().refreshPrayerData();
     }
+  }
+
+  Future<void> _setupDeepLinks() async {
+    _appLinks ??= AppLinks();
+    final initial = await _appLinks!.getInitialLink();
+    if (initial != null) {
+      _handleDeepLink(initial);
+    }
+    _deepLinkSub ??= _appLinks!.uriLinkStream.listen(_handleDeepLink);
+  }
+
+  void _handleDeepLink(Uri uri) {
+    final shouldOpenTimes = uri.scheme == 'myapp' &&
+        (uri.host == 'times' || uri.path.toLowerCase().contains('times'));
+    if (!shouldOpenTimes || !mounted) {
+      return;
+    }
+    setState(() {
+      tabIndex = 0;
+      dismissedOnboarding = true;
+      showSplash = false;
+    });
   }
 
   @override

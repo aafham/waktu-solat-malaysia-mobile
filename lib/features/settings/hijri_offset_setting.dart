@@ -38,6 +38,19 @@ class HijriOffsetSetting extends StatelessWidget {
             ),
           ),
         ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(16, 0, 16, 10),
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: Text(
+              controller.todayHijriPreviewLabel,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: const Color(0xFFB9CAE2),
+                    fontWeight: FontWeight.w600,
+                  ),
+            ),
+          ),
+        ),
       ],
     );
   }

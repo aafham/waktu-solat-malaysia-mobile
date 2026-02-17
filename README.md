@@ -44,6 +44,7 @@ Bottom navigation:
 - Onboarding setup awal (notifikasi + lokasi automatik).
 - Simpanan setempat (`SharedPreferences`) untuk fallback data.
 - Android home widget (paparan waktu seterusnya + countdown + tasbih).
+- Android home widget premium (NextPrayerSmall 2x1 + NextPrayerMedium 4x2) dengan tema matte gelap + accent kuning.
 - Auto-retry fetch data bila gagal + refresh semula bila app kembali aktif.
 
 ## Prasyarat
@@ -108,6 +109,7 @@ Kebenaran minimum:
 - `lib/services/notification_service.dart` - jadual notifikasi + lead time.
 - `lib/services/qibla_service.dart` - kiraan arah kiblat.
 - `lib/services/tasbih_store.dart` - simpanan kiraan/tetapan/language + settings tambahan (silent mode, calculation prefs, manual adjustments).
+- `lib/services/widget_update_service.dart` - sinkron data ke Android Home Widget (`home_widget`).
 
 ## API Digunakan
 - `https://solat.my/api/locations`
@@ -123,6 +125,44 @@ Kebenaran minimum:
 - `Prayer calculation method / asar / high latitude` kini disimpan sebagai preference pengguna (UI + persistence) dan mempengaruhi kiraan tempatan.
 - `Manual minute adjustments` diaplikasikan pada paparan waktu harian dan notifikasi terjadual.
 - Bila API harian gagal, app fallback ke `local prayer calculation` berdasarkan zon aktif + preference pengguna.
+- Android widget update flow:
+  - simpan data widget melalui `home_widget` keys:
+    - `nextPrayerName`
+    - `nextPrayerTime`
+    - `countdownRemaining`
+    - `locationLabel`
+    - `subtitle`
+    - `updatedAtEpoch`
+  - deep link widget ke Times: `myapp://times`
+  - periodic refresh native guna `WorkManager` setiap ~15 min (best-effort).
+
+## Android Home Widget
+Implementasi Android AppWidget:
+- `NextPrayerSmall` (2x1)
+- `NextPrayerMedium` (4x2)
+
+Fail Android utama:
+- `android/app/src/main/kotlin/com/example/waktu_solat_malaysia_mobile/NextPrayerWidgetProvider.kt`
+- `android/app/src/main/kotlin/com/example/waktu_solat_malaysia_mobile/NextPrayerSmallWidgetProvider.kt`
+- `android/app/src/main/kotlin/com/example/waktu_solat_malaysia_mobile/NextPrayerWidgetUpdater.kt`
+- `android/app/src/main/kotlin/com/example/waktu_solat_malaysia_mobile/WidgetRefreshWorker.kt`
+- `android/app/src/main/kotlin/com/example/waktu_solat_malaysia_mobile/WidgetWorkScheduler.kt`
+- `android/app/src/main/res/layout/widget_next_prayer_small.xml`
+- `android/app/src/main/res/layout/widget_next_prayer_medium.xml`
+- `android/app/src/main/res/xml/next_prayer_widget_small_info.xml`
+- `android/app/src/main/res/xml/next_prayer_widget_medium_info.xml`
+
+Resource theme widget:
+- `android/app/src/main/res/values/colors.xml`
+- `android/app/src/main/res/drawable/widget_bg.xml`
+- `android/app/src/main/res/drawable/widget_surface.xml`
+
+Quick test widget:
+1. `flutter clean`
+2. `flutter pub get`
+3. `flutter run`
+4. Tambah widget dari launcher (`NextPrayerSmall` / `NextPrayerMedium`).
+5. Tap widget untuk buka app terus ke tab `Times`.
 
 ## Troubleshooting Ringkas
 - `flutter`/`dart` tidak dijumpai: semak PATH dan restart terminal.
@@ -130,8 +170,29 @@ Kebenaran minimum:
 - Kompas tidak stabil: buat kalibrasi sensor (gerakan angka 8).
 - Lokasi gagal: aktifkan GPS atau guna zon manual.
 - Data lambat/tiada: tarik ke bawah untuk muat semula.
+- `MissingPluginException(saveWidgetData on channel home_widget)`:
+  - stop app penuh (jangan hot-restart sahaja),
+  - jalankan `flutter clean && flutter pub get && flutter run`,
+  - jika masih berlaku, uninstall app dan install semula.
 
 ## Log Patch Terkini (Rujukan Next)
+Latest update (17 Feb 2026 - Android Home Widget Patch):
+- Tambah Android Home Screen widget baharu:
+  - `NextPrayerSmall` (2x1)
+  - `NextPrayerMedium` (4x2)
+- Theme widget ikut app (dark matte + surface gelap + accent kuning).
+- Data widget kini disinkron dari Flutter melalui `home_widget` (`WidgetUpdateService`).
+- Subtitle logic widget:
+  - jika next = `Imsak` -> `Before Subuh begins`
+  - selain itu -> `Until <NextPrayerName> begins`
+- Tap widget buka app terus ke `Times` melalui deep link `myapp://times`.
+- Tambah periodic native refresh countdown guna `WorkManager` (15 min best-effort).
+- Tambah fail-safe handling untuk `MissingPluginException` pada widget update (app tidak crash).
+- Validation:
+  - `flutter analyze` lulus,
+  - `flutter test` lulus,
+  - `:app:compileDebugKotlin` lulus.
+
 Latest update (17 Feb 2026 - Final Polish & Completeness Patch):
 - i18n diperkemas:
   - tambah `flutter_localizations` delegate di `MaterialApp`,

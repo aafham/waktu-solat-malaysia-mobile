@@ -14,6 +14,7 @@ import 'package:geolocator_apple/geolocator_apple.dart' as geolocator_apple;
 import 'package:path_provider_foundation/path_provider_foundation.dart' as path_provider_foundation;
 import 'package:shared_preferences_foundation/shared_preferences_foundation.dart' as shared_preferences_foundation;
 import 'package:url_launcher_ios/url_launcher_ios.dart' as url_launcher_ios;
+import 'package:app_links_linux/app_links_linux.dart' as app_links_linux;
 import 'package:flutter_local_notifications_linux/flutter_local_notifications_linux.dart' as flutter_local_notifications_linux;
 import 'package:path_provider_linux/path_provider_linux.dart' as path_provider_linux;
 import 'package:share_plus/share_plus.dart' as share_plus;
@@ -108,6 +109,15 @@ class _PluginRegistrant {
       }
 
     } else if (Platform.isLinux) {
+      try {
+        app_links_linux.AppLinksPluginLinux.registerWith();
+      } catch (err) {
+        print(
+          '`app_links_linux` threw an error: $err. '
+          'The app may not function as expected until you remove this plugin from pubspec.yaml'
+        );
+      }
+
       try {
         flutter_local_notifications_linux.LinuxFlutterLocalNotificationsPlugin.registerWith();
       } catch (err) {

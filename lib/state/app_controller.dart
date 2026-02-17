@@ -13,6 +13,7 @@ import '../services/prayer_calculation_service.dart';
 import '../services/prayer_service.dart';
 import '../services/qibla_service.dart';
 import '../services/tasbih_store.dart';
+import '../services/widget_update_service.dart';
 
 class AppController extends ChangeNotifier {
   AppController({
@@ -22,12 +23,14 @@ class AppController extends ChangeNotifier {
     required PrayerCalculationService prayerCalculationService,
     required QiblaService qiblaService,
     required TasbihStore tasbihStore,
+    WidgetUpdateService widgetUpdateService = const WidgetUpdateService(),
   })  : _prayerService = prayerService,
         _locationService = locationService,
         _notificationService = notificationService,
         _prayerCalculationService = prayerCalculationService,
         _qiblaService = qiblaService,
-        _tasbihStore = tasbihStore;
+        _tasbihStore = tasbihStore,
+        _widgetUpdateService = widgetUpdateService;
 
   final PrayerService _prayerService;
   final LocationService _locationService;
@@ -35,6 +38,7 @@ class AppController extends ChangeNotifier {
   final PrayerCalculationService _prayerCalculationService;
   final QiblaService _qiblaService;
   final TasbihStore _tasbihStore;
+  final WidgetUpdateService _widgetUpdateService;
 
   bool isLoading = true;
   bool isMonthlyLoading = false;
@@ -214,6 +218,26 @@ class AppController extends ChangeNotifier {
             ? tr('Kiraan tempatan', 'Local calculation')
             : tr('Data langsung', 'Live data');
     return '$source | $ageText';
+  }
+
+  String? get todayHijriHeaderLabel {
+    final raw = dailyPrayerTimes?.hijriDate;
+    if (raw == null || raw.trim().isEmpty) {
+      return null;
+    }
+    return formatHijriWithOffset(raw, fallbackUnavailable: true);
+  }
+
+  String get todayHijriPreviewLabel {
+    final raw = dailyPrayerTimes?.hijriDate;
+    final date = formatHijriWithOffset(raw, fallbackUnavailable: true);
+    return t(
+      'hijri_today_preview',
+      params: <String, String>{
+        'date': date,
+        'offset': _formatOffset(hijriOffsetDays),
+      },
+    );
   }
 
   Future<void> initialize() async {
@@ -726,6 +750,7 @@ class AppController extends ChangeNotifier {
     hijriOffsetDays = value.clamp(-2, 2);
     await _tasbihStore.saveHijriOffsetDays(hijriOffsetDays);
     _queueFastingReminderReschedule();
+    await _updateWidgetData();
     notifyListeners();
   }
 
@@ -1076,16 +1101,21 @@ class AppController extends ChangeNotifier {
     return result;
   }
 
-  String formatHijriWithOffset(String? hijriRaw) {
-    final value = hijriRaw?.trim() ?? '';
-    if (value.isEmpty) {
-      return '-';
+  String formatHijriWithOffset(
+    String? hijriRaw, {
+    bool fallbackUnavailable = false,
+  }) {
+    final parsed = _parseHijriParts(hijriRaw);
+    if (parsed == null) {
+      return fallbackUnavailable ? t('hijri_unavailable') : '-';
     }
-    if (hijriOffsetDays == 0) {
-      return value;
-    }
-    final sign = hijriOffsetDays > 0 ? '+' : '';
-    return '$value ($sign$hijriOffsetDays)';
+    final adjusted = _applyHijriOffsetToParts(
+      day: parsed.$1,
+      month: parsed.$2,
+      year: parsed.$3,
+      offset: hijriOffsetDays,
+    );
+    return _formatHijriParts(adjusted);
   }
 
   bool _isDifferentDay(DateTime a, DateTime b) =>
@@ -1178,17 +1208,17 @@ class AppController extends ChangeNotifier {
     final weekday = day.date.weekday;
     final monThu = fastingMondayThursdayEnabled &&
         (weekday == DateTime.monday || weekday == DateTime.thursday);
-    var hijriDay = _extractHijriDay(day.hijriDate);
-    var hijriMonth = _extractHijriMonth(day.hijriDate);
-    if (hijriDay != null && hijriMonth != null && hijriOffsetDays != 0) {
-      final adjusted = _applyHijriOffset(
-        day: hijriDay,
-        month: hijriMonth,
-        offset: hijriOffsetDays,
-      );
-      hijriDay = adjusted.$1;
-      hijriMonth = adjusted.$2;
-    }
+    final parsed = _parseHijriParts(day.hijriDate);
+    final adjusted = parsed == null
+        ? null
+        : _applyHijriOffsetToParts(
+            day: parsed.$1,
+            month: parsed.$2,
+            year: parsed.$3,
+            offset: hijriOffsetDays,
+          );
+    final hijriDay = adjusted?.$1;
+    final hijriMonth = adjusted?.$2;
     final ramadan = ramadhanMode && hijriMonth == 9;
     final ayyamulBidh = fastingAyyamulBidhEnabled &&
         hijriDay != null &&
@@ -1197,49 +1227,99 @@ class AppController extends ChangeNotifier {
     return ramadan || monThu || ayyamulBidh;
   }
 
-  int? _extractHijriDay(String? hijri) {
-    if (hijri == null || hijri.trim().isEmpty) {
-      return null;
-    }
-    final token = hijri.trim().split(RegExp(r'\s+')).first;
-    return int.tryParse(token);
+  String _formatOffset(int value) {
+    return value > 0 ? '+$value' : '$value';
   }
 
-  int? _extractHijriMonth(String? hijri) {
-    if (hijri == null || hijri.trim().isEmpty) {
-      return null;
-    }
-    final tokens = hijri.trim().split(RegExp(r'\s+'));
-    if (tokens.length < 2) {
-      return null;
-    }
-    final monthToken = tokens[1].toLowerCase();
-    const monthMap = <String, int>{
-      'muharam': 1,
-      'safar': 2,
-      'rabiulawal': 3,
-      'rabiulakhir': 4,
-      'jamadilawal': 5,
-      'jamadilakhir': 6,
-      'rejab': 7,
-      'syaaban': 8,
-      'ramadan': 9,
-      'syawal': 10,
-      'zulkaedah': 11,
-      'zulhijjah': 12,
-    };
-    return monthMap[monthToken];
+  String _formatHijriParts((int, int, int) parts) {
+    final day = parts.$1;
+    final month = parts.$2;
+    final year = parts.$3;
+    final monthLabel = _monthNameByLocale(month);
+    return '$day $monthLabel ${year}H';
   }
 
-  (int, int) _applyHijriOffset({
+  String _monthNameByLocale(int month) {
+    const bm = <String>[
+      'Muharam',
+      'Safar',
+      'Rabiulawal',
+      'Rabiulakhir',
+      'Jamadilawal',
+      'Jamadilakhir',
+      'Rejab',
+      'Syaaban',
+      'Ramadan',
+      'Syawal',
+      'Zulkaedah',
+      'Zulhijjah',
+    ];
+    const en = <String>[
+      'Muharram',
+      'Safar',
+      'Rabi al-Awwal',
+      'Rabi al-Thani',
+      'Jumada al-Awwal',
+      'Jumada al-Thani',
+      'Rajab',
+      'Shaaban',
+      'Ramadan',
+      'Shawwal',
+      'Dhu al-Qadah',
+      'Dhu al-Hijjah',
+    ];
+    final index = (month - 1).clamp(0, 11);
+    return isEnglish ? en[index] : bm[index];
+  }
+
+  (int, int, int)? _parseHijriParts(String? hijriRaw) {
+    final value = hijriRaw?.toLowerCase().trim() ?? '';
+    if (value.isEmpty) {
+      return null;
+    }
+    final clean = value.replaceAll(RegExp(r'[^a-z0-9]+'), ' ').trim();
+    if (clean.isEmpty) {
+      return null;
+    }
+    final tokens = clean.split(RegExp(r'\s+'));
+    int? day;
+    int? year;
+    int? month;
+    for (final token in tokens) {
+      final n = int.tryParse(token);
+      if (n == null) {
+        continue;
+      }
+      day ??= n;
+      if (n >= 1000) {
+        year = n;
+      }
+    }
+    for (final token in tokens) {
+      final normalized = token.replaceAll(RegExp(r'[^a-z]'), '');
+      final mapped = _hijriMonthAliases[normalized];
+      if (mapped != null) {
+        month = mapped;
+        break;
+      }
+    }
+    if (day == null || month == null || year == null) {
+      return null;
+    }
+    return (day, month, year);
+  }
+
+  (int, int, int) _applyHijriOffsetToParts({
     required int day,
     required int month,
+    required int year,
     required int offset,
   }) {
     var d = day;
     var m = month;
+    var y = year;
     if (offset == 0) {
-      return (d, m);
+      return (d, m, y);
     }
     d += offset;
     while (d > 30) {
@@ -1247,6 +1327,7 @@ class AppController extends ChangeNotifier {
       m += 1;
       if (m > 12) {
         m = 1;
+        y += 1;
       }
     }
     while (d < 1) {
@@ -1254,10 +1335,42 @@ class AppController extends ChangeNotifier {
       m -= 1;
       if (m < 1) {
         m = 12;
+        y -= 1;
       }
     }
-    return (d, m);
+    return (d, m, y);
   }
+
+  static const Map<String, int> _hijriMonthAliases = <String, int>{
+    'muharam': 1,
+    'muharram': 1,
+    'safar': 2,
+    'rabiulawal': 3,
+    'rabiulawwal': 3,
+    'rabialawal': 3,
+    'rabialawwal': 3,
+    'rabiulakhir': 4,
+    'rabiulthani': 4,
+    'rabiathani': 4,
+    'jamadilawal': 5,
+    'jamadalawal': 5,
+    'jumadaalawwal': 5,
+    'jamadilakhir': 6,
+    'jamadalthani': 6,
+    'jumadaalthani': 6,
+    'rejab': 7,
+    'rajab': 7,
+    'syaaban': 8,
+    'shaaban': 8,
+    'ramadan': 9,
+    'ramadhan': 9,
+    'syawal': 10,
+    'shawwal': 10,
+    'zulkaedah': 11,
+    'dhualqadah': 11,
+    'zulhijjah': 12,
+    'dhualhijjah': 12,
+  };
 
   DailyPrayerTimes _applyManualAdjustmentsToDaily(DailyPrayerTimes source) {
     if (manualPrayerAdjustments.isEmpty ||
@@ -1356,6 +1469,22 @@ class AppController extends ChangeNotifier {
   Future<void> _updateWidgetData() async {
     final next = nextPrayer;
     final countdown = timeToNextPrayer;
+    final nextName =
+        next == null ? tr('Tiada', 'None') : displayPrayerName(next.name);
+    final nextTimeText = next == null
+        ? '--:--'
+        : '${next.time.hour.toString().padLeft(2, '0')}:${next.time.minute.toString().padLeft(2, '0')}';
+    final locationLabel = activeZone?.location ??
+        tr('Lokasi tidak diketahui', 'Unknown location');
+    final subtitle = next == null
+        ? tr('Tiada waktu seterusnya', 'No next prayer')
+        : next.name == 'Imsak'
+            ? tr('Sebelum Subuh bermula', 'Before Subuh begins')
+            : tr(
+                'Sehingga ${displayPrayerName(next.name)} bermula',
+                'Until ${displayPrayerName(next.name)} begins',
+              );
+
     final payload = <String, String>{
       'widget_title': tr('Waktu Solat', 'Prayer Times'),
       'widget_subtitle': next == null
@@ -1365,6 +1494,17 @@ class AppController extends ChangeNotifier {
       'widget_tasbih': '$tasbihCount',
     };
     await _saveWidgetPayload(payload);
+    await _widgetUpdateService.updateNextPrayerWidget(
+      nextPrayerName: nextName,
+      nextPrayerTime: nextTimeText,
+      countdownRemaining: _formatWidgetCountdownShort(countdown),
+      locationLabel: locationLabel,
+      subtitle: subtitle,
+      updatedAtEpoch:
+          (lastPrayerDataUpdatedAt ?? DateTime.now()).millisecondsSinceEpoch,
+      nextPrayerEpoch: next?.time.millisecondsSinceEpoch ?? 0,
+      languageCode: languageCode,
+    );
   }
 
   Future<void> _saveWidgetPayload(Map<String, String> data) async {
@@ -1382,6 +1522,17 @@ class AppController extends ChangeNotifier {
     final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
     final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
     return '$h:$m:$s';
+  }
+
+  String _formatWidgetCountdownShort(Duration? d) {
+    if (d == null) {
+      return isEnglish ? '--h --m' : '--j --m';
+    }
+    final safe = d.isNegative ? Duration.zero : d;
+    final h = safe.inHours;
+    final m = safe.inMinutes.remainder(60).toString().padLeft(2, '0');
+    final hourSuffix = isEnglish ? 'h' : 'j';
+    return '$h$hourSuffix ${m}m';
   }
 
   Future<void> _addTasbihDaily(int count) async {

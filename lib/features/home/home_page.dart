@@ -85,6 +85,20 @@ class _HomePageState extends State<HomePage> {
                                       color: tokens.textMuted,
                                     ),
                               ),
+                              if (controller.todayHijriHeaderLabel != null) ...[
+                                const SizedBox(height: 2),
+                                Text(
+                                  controller.todayHijriHeaderLabel!,
+                                  style: Theme.of(context)
+                                      .textTheme
+                                      .labelSmall
+                                      ?.copyWith(
+                                        color: tokens.textMuted.withValues(
+                                          alpha: 0.86,
+                                        ),
+                                      ),
+                                ),
+                              ],
                               SizedBox(height: tokens.sectionGap),
                               TimesHeroCard(
                                 controller: controller,
@@ -280,6 +294,7 @@ class _TimesHeroCardState extends State<TimesHeroCard> {
     final tokens = context.prayerHomeTokens;
     final tr = widget.controller.tr;
     final displayPrayer = widget.currentPrayer ?? widget.nextPrayer;
+    final now = DateTime.now();
     final current = displayPrayer == null
         ? tr('Belum bermula', 'Not started')
         : widget.controller.displayPrayerName(displayPrayer.name);
@@ -293,11 +308,12 @@ class _TimesHeroCardState extends State<TimesHeroCard> {
         widget.controller.isPrayerCompletedToday(widget.currentPrayer!.name);
     final canCheckIn = widget.currentPrayer != null;
     final remainingText = _formatRemaining(_remaining);
+    final countdownCaption = _countdownCaption();
 
     final location = widget.controller.activeZone?.location ??
         tr('Lokasi belum ditentukan', 'Location unavailable');
-    final freshness = widget.controller.prayerDataFreshnessLabel;
-    final statusMeta = '$location • $freshness';
+    final statusMeta = _compactMeta(location);
+    final checkInHelper = _checkInHelper(now);
 
     return _HomeCard(
       child: Column(
@@ -340,7 +356,7 @@ class _TimesHeroCardState extends State<TimesHeroCard> {
           const SizedBox(height: 12),
           NextPrayerCountdownText(
             remainingText: remainingText,
-            caption: widget.controller.t('times_before_next'),
+            caption: countdownCaption,
           ),
           const SizedBox(height: 12),
           _MetaChip(icon: Icons.place_outlined, label: statusMeta),
@@ -353,10 +369,7 @@ class _TimesHeroCardState extends State<TimesHeroCard> {
                     ? _HeroStatusPill(
                         key: const ValueKey<String>('checkin-disabled'),
                         icon: Icons.schedule_rounded,
-                        label: widget.controller.t(
-                          'times_checkin_open_at',
-                          params: <String, String>{'time': currentTime},
-                        ),
+                        label: _checkInNextPrayerLabel(),
                       )
                     : checkedCurrent
                         ? _HeroStatusPill(
@@ -388,9 +401,71 @@ class _TimesHeroCardState extends State<TimesHeroCard> {
               ),
             ],
           ),
+          const SizedBox(height: 6),
+          Text(
+            checkInHelper,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: const Color(0xFFAFBFDA),
+                  fontWeight: FontWeight.w600,
+                ),
+          ),
         ],
       ),
     );
+  }
+
+  String _countdownCaption() {
+    final tr = widget.controller.tr;
+    if (widget.nextPrayer?.name == 'Imsak') {
+      return tr('Sebelum Subuh bermula', 'Before Subuh begins');
+    }
+    return widget.controller.t('times_before_next');
+  }
+
+  String _checkInHelper(DateTime now) {
+    final tr = widget.controller.tr;
+    final current = widget.currentPrayer;
+    if (current != null && !current.time.isAfter(now)) {
+      return tr('Check-in tersedia sekarang', 'Check-in available now');
+    }
+    final next = widget.nextPrayer;
+    if (next != null && now.isBefore(next.time)) {
+      final name = widget.controller.displayPrayerName(next.name);
+      return tr('Check-in bila $name bermula', 'Check-in when $name begins');
+    }
+    return tr('Check-in tersedia sekarang', 'Check-in available now');
+  }
+
+  String _checkInNextPrayerLabel() {
+    final tr = widget.controller.tr;
+    final next = widget.nextPrayer;
+    if (next == null) {
+      return tr('Belum tersedia', 'Not available yet');
+    }
+    final name = widget.controller.displayPrayerName(next.name);
+    return tr('Check-in bila $name bermula', 'Check-in when $name begins');
+  }
+
+  String _compactMeta(String location) {
+    final tr = widget.controller.tr;
+    final source = switch (widget.controller.lastPrayerDataSource) {
+      'cache' => tr('Simpanan', 'Cache'),
+      'local_calc' => tr('Tempatan', 'Local'),
+      _ => tr('Langsung', 'Live'),
+    };
+    final updatedAt = widget.controller.lastPrayerDataUpdatedAt;
+    final when = updatedAt == null
+        ? tr('kini', 'now')
+        : (() {
+            final age = DateTime.now().difference(updatedAt);
+            if (age.inMinutes <= 0) {
+              return tr('kini', 'now');
+            }
+            return '${age.inMinutes}m';
+          })();
+    return '$location • $source • $when';
   }
 
   String _formatRemaining(Duration d) {
@@ -472,12 +547,16 @@ class _HeroStatusPill extends StatelessWidget {
             color: const Color(0xFFBFD0E8),
           ),
           const SizedBox(width: 6),
-          Text(
-            label,
-            style: Theme.of(context).textTheme.labelMedium?.copyWith(
-                  color: const Color(0xFFBFD0E8),
-                  fontWeight: FontWeight.w700,
-                ),
+          Flexible(
+            child: Text(
+              label,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                    color: const Color(0xFFBFD0E8),
+                    fontWeight: FontWeight.w700,
+                  ),
+            ),
           ),
         ],
       ),
@@ -679,11 +758,9 @@ class _TodayScheduleListState extends State<TodayScheduleList> {
         isNext: isNext,
         statusLabel: isCurrent
             ? tr('SEMASA', 'NOW')
-            : isNext
-                ? tr('Seterusnya', 'Upcoming')
-                : done
-                    ? tr('Selesai', 'Done')
-                    : null,
+            : done
+                ? tr('Selesai', 'Done')
+                : null,
         onTap: () => widget.onTapRow(entry, done),
         onLongPress: () => widget.onLongPressRow(entry, done),
       ),
@@ -880,6 +957,17 @@ class _ScheduleRow extends StatelessWidget {
                       children: [
                         Row(
                           children: [
+                            if (isNext && !isCurrent) ...[
+                              Container(
+                                width: 7,
+                                height: 7,
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF8FD8FF),
+                                  borderRadius: BorderRadius.circular(999),
+                                ),
+                              ),
+                              const SizedBox(width: 7),
+                            ],
                             Text(
                               title,
                               style: Theme.of(context)
