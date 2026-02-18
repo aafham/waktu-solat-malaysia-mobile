@@ -233,6 +233,8 @@ Update terkini:
 - Rollover tarikh:
   - Tarikh Hijri aktif berubah pada waktu `Maghrib` (bukan jam 12 malam),
   - Tarikh Masihi kekal ikut sistem biasa (bertukar pada jam 12:00 malam).
+- Default `Offset Hijri` kini `+1` untuk pengguna baharu (install fresh).
+  - Jika pengguna sudah pernah set offset sendiri, nilai simpanan lama kekal digunakan.
 - Deep link tap widget kekal ke `myapp://times`.
 
 Status validation:
