@@ -125,6 +125,7 @@ class _TasbihScreenState extends State<TasbihScreen> {
               controller: controller,
               selectedTarget: selectedSegment,
               onSelectTarget: (value) => _handleTargetSelection(value),
+              onCustomTargetSubmit: _handleCustomTargetSubmit,
               onUndo: count > 0 ? _handleUndo : null,
               onReset: count > 0 ? _confirmReset : null,
               onQuickAdd: (amount) => _quickAdd(amount),
@@ -173,59 +174,11 @@ class _TasbihScreenState extends State<TasbihScreen> {
   }
 
   Future<void> _handleTargetSelection(int value) async {
-    if (value == -1) {
-      await _showCustomTargetInput();
-      return;
-    }
     await widget.controller.setTasbihCycleTarget(value);
   }
 
-  Future<void> _showCustomTargetInput() async {
-    final tr = widget.controller.tr;
-    final input = TextEditingController(
-      text: widget.controller.tasbihCycleTarget.toString(),
-    );
-    final value = await showDialog<int>(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text(tr('Target Tersuai', 'Custom target')),
-          content: TextField(
-            controller: input,
-            keyboardType: TextInputType.number,
-            autofocus: true,
-            decoration: InputDecoration(
-              hintText: tr('Contoh: 100', 'Example: 100'),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text(tr('Batal', 'Cancel')),
-            ),
-            FilledButton(
-              onPressed: () {
-                final parsed = int.tryParse(input.text.trim());
-                if (parsed == null || parsed < 1) {
-                  Navigator.pop(context);
-                  return;
-                }
-                Navigator.pop(context, parsed);
-              },
-              child: Text(tr('Simpan', 'Save')),
-            ),
-          ],
-        );
-      },
-    );
-    input.dispose();
-    if (value != null && value >= 1) {
-      await Future<void>.delayed(const Duration(milliseconds: 16));
-      if (!mounted) {
-        return;
-      }
-      await widget.controller.setTasbihCycleTarget(value);
-    }
+  Future<void> _handleCustomTargetSubmit(int value) async {
+    await widget.controller.setTasbihCycleTarget(value);
   }
 
   Future<void> _confirmReset() async {
@@ -520,12 +473,13 @@ class _StatChip extends StatelessWidget {
   }
 }
 
-class TasbihControlPanel extends StatelessWidget {
+class TasbihControlPanel extends StatefulWidget {
   const TasbihControlPanel({
     super.key,
     required this.controller,
     required this.selectedTarget,
     required this.onSelectTarget,
+    required this.onCustomTargetSubmit,
     required this.onUndo,
     required this.onReset,
     required this.onQuickAdd,
@@ -534,13 +488,75 @@ class TasbihControlPanel extends StatelessWidget {
   final AppController controller;
   final int selectedTarget;
   final ValueChanged<int> onSelectTarget;
+  final Future<void> Function(int) onCustomTargetSubmit;
   final VoidCallback? onUndo;
   final VoidCallback? onReset;
   final ValueChanged<int> onQuickAdd;
 
   @override
+  State<TasbihControlPanel> createState() => _TasbihControlPanelState();
+}
+
+class _TasbihControlPanelState extends State<TasbihControlPanel> {
+  late final TextEditingController _customController;
+  bool _editingCustom = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _customController = TextEditingController();
+  }
+
+  @override
+  void didUpdateWidget(covariant TasbihControlPanel oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.selectedTarget != -1 && _editingCustom) {
+      _editingCustom = false;
+    }
+  }
+
+  @override
+  void dispose() {
+    _customController.dispose();
+    super.dispose();
+  }
+
+  void _startCustomEdit() {
+    setState(() {
+      _editingCustom = true;
+      _customController.text = '${widget.controller.tasbihCycleTarget}';
+      _customController.selection = TextSelection(
+        baseOffset: 0,
+        extentOffset: _customController.text.length,
+      );
+    });
+  }
+
+  void _cancelCustomEdit() {
+    FocusManager.instance.primaryFocus?.unfocus();
+    setState(() {
+      _editingCustom = false;
+    });
+  }
+
+  Future<void> _saveCustom() async {
+    final parsed = int.tryParse(_customController.text.trim());
+    if (parsed == null || parsed < 1) {
+      return;
+    }
+    FocusManager.instance.primaryFocus?.unfocus();
+    await widget.onCustomTargetSubmit(parsed);
+    if (!mounted) {
+      return;
+    }
+    setState(() {
+      _editingCustom = false;
+    });
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final tr = controller.tr;
+    final tr = widget.controller.tr;
     return Container(
       width: double.infinity,
       padding: const EdgeInsets.fromLTRB(
@@ -580,9 +596,46 @@ class TasbihControlPanel extends StatelessWidget {
               ButtonSegment<int>(
                   value: -1, label: Text(tr('Tersuai', 'Custom'))),
             ],
-            selected: <int>{selectedTarget},
-            onSelectionChanged: (value) => onSelectTarget(value.first),
+            selected: <int>{widget.selectedTarget},
+            onSelectionChanged: (value) {
+              final selected = value.first;
+              if (selected == -1) {
+                _startCustomEdit();
+                return;
+              }
+              _cancelCustomEdit();
+              widget.onSelectTarget(selected);
+            },
           ),
+          if (_editingCustom) ...[
+            const SizedBox(height: 10),
+            TextField(
+              controller: _customController,
+              keyboardType: TextInputType.number,
+              autofocus: true,
+              decoration: InputDecoration(
+                hintText: tr('Contoh: 100', 'Example: 100'),
+              ),
+            ),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: OutlinedButton(
+                    onPressed: _cancelCustomEdit,
+                    child: Text(tr('Batal', 'Cancel')),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: FilledButton(
+                    onPressed: _saveCustom,
+                    child: Text(tr('Simpan', 'Save')),
+                  ),
+                ),
+              ],
+            ),
+          ],
           const SizedBox(height: 12),
           Text(
             tr('Tindakan', 'Actions'),
@@ -596,7 +649,7 @@ class TasbihControlPanel extends StatelessWidget {
             children: [
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: onUndo,
+                  onPressed: widget.onUndo,
                   icon: const Icon(Icons.undo_rounded, size: 18),
                   label: Text(tr('Undo', 'Undo')),
                   style: OutlinedButton.styleFrom(
@@ -607,7 +660,7 @@ class TasbihControlPanel extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: OutlinedButton.icon(
-                  onPressed: onReset,
+                  onPressed: widget.onReset,
                   icon: const Icon(Icons.restart_alt_rounded, size: 18),
                   label: Text(tr('Reset', 'Reset')),
                   style: OutlinedButton.styleFrom(
@@ -630,7 +683,7 @@ class TasbihControlPanel extends StatelessWidget {
             children: [
               Expanded(
                 child: FilledButton.tonal(
-                  onPressed: () => onQuickAdd(10),
+                  onPressed: () => widget.onQuickAdd(10),
                   style: FilledButton.styleFrom(
                     minimumSize: const Size(0, 40),
                   ),
@@ -640,7 +693,7 @@ class TasbihControlPanel extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: FilledButton.tonal(
-                  onPressed: () => onQuickAdd(33),
+                  onPressed: () => widget.onQuickAdd(33),
                   style: FilledButton.styleFrom(
                     minimumSize: const Size(0, 40),
                   ),
@@ -650,7 +703,7 @@ class TasbihControlPanel extends StatelessWidget {
               const SizedBox(width: 8),
               Expanded(
                 child: FilledButton.tonal(
-                  onPressed: () => onQuickAdd(99),
+                  onPressed: () => widget.onQuickAdd(99),
                   style: FilledButton.styleFrom(
                     minimumSize: const Size(0, 40),
                   ),

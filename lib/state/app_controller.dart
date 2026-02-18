@@ -84,7 +84,7 @@ class AppController extends ChangeNotifier {
   String asarMethod = "Shafi'i";
   String highLatitudeRule = 'Middle of the Night';
   Map<String, int> manualPrayerAdjustments = <String, int>{};
-  int hijriOffsetDays = 0;
+  int hijriOffsetDays = 1;
   List<String> favoriteZones = <String>[];
   List<String> recentZones = <String>[];
   Map<String, int> tasbihDailyStats = <String, int>{};

@@ -394,7 +394,7 @@ class TasbihStore {
 
   Future<int> loadHijriOffsetDays() async {
     final prefs = await SharedPreferences.getInstance();
-    final value = prefs.getInt(_hijriOffsetDaysKey) ?? 0;
+    final value = prefs.getInt(_hijriOffsetDaysKey) ?? 1;
     return value.clamp(-2, 2);
   }
 
