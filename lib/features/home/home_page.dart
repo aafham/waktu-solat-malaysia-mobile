@@ -375,7 +375,7 @@ class _TimesHeroCardState extends State<TimesHeroCard> {
   void initState() {
     super.initState();
     _syncCountdown();
-    _ticker = Timer.periodic(const Duration(minutes: 1), (_) {
+    _ticker = Timer.periodic(const Duration(seconds: 1), (_) {
       if (!mounted) return;
       setState(_syncCountdown);
     });
@@ -423,7 +423,6 @@ class _TimesHeroCardState extends State<TimesHeroCard> {
     final checkedCurrent = widget.currentPrayer != null &&
         widget.controller.isPrayerCompletedToday(widget.currentPrayer!.name);
     final canCheckIn = widget.currentPrayer != null;
-    final remainingText = _formatRemaining(_remaining);
     final countdownCaption = _countdownCaption();
 
     final location = widget.controller.activeZone?.location ??
@@ -471,7 +470,9 @@ class _TimesHeroCardState extends State<TimesHeroCard> {
           ),
           const SizedBox(height: 12),
           NextPrayerCountdownText(
-            remainingText: remainingText,
+            remaining: _remaining,
+            tr: tr,
+            isEnglish: widget.controller.isEnglish,
             caption: countdownCaption,
           ),
           const SizedBox(height: 12),
@@ -584,42 +585,48 @@ class _TimesHeroCardState extends State<TimesHeroCard> {
     return '$location • $source • $when';
   }
 
-  String _formatRemaining(Duration d) {
-    final safe = d.isNegative ? Duration.zero : d;
-    final h = safe.inHours;
-    final m = safe.inMinutes.remainder(60);
-    final tr = widget.controller.tr;
-    final hourLabel = widget.controller.isEnglish
-        ? (h == 1 ? 'hour' : 'hours')
-        : tr('jam', 'hours');
-    final minuteLabel = widget.controller.isEnglish
-        ? (m == 1 ? 'minute' : 'minutes')
-        : tr('minit', 'minutes');
-    return '$h $hourLabel $m $minuteLabel';
-  }
 }
 
 class NextPrayerCountdownText extends StatelessWidget {
   const NextPrayerCountdownText({
     super.key,
-    required this.remainingText,
+    required this.remaining,
+    required this.tr,
+    required this.isEnglish,
     required this.caption,
   });
 
-  final String remainingText;
+  final Duration remaining;
+  final String Function(String ms, String en) tr;
+  final bool isEnglish;
   final String caption;
 
   @override
   Widget build(BuildContext context) {
+    final safe = remaining.isNegative ? Duration.zero : remaining;
+    final h = safe.inHours;
+    final m = safe.inMinutes.remainder(60);
+    final s = safe.inSeconds.remainder(60);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          remainingText,
-          style: Theme.of(context).textTheme.headlineMedium?.copyWith(
-                color: const Color(0xFFEAF3FF),
-                fontWeight: FontWeight.w800,
-              ),
+        Wrap(
+          spacing: 10,
+          runSpacing: 8,
+          children: [
+            _CountdownUnit(
+              value: h,
+              label: isEnglish ? 'hours' : tr('jam', 'hours'),
+            ),
+            _CountdownUnit(
+              value: m,
+              label: isEnglish ? 'minutes' : tr('minit', 'minutes'),
+            ),
+            _CountdownUnit(
+              value: s,
+              label: isEnglish ? 'seconds' : tr('saat', 'seconds'),
+            ),
+          ],
         ),
         const SizedBox(height: 2),
         Text(
@@ -629,6 +636,48 @@ class NextPrayerCountdownText extends StatelessWidget {
           style: Theme.of(context).textTheme.labelSmall?.copyWith(
                 color: const Color(0xFFAFBFDA),
                 fontWeight: FontWeight.w600,
+              ),
+        ),
+      ],
+    );
+  }
+}
+
+class _CountdownUnit extends StatelessWidget {
+  const _CountdownUnit({
+    required this.value,
+    required this.label,
+  });
+
+  final int value;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+          decoration: BoxDecoration(
+            color: const Color(0x263B516D),
+            borderRadius: BorderRadius.circular(10),
+            border: Border.all(color: const Color(0x3358779F), width: 1),
+          ),
+          child: Text(
+            value.toString().padLeft(2, '0'),
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: const Color(0xFFEAF3FF),
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
+        ),
+        const SizedBox(width: 6),
+        Text(
+          label,
+          style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                color: const Color(0xFFAFBFDA),
+                fontWeight: FontWeight.w700,
               ),
         ),
       ],
