@@ -1,9 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <color name="launch_splash_background">#07152F</color>
-    <color name="widget_bg">#07152F</color>
-    <color name="widget_surface">#10243F</color>
-    <color name="widget_text_primary">#EEF4FF</color>
-    <color name="widget_text_secondary">#AFC0D8</color>
-    <color name="widget_accent">#F2D57D</color>
+    <color name="widget_bg">#0B1220</color>
+    <color name="widget_surface">#131C2E</color>
+    <color name="text_primary">#EAF0FA</color>
+    <color name="text_secondary">#B3C0D4</color>
+    <color name="accent_yellow">#F2D57D</color>
+
+    <color name="widget_text_primary">@color/text_primary</color>
+    <color name="widget_text_secondary">@color/text_secondary</color>
+    <color name="widget_accent">@color/accent_yellow</color>
 </resources>

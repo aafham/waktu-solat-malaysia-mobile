@@ -1476,6 +1476,13 @@ class AppController extends ChangeNotifier {
         : '${next.time.hour.toString().padLeft(2, '0')}:${next.time.minute.toString().padLeft(2, '0')}';
     final locationLabel = activeZone?.location ??
         tr('Lokasi tidak diketahui', 'Unknown location');
+    final liveLabel = tr('Langsung', 'Live');
+    final current = _currentPrayerForNow();
+    final currentName =
+        current == null ? tr('Tiada', 'None') : displayPrayerName(current.name);
+    final currentTimeText = current == null
+        ? '--:--'
+        : '${current.time.hour.toString().padLeft(2, '0')}:${current.time.minute.toString().padLeft(2, '0')}';
     final subtitle = next == null
         ? tr('Tiada waktu seterusnya', 'No next prayer')
         : next.name == 'Imsak'
@@ -1484,26 +1491,31 @@ class AppController extends ChangeNotifier {
                 'Sehingga ${displayPrayerName(next.name)} bermula',
                 'Until ${displayPrayerName(next.name)} begins',
               );
+    final remainingCheckIns =
+        (todayPrayerTargetCount - todayPrayerCompletedCount).clamp(0, 99);
 
     final payload = <String, String>{
       'widget_title': tr('Waktu Solat', 'Prayer Times'),
       'widget_subtitle': next == null
           ? tr('Tiada waktu seterusnya', 'No next prayer')
           : '${displayPrayerName(next.name)} ${next.time.hour.toString().padLeft(2, '0')}:${next.time.minute.toString().padLeft(2, '0')}',
-      'widget_countdown': _formatWidgetCountdown(countdown),
+      'widget_countdown': _formatWidgetCountdownShort(countdown),
       'widget_tasbih': '$tasbihCount',
     };
     await _saveWidgetPayload(payload);
-    await _widgetUpdateService.updateNextPrayerWidget(
-      nextPrayerName: nextName,
-      nextPrayerTime: nextTimeText,
-      countdownRemaining: _formatWidgetCountdownShort(countdown),
+    await _widgetUpdateService.updateWidgets(
+      nextName: nextName,
+      nextTime: nextTimeText,
+      nextCountdown: _formatWidgetCountdownShort(countdown),
+      nextSubtitle: subtitle,
       locationLabel: locationLabel,
-      subtitle: subtitle,
-      updatedAtEpoch:
-          (lastPrayerDataUpdatedAt ?? DateTime.now()).millisecondsSinceEpoch,
+      liveLabel: liveLabel,
+      todayDone: '$todayPrayerCompletedCount/$todayPrayerTargetCount',
+      streakText: '${tasbihStreakDays}h',
+      currentName: currentName,
+      currentTime: currentTimeText,
+      remainingCount: 'Baki check-in: $remainingCheckIns',
       nextPrayerEpoch: next?.time.millisecondsSinceEpoch ?? 0,
-      languageCode: languageCode,
     );
   }
 
@@ -1514,25 +1526,14 @@ class AppController extends ChangeNotifier {
     }
   }
 
-  String _formatWidgetCountdown(Duration? d) {
-    if (d == null || d.isNegative) {
-      return '--:--:--';
-    }
-    final h = d.inHours.toString().padLeft(2, '0');
-    final m = d.inMinutes.remainder(60).toString().padLeft(2, '0');
-    final s = d.inSeconds.remainder(60).toString().padLeft(2, '0');
-    return '$h:$m:$s';
-  }
-
   String _formatWidgetCountdownShort(Duration? d) {
     if (d == null) {
-      return isEnglish ? '--h --m' : '--j --m';
+      return '--j --m';
     }
     final safe = d.isNegative ? Duration.zero : d;
     final h = safe.inHours;
     final m = safe.inMinutes.remainder(60).toString().padLeft(2, '0');
-    final hourSuffix = isEnglish ? 'h' : 'j';
-    return '$h$hourSuffix ${m}m';
+    return '${h}j ${m}m';
   }
 
   Future<void> _addTasbihDaily(int count) async {

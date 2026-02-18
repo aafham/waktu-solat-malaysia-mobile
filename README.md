@@ -43,8 +43,12 @@ Bottom navigation:
 - Prayer History 7 hari (ringkasan done/target per hari).
 - Onboarding setup awal (notifikasi + lokasi automatik).
 - Simpanan setempat (`SharedPreferences`) untuk fallback data.
-- Android home widget (paparan waktu seterusnya + countdown + tasbih).
-- Android home widget premium (NextPrayerSmall 2x1 + NextPrayerMedium 4x2) dengan tema matte gelap + accent kuning.
+- Android home widget 3 saiz dengan paparan berbeza:
+  - `2x1` Next Prayer Compact
+  - `2x2` Next Prayer + Context
+  - `3x2` Today Progress
+- Widget ikut bahasa sistem telefon (BM/EN) untuk label UI.
+- Countdown widget dipaparkan dalam perkataan penuh (`jam/minit` atau `hour/minute`), bukan format ringkas `j/m`.
 - Auto-retry fetch data bila gagal + refresh semula bila app kembali aktif.
 
 ## Prasyarat
@@ -91,6 +95,17 @@ Kebenaran minimum:
 <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 ```
 
+## Launcher Icon Android
+Ikon app menggunakan adaptive icon (Option A minimalist: navy matte + simbol mihrab kuning).
+
+Fail penting:
+- `android/app/src/main/AndroidManifest.xml` (`android:icon` + `android:roundIcon`)
+- `android/app/src/main/res/mipmap-anydpi-v26/ic_launcher.xml`
+- `android/app/src/main/res/mipmap-anydpi-v26/ic_launcher_round.xml`
+- `android/app/src/main/res/mipmap-*/ic_launcher.png` (legacy)
+- `android/app/src/main/res/mipmap-*/ic_launcher_foreground.png` (adaptive foreground)
+- `android/app/src/main/res/mipmap-*/ic_launcher_background.png` (adaptive background)
+
 ## Struktur Kod Ringkas
 - `lib/main.dart` - inisialisasi app, tema global, splash, navigasi bawah.
 - `lib/state/app_controller.dart` - state utama dan aliran data.
@@ -126,31 +141,47 @@ Kebenaran minimum:
 - `Manual minute adjustments` diaplikasikan pada paparan waktu harian dan notifikasi terjadual.
 - Bila API harian gagal, app fallback ke `local prayer calculation` berdasarkan zon aktif + preference pengguna.
 - Android widget update flow:
-  - simpan data widget melalui `home_widget` keys:
-    - `nextPrayerName`
-    - `nextPrayerTime`
-    - `countdownRemaining`
+  - simpan data widget melalui `home_widget` keys (utama):
+    - `nextName`
+    - `nextTime`
+    - `nextCountdown`
+    - `nextSubtitle`
     - `locationLabel`
-    - `subtitle`
-    - `updatedAtEpoch`
+    - `liveLabel`
+    - `todayDone`
+    - `streakText`
+    - `currentName`
+    - `currentTime`
+    - `remainingCount` (optional)
   - deep link widget ke Times: `myapp://times`
-  - periodic refresh native guna `WorkManager` setiap ~15 min (best-effort).
+  - periodic refresh native guna `WorkManager` setiap ~15 min (best-effort)
 
 ## Android Home Widget
-Implementasi Android AppWidget:
-- `NextPrayerSmall` (2x1)
-- `NextPrayerMedium` (4x2)
+Implementasi Android AppWidget (3 provider, 3 saiz):
+- `NextPrayerSmallWidgetProvider` -> `2x1` compact
+- `TasbihWidgetProvider` -> `2x2` next + context
+- `NextPrayerWidgetProvider` -> `3x2` today progress
 
 Fail Android utama:
 - `android/app/src/main/kotlin/com/example/waktu_solat_malaysia_mobile/NextPrayerWidgetProvider.kt`
 - `android/app/src/main/kotlin/com/example/waktu_solat_malaysia_mobile/NextPrayerSmallWidgetProvider.kt`
+- `android/app/src/main/kotlin/com/example/waktu_solat_malaysia_mobile/TasbihWidgetProvider.kt`
 - `android/app/src/main/kotlin/com/example/waktu_solat_malaysia_mobile/NextPrayerWidgetUpdater.kt`
 - `android/app/src/main/kotlin/com/example/waktu_solat_malaysia_mobile/WidgetRefreshWorker.kt`
 - `android/app/src/main/kotlin/com/example/waktu_solat_malaysia_mobile/WidgetWorkScheduler.kt`
-- `android/app/src/main/res/layout/widget_next_prayer_small.xml`
-- `android/app/src/main/res/layout/widget_next_prayer_medium.xml`
+
+Layout widget:
+- `android/app/src/main/res/layout/widget_2x1_compact.xml`
+- `android/app/src/main/res/layout/widget_2x2_next_context.xml`
+- `android/app/src/main/res/layout/widget_3x2_today_progress.xml`
+
+Konfigurasi size + preview:
 - `android/app/src/main/res/xml/next_prayer_widget_small_info.xml`
+- `android/app/src/main/res/xml/tasbih_widget_info.xml`
 - `android/app/src/main/res/xml/next_prayer_widget_medium_info.xml`
+- `android/app/src/main/res/drawable-nodpi/preview_widget_2x1.png`
+- `android/app/src/main/res/drawable-nodpi/preview_widget_2x2.png`
+- `android/app/src/main/res/drawable-nodpi/preview_widget_3x2.png`
 
 Resource theme widget:
 - `android/app/src/main/res/values/colors.xml`
@@ -161,7 +192,7 @@ Quick test widget:
 1. `flutter clean`
 2. `flutter pub get`
 3. `flutter run`
-4. Tambah widget dari launcher (`NextPrayerSmall` / `NextPrayerMedium`).
+4. Tambah widget dari launcher (`2x1`, `2x2`, `3x2`) dan sahkan setiap satu paparan berbeza.
 5. Tap widget untuk buka app terus ke tab `Times`.
 
 ## Troubleshooting Ringkas
@@ -174,6 +205,10 @@ Quick test widget:
   - stop app penuh (jangan hot-restart sahaja),
   - jalankan `flutter clean && flutter pub get && flutter run`,
   - jika masih berlaku, uninstall app dan install semula.
+- Widget `Can't load widget`:
+  - buang widget lama dari homescreen, tambah semula widget baru,
+  - pastikan build terbaru telah di-install penuh (bukan hot reload sahaja),
+  - jika masih berlaku, restart launcher/peranti untuk clear cache host widget.
 
 ## Log Patch Terkini (Rujukan Next)
 Latest update (17 Feb 2026 - Android Home Widget Patch):
