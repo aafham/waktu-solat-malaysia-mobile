@@ -28,7 +28,6 @@ class _HomePageState extends State<HomePage> {
   @override
   Widget build(BuildContext context) {
     final controller = widget.controller;
-    final tr = controller.tr;
     final tokens = context.prayerHomeTokens;
     final locale = controller.isEnglish ? 'en_US' : _msLocale;
     final allPrayers =
@@ -68,11 +67,14 @@ class _HomePageState extends State<HomePage> {
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
                               Text(
-                                tr('Waktu Solat', 'Prayer Times'),
+                                controller.t('page_title_times'),
                                 style: Theme.of(context)
                                     .textTheme
                                     .headlineSmall
-                                    ?.copyWith(fontWeight: FontWeight.w700),
+                                    ?.copyWith(
+                                      fontWeight: FontWeight.w700,
+                                      fontSize: 36,
+                                    ),
                               ),
                               SizedBox(height: tokens.grid),
                               Text(

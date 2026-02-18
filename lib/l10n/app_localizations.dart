@@ -11,6 +11,14 @@ class AppLocalizations {
   ];
 
   static const _strings = <String, Map<String, String>>{
+    'page_title_times': {'ms': 'Waktu Solat', 'en': 'Prayer Times'},
+    'page_title_qibla': {'ms': 'Qiblat', 'en': 'Qibla'},
+    'page_title_tasbih': {'ms': 'Digital Tasbih', 'en': 'Digital Tasbih'},
+    'page_title_settings': {'ms': 'Tetapan', 'en': 'Settings'},
+    'page_subtitle_settings': {
+      'ms': 'Sesuaikan aplikasi anda',
+      'en': 'Personalize your app'
+    },
     'nav_times': {'ms': 'Waktu', 'en': 'Times'},
     'nav_qibla': {'ms': 'Qiblat', 'en': 'Qibla'},
     'nav_tasbih': {'ms': 'Tasbih', 'en': 'Tasbih'},

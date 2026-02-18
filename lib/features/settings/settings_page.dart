@@ -136,15 +136,16 @@ class _SettingsPageState extends State<SettingsPage> {
           padding: const EdgeInsets.fromLTRB(16, 10, 16, 110),
           children: [
             Text(
-              tr('Tetapan', 'Settings'),
-              style: Theme.of(context).textTheme.displaySmall?.copyWith(
+              controller.t('page_title_settings'),
+              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                     color: Colors.white,
-                    fontWeight: FontWeight.w800,
+                    fontWeight: FontWeight.w700,
+                    fontSize: 36,
                   ),
             ),
             const SizedBox(height: 4),
             Text(
-              tr('Sesuaikan aplikasi anda', 'Personalize your app'),
+              controller.t('page_subtitle_settings'),
               style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     color: settingsTextMuted,
                   ),

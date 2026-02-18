@@ -210,111 +210,25 @@ Quick test widget:
   - pastikan build terbaru telah di-install penuh (bukan hot reload sahaja),
   - jika masih berlaku, restart launcher/peranti untuk clear cache host widget.
 
-## Log Patch Terkini (Rujukan Next)
-Latest update (17 Feb 2026 - Android Home Widget Patch):
-- Tambah Android Home Screen widget baharu:
-  - `NextPrayerSmall` (2x1)
-  - `NextPrayerMedium` (4x2)
-- Theme widget ikut app (dark matte + surface gelap + accent kuning).
-- Data widget kini disinkron dari Flutter melalui `home_widget` (`WidgetUpdateService`).
-- Subtitle logic widget:
-  - jika next = `Imsak` -> `Before Subuh begins`
-  - selain itu -> `Until <NextPrayerName> begins`
-- Tap widget buka app terus ke `Times` melalui deep link `myapp://times`.
-- Tambah periodic native refresh countdown guna `WorkManager` (15 min best-effort).
-- Tambah fail-safe handling untuk `MissingPluginException` pada widget update (app tidak crash).
-- Validation:
-  - `flutter analyze` lulus,
-  - `flutter test` lulus,
-  - `:app:compileDebugKotlin` lulus.
+## Changelog Ringkas
+Update terkini:
+- Android launcher icon kini adaptive + legacy menggunakan style premium minimalist (navy matte + simbol mihrab kuning).
+- Android widget kini 3 saiz dengan fungsi berbeza:
+  - `2x1` Next Prayer Compact
+  - `2x2` Next Prayer + Context
+  - `3x2` Today Progress
+- Widget picker previews (`2x1/2x2/3x2`) sudah di-brand semula, bukan logo Flutter default.
+- Widget follow bahasa sistem telefon (BM/EN), termasuk label dan copy utama.
+- Countdown widget dipaparkan dalam perkataan penuh (`jam/minit` atau `hour/minute`), bukan format ringkas.
+- Deep link tap widget kekal ke `myapp://times`.
 
-Latest update (17 Feb 2026 - Final Polish & Completeness Patch):
-- i18n diperkemas:
-  - tambah `flutter_localizations` delegate di `MaterialApp`,
-  - tambah localization key map (`lib/l10n/app_localizations.dart`) untuk label utama termasuk `Times/Qibla/Tasbih/Settings`,
-  - hardcoded strings kritikal diganti (contoh `Before Subuh begins`, `Tap to add`, `Details`).
-- Times screen polish:
-  - CTA `Snooze 5 min` ditukar ke `TextButton.icon`,
-  - caption countdown diperkemas sebagai teks sekunder,
-  - next prayer resolver diperkukuh (sort + fallback next day).
-- Settings completeness:
-  - About page ditambah `version`, `build`, `data source`, `privacy`, `feedback`.
-  - Prayer Calculation ada action `Reset all adjustments` + confirmation dialog.
-  - Prayer Times ada fallback permission lokasi: bila denied/detect off, zone picker manual dipaparkan sebagai aliran wajib (searchable + recent).
-- Fungsi must-have ditambah:
-  - `Permission onboarding/fallback` untuk lokasi ditolak,
-  - `Prayer History` screen untuk 7 hari terakhir,
-  - `Hijri offset` setting `-2..+2` dengan aplikasi pada preview/logik reminder puasa.
-- Validation:
-  - `flutter analyze` lulus,
-  - `flutter test` lulus.
+Status validation:
+- `flutter analyze` lulus.
+- `flutter test` lulus.
+- `:app:compileDebugKotlin` lulus.
+- `:app:mergeDebugResources` lulus.
 
-Latest update (17 Feb 2026 - Functionality & Test Patch):
-- Tambah `PrayerCalculationService` (kiraan astronomi tempatan) dan wire ke `AppController`.
-- Fallback tempatan aktif bila API waktu solat gagal.
-- Preference kiraan (`method`, `asar`, `high latitude`) kini trigger kiraan semula waktu secara langsung.
-- Notifications diperkukuh:
-  - bunyi azan global + per-waktu,
-  - `respect silent mode` diintegrasi hingga ke scheduling/preview.
-- Persistence setting baharu ditambah di `TasbihStore` + export/import settings.
-- Ditambah widget tests baharu untuk flow Settings kritikal:
-  - zone/change zone,
-  - select all/clear notifikasi,
-  - azan sound picker,
-  - fasting preview,
-  - custom tasbih target.
-- Test & analysis: lulus (`flutter analyze`, `flutter test`).
-
-Latest update (17 Feb 2026 - Settings Next Patch):
-- Settings UX dipolish dengan aliran `progressive disclosure` yang lebih minimal.
-- Prayer Times detail:
-  - `Zone` dipaparkan jelas untuk mod auto/manual.
-  - `Change zone` bottom sheet ditambah (search + recent + loading/empty state).
-- Prayer Calculation subpage ditambah:
-  - calculation method picker,
-  - Asar method,
-  - high latitude rule,
-  - manual minute adjustments per prayer.
-- Notifications detail ditambah:
-  - `Azan sound` picker modal,
-  - `Respect silent mode` toggle,
-  - quick actions `Select all` / `Clear` untuk prayer chips.
-- Fasting detail ditambah `Preview upcoming dates` (5 tarikh seterusnya).
-- Tasbih detail: `Custom` target kini fully functional + nilai custom semasa dipaparkan.
-- State/persistence baru ditambah dalam `AppController` + `TasbihStore`.
-- `NotificationService` kini support `respectSilentMode` pada jadual notifikasi dan preview bunyi.
-
-Last update (17 Feb 2026):
-- Branding: nama app kekal `JagaSolat`, tagline splash ditukar ke `Jangan dok tinggai solat.`.
-- Times/Home: countdown ring kanan dibuang sepenuhnya.
-- Countdown dipindah ke kiri bawah dalam hero dengan format English penuh (`5 hours 59 minutes`) dan caption `Before Subuh begins`.
-- Kad kecil `Seterusnya ...` bawah hero dibuang untuk elak duplication.
-- Pinned header atas dibuang terus untuk layout yang lebih bersih.
-- Refresh countdown di hero ditukar kepada setiap 1 minit.
-- Hero card dipolish: hierarchy baru (`NEXT PRAYER`, tajuk + masa sebaris), metadata digabung dalam 1 chip, CTA check-in state dipermudah.
-- Hero action state: pre-check-in guna status pill `Check-in opens at HH:mm`, active guna `Mark done`, selesai guna pill `Marked`.
-- Tasbih: UI polish (ripple + haptic + animated scale + animated progress ring + stats chips + milestone banner).
-- Bahasa app diseragamkan melalui `AppController.tr()` berdasarkan pilihan BM/EN pengguna.
-- Navigation label ditukar ke `Times/Qibla/Tasbih/Settings`.
-- Splash screen dipolish: entrance animation staggered (logo/text/loader), matte gradient, dan loader ditukar ke `3 dots pulse` (bukan circular).
-- Tempoh splash dipanjangkan ke ~`3.2s` supaya animation lebih terasa.
-
-Previous update (16 Feb 2026):
-- Home page dikemas dengan hierarchy yang lebih jelas (hero + jadual).
-- `QuickAction` dalam Home dibuang untuk elak `double navigation`.
-- Bahasa pada Home dan bottom nav diseragamkan ke BM.
-- Pinned header dipendekkan supaya tidak terlalu padat.
-- Status jadual diperkukuh (`SEMASA`, `Seterusnya`, `Selesai`) dengan visual berbeza.
-- Hero action diringankan: bila selesai, guna chip `Sudah ditanda` + CTA `Tunda 5 min`.
-- Metadata lokasi/freshness ditukar kepada chip.
-- Ditambah `NextPrayerStrip` (ringkasan waktu seterusnya).
-- Ditambah `pull-to-refresh` sebenar pada Home (`RefreshIndicator`).
-- Ditambah quick insights (`Selesai`, `Baki`, `Streak`) dan collapse untuk row selesai.
-- Micro-polish spacing/touch target dibuat untuk konsistensi.
-
-Next patch (cadangan kerja seterusnya):
-- [ ] Standardize remaining hardcoded non-English strings in notification + service error messages.
-- [ ] Add widget tests for hero state transition (`Check-in opens` -> `Mark done` -> `Marked`).
-- [ ] Add a splash timing config constant (easy tuning without touching logic).
-- [ ] Add accessibility pass for hero actions (tap target + semantics labels).
-- [ ] Decide final tagline language policy (keep localized tagline vs full-English branding).
+Cadangan next tasks:
+- Tambah screenshot rasmi widget 3 saiz dalam README untuk rujukan QA/design.
+- Tambah widget integration test asas (binding key + layout type per provider).
+- Audit baki hardcoded strings di service error messages untuk konsistensi BM/EN.

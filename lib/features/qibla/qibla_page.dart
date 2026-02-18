@@ -88,9 +88,10 @@ class _QiblaScreenState extends State<QiblaScreen> {
       appBar: AppBar(
         backgroundColor: Colors.transparent,
         elevation: 0,
+        toolbarHeight: 96,
         titleSpacing: QiblaTokens.s16,
         title: _QiblaAppBarTitle(
-          title: tr('Qibla', 'Qibla'),
+          title: widget.controller.t('page_title_qibla'),
           subtitle: '$location • $gpsText',
           isActive: isActive,
           statusText: statusText,
@@ -286,8 +287,10 @@ class _QiblaAppBarTitle extends StatelessWidget {
       children: [
         Text(
           title,
-          style: Theme.of(context).textTheme.titleLarge?.copyWith(
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
                 fontWeight: FontWeight.w700,
+                fontSize: 40,
+                height: 1.0,
               ),
         ),
         const SizedBox(height: 2),

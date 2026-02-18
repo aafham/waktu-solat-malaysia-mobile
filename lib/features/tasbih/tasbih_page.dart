@@ -42,7 +42,6 @@ class _TasbihScreenState extends State<TasbihScreen> {
   @override
   Widget build(BuildContext context) {
     final controller = widget.controller;
-    final tr = controller.tr;
     final count = controller.tasbihCount;
     final target =
         controller.tasbihCycleTarget <= 0 ? 33 : controller.tasbihCycleTarget;
@@ -66,11 +65,16 @@ class _TasbihScreenState extends State<TasbihScreen> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(
-                    tr('Digital Tasbih', 'Digital Tasbih'),
-                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                          fontWeight: FontWeight.w700,
-                        ),
+                  SizedBox(
+                    width: double.infinity,
+                    child: Text(
+                      controller.t('page_title_tasbih'),
+                      textAlign: TextAlign.left,
+                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+                            fontWeight: FontWeight.w700,
+                            fontSize: 36,
+                          ),
+                    ),
                   ),
                   const SizedBox(height: TasbihTokens.s12),
                   TasbihStatsChips(
