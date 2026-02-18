@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../state/app_controller.dart';
+import '../../theme/page_header_style.dart';
 import 'about_page.dart';
 import 'appearance_settings_page.dart';
 import 'fasting_settings_page.dart';
@@ -71,7 +72,7 @@ class _SettingsPageState extends State<SettingsPage> {
           )
         : tr('Tidak aktif', 'Disabled');
     final fastingCount = <bool>[
-      controller.ramadhanMode,
+      controller.isRamadanModeActive,
       controller.fastingMondayThursdayEnabled,
       controller.fastingAyyamulBidhEnabled,
     ].where((v) => v).length;
@@ -137,11 +138,7 @@ class _SettingsPageState extends State<SettingsPage> {
           children: [
             Text(
               controller.t('page_title_settings'),
-              style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 36,
-                  ),
+              style: pageTitleStyle(context).copyWith(color: Colors.white),
             ),
             const SizedBox(height: 4),
             Text(

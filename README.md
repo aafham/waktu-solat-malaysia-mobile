@@ -220,6 +220,19 @@ Update terkini:
 - Widget picker previews (`2x1/2x2/3x2`) sudah di-brand semula, bukan logo Flutter default.
 - Widget follow bahasa sistem telefon (BM/EN), termasuk label dan copy utama.
 - Countdown widget dipaparkan dalam perkataan penuh (`jam/minit` atau `hour/minute`), bukan format ringkas.
+- Tajuk page utama (`Waktu Solat`, `Qiblat`, `Digital Tasbih`, `Tetapan`) kini guna style typography yang konsisten merentas semua screen.
+- Top metadata Qibla (`lokasi + GPS + status`) dipisahkan dari tajuk untuk hierarchy lebih clean dan selari dengan page lain.
+- Splash app dikemas:
+  - dismiss berasaskan readiness (`isLoading`) dengan minimum display + fallback timeout (bukan delay statik 3.2s),
+  - Android native launch theme (`values` + `values-v31`) diselaraskan ke dark matte supaya tiada white flash sebelum Flutter render.
+- Loading state page `Waktu Solat` dirombak kepada skeleton berstruktur (title/date + hero + schedule rows) untuk hierarchy lebih jelas.
+- Home kini tambah kad Ramadan: paparan `Waktu Sahur` (Imsak) dan `Waktu Berbuka` (Maghrib) bila mode Ramadan aktif.
+- Mode Ramadan kini hybrid:
+  - auto aktif bila tarikh Hijri semasa berada dalam Ramadan,
+  - masih boleh diaktifkan manual dari Settings di luar Ramadan.
+- Rollover tarikh:
+  - Tarikh Hijri aktif berubah pada waktu `Maghrib` (bukan jam 12 malam),
+  - Tarikh Masihi kekal ikut sistem biasa (bertukar pada jam 12:00 malam).
 - Deep link tap widget kekal ke `myapp://times`.
 
 Status validation:

@@ -60,88 +60,95 @@ class _SplashScreenState extends State<SplashScreen>
   Widget build(BuildContext context) {
     return AnnotatedRegion<SystemUiOverlayStyle>(
       value: SystemUiOverlayStyle.light,
-      child: Scaffold(
-        body: Container(
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [Color(0xFF091A35), Color(0xFF07142E)],
-            ),
+      child: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+            colors: [Color(0xFF091A35), Color(0xFF07142E)],
           ),
-          child: SafeArea(
-            child: Center(
-              child: Padding(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    FadeTransition(
-                      opacity: _logoFade,
-                      child: ScaleTransition(
-                        scale: _logoScale,
-                        child: Container(
-                          width: 88,
-                          height: 88,
-                          alignment: Alignment.center,
-                          decoration: const BoxDecoration(
-                            shape: BoxShape.circle,
-                            color: Colors.transparent,
-                            boxShadow: [
-                              BoxShadow(
-                                color: Color(0x33F4C542),
-                                blurRadius: 26,
-                                spreadRadius: 1,
+        ),
+        child: SafeArea(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final logoSize = (constraints.maxWidth * 0.24).clamp(80.0, 108.0);
+              return Center(
+                child: Padding(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      FadeTransition(
+                        opacity: _logoFade,
+                        child: ScaleTransition(
+                          scale: _logoScale,
+                          child: Semantics(
+                            label: 'JagaSolat splash logo',
+                            image: true,
+                            child: Container(
+                              width: logoSize,
+                              height: logoSize,
+                              alignment: Alignment.center,
+                              decoration: const BoxDecoration(
+                                shape: BoxShape.circle,
+                                color: Colors.transparent,
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: Color(0x2AF4C542),
+                                    blurRadius: 22,
+                                    spreadRadius: 1,
+                                  ),
+                                ],
                               ),
-                            ],
-                          ),
-                          child: const Icon(
-                            Icons.mosque,
-                            size: 54,
-                            color: Color(0xFFF4C542),
+                              child: Icon(
+                                Icons.mosque,
+                                size: logoSize * 0.62,
+                                color: const Color(0xFFF4C542),
+                              ),
+                            ),
                           ),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 24),
-                    FadeTransition(
-                      opacity: _textFade,
-                      child: const Column(
-                        children: [
-                          Text(
-                            'JagaSolat',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 38,
-                              letterSpacing: 0.4,
-                              fontWeight: FontWeight.w800,
-                              height: 1.04,
+                      const SizedBox(height: 24),
+                      FadeTransition(
+                        opacity: _textFade,
+                        child: const Column(
+                          children: [
+                            Text(
+                              'JagaSolat',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontSize: 34,
+                                letterSpacing: 0.3,
+                                fontWeight: FontWeight.w800,
+                                height: 1.04,
+                              ),
                             ),
-                          ),
-                          SizedBox(height: 8),
-                          Text(
-                            'Jangan dok tinggai solat.',
-                            textAlign: TextAlign.center,
-                            style: TextStyle(
-                              color: Color(0xFFC7D3E8),
-                              fontSize: 14,
-                              fontWeight: FontWeight.w500,
-                              letterSpacing: 0.2,
+                            SizedBox(height: 8),
+                            Text(
+                              'Jangan dok tinggai solat.',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(
+                                color: Color(0xFFC7D3E8),
+                                fontSize: 13,
+                                fontWeight: FontWeight.w500,
+                                letterSpacing: 0.2,
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
-                    ),
-                    const SizedBox(height: 28),
-                    FadeTransition(
-                      opacity: _loaderFade,
-                      child: _SplashDotsLoader(animation: _loaderController),
-                    ),
-                  ],
+                      const SizedBox(height: 24),
+                      FadeTransition(
+                        opacity: _loaderFade,
+                        child: _SplashDotsLoader(animation: _loaderController),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ),
+              );
+            },
           ),
         ),
       ),

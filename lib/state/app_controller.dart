@@ -221,16 +221,17 @@ class AppController extends ChangeNotifier {
   }
 
   String? get todayHijriHeaderLabel {
-    final raw = dailyPrayerTimes?.hijriDate;
-    if (raw == null || raw.trim().isEmpty) {
+    final parts = _activeHijriPartsNow();
+    if (parts == null) {
       return null;
     }
-    return formatHijriWithOffset(raw, fallbackUnavailable: true);
+    return _formatHijriParts(parts);
   }
 
   String get todayHijriPreviewLabel {
-    final raw = dailyPrayerTimes?.hijriDate;
-    final date = formatHijriWithOffset(raw, fallbackUnavailable: true);
+    final parts = _activeHijriPartsNow();
+    final date =
+        parts == null ? t('hijri_unavailable') : _formatHijriParts(parts);
     return t(
       'hijri_today_preview',
       params: <String, String>{
@@ -239,6 +240,43 @@ class AppController extends ChangeNotifier {
       },
     );
   }
+
+  (int, int, int)? _activeHijriPartsNow() {
+    final parsed = _parseHijriParts(dailyPrayerTimes?.hijriDate);
+    if (parsed == null) {
+      return null;
+    }
+    final maghrib = _findPrayerEntry('Maghrib');
+    final now = DateTime.now();
+    final dayShift = (maghrib != null && now.isBefore(maghrib.time)) ? -1 : 0;
+    return _applyHijriOffsetToParts(
+      day: parsed.$1,
+      month: parsed.$2,
+      year: parsed.$3,
+      offset: hijriOffsetDays + dayShift,
+    );
+  }
+
+  PrayerTimeEntry? _findPrayerEntry(String name) {
+    final entries = dailyPrayerTimes?.entries;
+    if (entries == null || entries.isEmpty) {
+      return null;
+    }
+    for (final entry in entries) {
+      if (entry.name == name) {
+        return entry;
+      }
+    }
+    return null;
+  }
+
+  int? get _todayHijriMonth {
+    return _activeHijriPartsNow()?.$2;
+  }
+
+  bool get isHijriRamadanToday => _todayHijriMonth == 9;
+
+  bool get isRamadanModeActive => ramadhanMode || isHijriRamadanToday;
 
   Future<void> initialize() async {
     isLoading = true;
@@ -747,11 +785,15 @@ class AppController extends ChangeNotifier {
   }
 
   Future<void> setHijriOffsetDays(int value) async {
-    hijriOffsetDays = value.clamp(-2, 2);
+    final next = value.clamp(-2, 2);
+    if (hijriOffsetDays == next) {
+      return;
+    }
+    hijriOffsetDays = next;
+    notifyListeners();
     await _tasbihStore.saveHijriOffsetDays(hijriOffsetDays);
     _queueFastingReminderReschedule();
     await _updateWidgetData();
-    notifyListeners();
   }
 
   Future<void> resetAllManualPrayerAdjustments() async {
@@ -1219,7 +1261,7 @@ class AppController extends ChangeNotifier {
           );
     final hijriDay = adjusted?.$1;
     final hijriMonth = adjusted?.$2;
-    final ramadan = ramadhanMode && hijriMonth == 9;
+    final ramadan = hijriMonth == 9;
     final ayyamulBidh = fastingAyyamulBidhEnabled &&
         hijriDay != null &&
         hijriDay >= 13 &&

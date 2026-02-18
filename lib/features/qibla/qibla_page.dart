@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_compass/flutter_compass.dart';
 
 import '../../state/app_controller.dart';
+import '../../theme/page_header_style.dart';
 import 'qibla_tokens.dart';
 
 enum AccuracyStatus { low, good }
@@ -85,88 +86,112 @@ class _QiblaScreenState extends State<QiblaScreen> {
 
     return Scaffold(
       backgroundColor: QiblaTokens.matteBg,
-      appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        toolbarHeight: 96,
-        titleSpacing: QiblaTokens.s16,
-        title: _QiblaAppBarTitle(
-          title: widget.controller.t('page_title_qibla'),
-          subtitle: '$location • $gpsText',
-          isActive: isActive,
-          statusText: statusText,
-        ),
-        actions: [
-          TextButton(
-            onPressed: hasQibla
-                ? () {
-                    setState(() {
-                      isActive = !isActive;
-                    });
-                  }
-                : null,
-            style: TextButton.styleFrom(
-              minimumSize: const Size(64, 44),
-            ),
-            child: Text(isActive ? tr('Stop', 'Stop') : tr('Start', 'Start')),
-          ),
-          const SizedBox(width: QiblaTokens.s8),
-        ],
-      ),
       body: SafeArea(
-        top: false,
-        child: LayoutBuilder(
-          builder: (context, constraints) {
-            final size = constraints.biggest;
-            final heroSize = (math.min(
-                    size.width - (QiblaTokens.s24 * 2), size.height * 0.56))
-                .clamp(260.0, 420.0);
-
-            return Stack(
-              children: [
-                Positioned.fill(
-                  child: Align(
-                    alignment: Alignment.topCenter,
-                    child: Padding(
-                      padding: const EdgeInsets.fromLTRB(
-                        QiblaTokens.s24,
-                        QiblaTokens.s16,
-                        QiblaTokens.s24,
-                        260,
-                      ),
-                      child: CompassHero(
-                        size: heroSize,
-                        turns: rotationTurns,
-                        isActive: isActive,
-                      ),
+        top: true,
+        child: Column(
+          children: [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                QiblaTokens.s24,
+                QiblaTokens.s16,
+                QiblaTokens.s24,
+                4,
+              ),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: Text(
+                      widget.controller.t('page_title_qibla'),
+                      style: pageTitleStyle(context),
                     ),
                   ),
-                ),
-                Align(
-                  alignment: Alignment.bottomCenter,
-                  child: QiblaInfoSheet(
-                    controller: widget.controller,
-                    qiblaDegrees: qibla,
-                    heading: _heading,
-                    delta: delta,
-                    isCalibrating: isCalibrating,
-                    accuracy: accuracy,
-                    lastUpdated: _lastUpdated,
-                    onPrimaryAction: hasQibla
-                        ? () async {
-                            if (accuracy == AccuracyStatus.low) {
-                              await _calibrate();
-                              return;
-                            }
-                            await _recenter();
+                  TextButton(
+                    onPressed: hasQibla
+                        ? () {
+                            setState(() {
+                              isActive = !isActive;
+                            });
                           }
                         : null,
-                    onViewTips: _showCalibrationTips,
+                    style: TextButton.styleFrom(
+                      minimumSize: const Size(64, 44),
+                    ),
+                    child: Text(
+                      isActive ? tr('Stop', 'Stop') : tr('Start', 'Start'),
+                    ),
                   ),
-                ),
-              ],
-            );
-          },
+                ],
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(
+                QiblaTokens.s24,
+                4,
+                QiblaTokens.s24,
+                QiblaTokens.s8,
+              ),
+              child: _QiblaMetaRow(
+                subtitle: '$location · $gpsText',
+                isActive: isActive,
+                statusText: statusText,
+              ),
+            ),
+            Expanded(
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  final size = constraints.biggest;
+                  final heroSize = (math.min(size.width - (QiblaTokens.s24 * 2),
+                          size.height * 0.56))
+                      .clamp(260.0, 420.0);
+
+                  return Stack(
+                    children: [
+                      Positioned.fill(
+                        child: Align(
+                          alignment: Alignment.topCenter,
+                          child: Padding(
+                            padding: const EdgeInsets.fromLTRB(
+                              QiblaTokens.s24,
+                              QiblaTokens.s8,
+                              QiblaTokens.s24,
+                              260,
+                            ),
+                            child: CompassHero(
+                              size: heroSize,
+                              turns: rotationTurns,
+                              isActive: isActive,
+                            ),
+                          ),
+                        ),
+                      ),
+                      Align(
+                        alignment: Alignment.bottomCenter,
+                        child: QiblaInfoSheet(
+                          controller: widget.controller,
+                          qiblaDegrees: qibla,
+                          heading: _heading,
+                          delta: delta,
+                          isCalibrating: isCalibrating,
+                          accuracy: accuracy,
+                          lastUpdated: _lastUpdated,
+                          onPrimaryAction: hasQibla
+                              ? () async {
+                                  if (accuracy == AccuracyStatus.low) {
+                                    await _calibrate();
+                                    return;
+                                  }
+                                  await _recenter();
+                                }
+                              : null,
+                          onViewTips: _showCalibrationTips,
+                        ),
+                      ),
+                    ],
+                  );
+                },
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -266,78 +291,61 @@ class _QiblaScreenState extends State<QiblaScreen> {
   }
 }
 
-class _QiblaAppBarTitle extends StatelessWidget {
-  const _QiblaAppBarTitle({
-    required this.title,
+class _QiblaMetaRow extends StatelessWidget {
+  const _QiblaMetaRow({
     required this.subtitle,
     required this.isActive,
     required this.statusText,
   });
 
-  final String title;
   final String subtitle;
   final bool isActive;
   final String statusText;
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
+    return Row(
       children: [
-        Text(
-          title,
-          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.w700,
-                fontSize: 40,
-                height: 1.0,
-              ),
+        Expanded(
+          child: Text(
+            subtitle,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                  color: QiblaTokens.textMuted,
+                ),
+          ),
         ),
-        const SizedBox(height: 2),
-        Row(
-          children: [
-            Expanded(
-              child: Text(
-                subtitle,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
+        const SizedBox(width: QiblaTokens.s8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          decoration: BoxDecoration(
+            color: QiblaTokens.sheetBgSoft,
+            borderRadius: BorderRadius.circular(999),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 7,
+                height: 7,
+                decoration: BoxDecoration(
+                  color: isActive
+                      ? const Color(0xFF19D26D)
+                      : const Color(0xFF8A9CB8),
+                  shape: BoxShape.circle,
+                ),
+              ),
+              const SizedBox(width: 6),
+              Text(
+                statusText,
                 style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                      color: QiblaTokens.textMuted,
+                      color: const Color(0xFFDCE7F8),
+                      fontWeight: FontWeight.w600,
                     ),
               ),
-            ),
-            const SizedBox(width: QiblaTokens.s8),
-            Container(
-              padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-              decoration: BoxDecoration(
-                color: QiblaTokens.sheetBgSoft,
-                borderRadius: BorderRadius.circular(999),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Container(
-                    width: 7,
-                    height: 7,
-                    decoration: BoxDecoration(
-                      color: isActive
-                          ? const Color(0xFF19D26D)
-                          : const Color(0xFF8A9CB8),
-                      shape: BoxShape.circle,
-                    ),
-                  ),
-                  const SizedBox(width: 6),
-                  Text(
-                    statusText,
-                    style: Theme.of(context).textTheme.labelSmall?.copyWith(
-                          color: const Color(0xFFDCE7F8),
-                          fontWeight: FontWeight.w600,
-                        ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ],
     );

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
 import '../../state/app_controller.dart';
+import '../../theme/page_header_style.dart';
 import 'tasbih_tokens.dart';
 
 class TasbihPage extends StatelessWidget {
@@ -70,10 +71,7 @@ class _TasbihScreenState extends State<TasbihScreen> {
                     child: Text(
                       controller.t('page_title_tasbih'),
                       textAlign: TextAlign.left,
-                      style: Theme.of(context).textTheme.headlineSmall?.copyWith(
-                            fontWeight: FontWeight.w700,
-                            fontSize: 36,
-                          ),
+                      style: pageTitleStyle(context),
                     ),
                   ),
                   const SizedBox(height: TasbihTokens.s12),
@@ -187,73 +185,45 @@ class _TasbihScreenState extends State<TasbihScreen> {
     final input = TextEditingController(
       text: widget.controller.tasbihCycleTarget.toString(),
     );
-    final value = await showModalBottomSheet<int>(
+    final value = await showDialog<int>(
       context: context,
-      useSafeArea: true,
-      backgroundColor: TasbihTokens.controlPanel,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(
-          top: Radius.circular(TasbihTokens.radius + 6),
-        ),
-      ),
       builder: (context) {
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(
-            TasbihTokens.s24,
-            TasbihTokens.s16,
-            TasbihTokens.s24,
-            TasbihTokens.s24,
+        return AlertDialog(
+          title: Text(tr('Target Tersuai', 'Custom target')),
+          content: TextField(
+            controller: input,
+            keyboardType: TextInputType.number,
+            autofocus: true,
+            decoration: InputDecoration(
+              hintText: tr('Contoh: 100', 'Example: 100'),
+            ),
           ),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                tr('Target Tersuai', 'Custom target'),
-                style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                      fontWeight: FontWeight.w700,
-                    ),
-              ),
-              const SizedBox(height: TasbihTokens.s12),
-              TextField(
-                controller: input,
-                keyboardType: TextInputType.number,
-                autofocus: true,
-                decoration: InputDecoration(
-                  hintText: tr('Contoh: 100', 'Example: 100'),
-                ),
-              ),
-              const SizedBox(height: TasbihTokens.s16),
-              Row(
-                children: [
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: Text(tr('Batal', 'Cancel')),
-                    ),
-                  ),
-                  const SizedBox(width: TasbihTokens.s8),
-                  Expanded(
-                    child: FilledButton(
-                      onPressed: () {
-                        final parsed = int.tryParse(input.text.trim());
-                        if (parsed == null || parsed < 1) {
-                          return;
-                        }
-                        Navigator.pop(context, parsed);
-                      },
-                      child: Text(tr('Simpan', 'Save')),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: Text(tr('Batal', 'Cancel')),
+            ),
+            FilledButton(
+              onPressed: () {
+                final parsed = int.tryParse(input.text.trim());
+                if (parsed == null || parsed < 1) {
+                  Navigator.pop(context);
+                  return;
+                }
+                Navigator.pop(context, parsed);
+              },
+              child: Text(tr('Simpan', 'Save')),
+            ),
+          ],
         );
       },
     );
     input.dispose();
     if (value != null && value >= 1) {
+      await Future<void>.delayed(const Duration(milliseconds: 16));
+      if (!mounted) {
+        return;
+      }
       await widget.controller.setTasbihCycleTarget(value);
     }
   }
@@ -589,8 +559,21 @@ class TasbihControlPanel extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Text(
+            tr('Sasaran pusingan', 'Cycle target'),
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: TasbihTokens.textMuted,
+                  fontWeight: FontWeight.w700,
+                ),
+          ),
+          const SizedBox(height: 8),
           SegmentedButton<int>(
             showSelectedIcon: false,
+            style: ButtonStyle(
+              minimumSize: WidgetStateProperty.all(const Size(0, 36)),
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              visualDensity: VisualDensity.compact,
+            ),
             segments: [
               ButtonSegment<int>(value: 33, label: Text(tr('33', '33'))),
               ButtonSegment<int>(value: 99, label: Text(tr('99', '99'))),
@@ -600,52 +583,79 @@ class TasbihControlPanel extends StatelessWidget {
             selected: <int>{selectedTarget},
             onSelectionChanged: (value) => onSelectTarget(value.first),
           ),
-          const SizedBox(height: TasbihTokens.s8),
+          const SizedBox(height: 12),
+          Text(
+            tr('Tindakan', 'Actions'),
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: TasbihTokens.textMuted,
+                  fontWeight: FontWeight.w700,
+                ),
+          ),
+          const SizedBox(height: 8),
           Row(
             children: [
-              Semantics(
-                button: true,
-                label: tr('Undo kiraan tasbih', 'Undo tasbih count'),
-                child: IconButton.filledTonal(
+              Expanded(
+                child: OutlinedButton.icon(
                   onPressed: onUndo,
-                  tooltip: tr('Undo', 'Undo'),
-                  style: IconButton.styleFrom(
-                    backgroundColor:
-                        onUndo == null ? const Color(0x22344762) : null,
-                    foregroundColor:
-                        onUndo == null ? const Color(0xFF6F819E) : null,
+                  icon: const Icon(Icons.undo_rounded, size: 18),
+                  label: Text(tr('Undo', 'Undo')),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(0, 40),
                   ),
-                  icon: const Icon(Icons.undo_rounded),
                 ),
               ),
-              const SizedBox(width: 10),
-              Semantics(
-                button: true,
-                label: tr('Reset kiraan tasbih', 'Reset tasbih count'),
-                child: IconButton.filledTonal(
+              const SizedBox(width: 8),
+              Expanded(
+                child: OutlinedButton.icon(
                   onPressed: onReset,
-                  tooltip: tr('Reset', 'Reset'),
-                  icon: const Icon(Icons.restart_alt_rounded),
+                  icon: const Icon(Icons.restart_alt_rounded, size: 18),
+                  label: Text(tr('Reset', 'Reset')),
+                  style: OutlinedButton.styleFrom(
+                    minimumSize: const Size(0, 40),
+                  ),
                 ),
               ),
             ],
           ),
-          const SizedBox(height: TasbihTokens.s8),
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
+          const SizedBox(height: 12),
+          Text(
+            tr('Tambah pantas', 'Quick add'),
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: TasbihTokens.textMuted,
+                  fontWeight: FontWeight.w700,
+                ),
+          ),
+          const SizedBox(height: 8),
+          Row(
             children: [
-              ActionChip(
-                onPressed: () => onQuickAdd(10),
-                label: const Text('+10'),
+              Expanded(
+                child: FilledButton.tonal(
+                  onPressed: () => onQuickAdd(10),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(0, 40),
+                  ),
+                  child: const Text('+10'),
+                ),
               ),
-              ActionChip(
-                onPressed: () => onQuickAdd(33),
-                label: const Text('+33'),
+              const SizedBox(width: 8),
+              Expanded(
+                child: FilledButton.tonal(
+                  onPressed: () => onQuickAdd(33),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(0, 40),
+                  ),
+                  child: const Text('+33'),
+                ),
               ),
-              ActionChip(
-                onPressed: () => onQuickAdd(99),
-                label: const Text('+99'),
+              const SizedBox(width: 8),
+              Expanded(
+                child: FilledButton.tonal(
+                  onPressed: () => onQuickAdd(99),
+                  style: FilledButton.styleFrom(
+                    minimumSize: const Size(0, 40),
+                  ),
+                  child: const Text('+99'),
+                ),
               ),
             ],
           ),

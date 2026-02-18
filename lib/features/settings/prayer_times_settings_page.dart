@@ -12,105 +12,112 @@ class PrayerTimesSettingsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tr = controller.tr;
-    final locationLabel = controller.activeZone?.location ?? 'Kuala Lumpur';
-    final zoneSummary =
-        controller.autoLocation && !controller.locationPermissionDenied
-            ? tr('Auto ($locationLabel)', 'Auto ($locationLabel)')
-            : '${controller.manualZoneCode} $locationLabel';
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, _) {
+        final tr = controller.tr;
+        final locationLabel = controller.activeZone?.location ?? 'Kuala Lumpur';
+        final zoneSummary =
+            controller.autoLocation && !controller.locationPermissionDenied
+                ? tr('Auto ($locationLabel)', 'Auto ($locationLabel)')
+                : '${controller.manualZoneCode} $locationLabel';
 
-    return SettingsSubpageScaffold(
-      title: tr('Waktu Solat', 'Prayer Times'),
-      child: SettingsSection(
-        children: [
-          if (controller.locationPermissionDenied)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  InfoBanner(text: controller.t('permission_location_body')),
-                  const SizedBox(height: 8),
-                  FilledButton.icon(
-                    onPressed: () => _openZonePicker(context),
-                    icon: const Icon(Icons.pin_drop_outlined),
-                    label: Text(controller.t('permission_manual_zone_cta')),
+        return SettingsSubpageScaffold(
+          title: tr('Waktu Solat', 'Prayer Times'),
+          child: SettingsSection(
+            children: [
+              if (controller.locationPermissionDenied)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 4),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      InfoBanner(
+                          text: controller.t('permission_location_body')),
+                      const SizedBox(height: 8),
+                      FilledButton.icon(
+                        onPressed: () => _openZonePicker(context),
+                        icon: const Icon(Icons.pin_drop_outlined),
+                        label: Text(controller.t('permission_manual_zone_cta')),
+                      ),
+                    ],
                   ),
-                ],
+                ),
+              SettingsToggleTile(
+                icon: Icons.sync_alt_outlined,
+                iconColor: const Color(0xFF5CA9FF),
+                title: tr(
+                  'Auto-kemas kini ketika bermusafir',
+                  'Auto-update while traveling',
+                ),
+                subtitle: tr(
+                  'Kemas kini waktu solat dan qiblat secara automatik',
+                  'Automatically update prayer times and qibla',
+                ),
+                value: controller.travelModeEnabled,
+                onChanged: controller.setTravelModeEnabled,
               ),
-            ),
-          SettingsToggleTile(
-            icon: Icons.sync_alt_outlined,
-            iconColor: const Color(0xFF5CA9FF),
-            title: tr(
-              'Auto-kemas kini ketika bermusafir',
-              'Auto-update while traveling',
-            ),
-            subtitle: tr(
-              'Kemas kini waktu solat dan qiblat secara automatik',
-              'Automatically update prayer times and qibla',
-            ),
-            value: controller.travelModeEnabled,
-            onChanged: controller.setTravelModeEnabled,
-          ),
-          SettingsToggleTile(
-            icon: Icons.my_location_outlined,
-            iconColor: const Color(0xFF5CA9FF),
-            title: tr(
-              'Kesan lokasi secara automatik',
-              'Detect location automatically',
-            ),
-            subtitle: tr(
-              'Matikan untuk pilih zon secara manual',
-              'Turn off to pick zone manually',
-            ),
-            value: controller.autoLocation,
-            onChanged: controller.setAutoLocation,
-          ),
-          ListTile(
-            leading: const LeadingIcon(
-              icon: Icons.pin_drop_outlined,
-              color: Color(0xFF5CA9FF),
-            ),
-            title: Text(tr('Zon', 'Zone')),
-            subtitle: Text(
-              controller.autoLocation && !controller.locationPermissionDenied
-                  ? tr('Auto ($locationLabel)', 'Auto ($locationLabel)')
-                  : zoneSummary,
-            ),
-          ),
-          if (controller.requiresManualZonePicker)
-            ListTile(
-              leading: const LeadingIcon(
-                icon: Icons.search,
-                color: Color(0xFF5CA9FF),
+              SettingsToggleTile(
+                icon: Icons.my_location_outlined,
+                iconColor: const Color(0xFF5CA9FF),
+                title: tr(
+                  'Kesan lokasi secara automatik',
+                  'Detect location automatically',
+                ),
+                subtitle: tr(
+                  'Matikan untuk pilih zon secara manual',
+                  'Turn off to pick zone manually',
+                ),
+                value: controller.autoLocation,
+                onChanged: controller.setAutoLocation,
               ),
-              title: Text(tr('Tukar zon', 'Change zone')),
-              subtitle: Text(
-                tr('Cari dan pilih zon manual',
-                    'Search and choose manual zone'),
-              ),
-              onTap: () => _openZonePicker(context),
-            ),
-          if (controller.requiresManualZonePicker)
-            ZoneQuickChips(controller: controller),
-          HijriOffsetSetting(controller: controller),
-          SettingsNavTile(
-            icon: Icons.calculate_outlined,
-            iconColor: const Color(0xFF5CA9FF),
-            title: tr('Kiraan Solat', 'Prayer calculation'),
-            subtitle:
-                '${controller.prayerCalculationMethod} | ${controller.asarMethod}',
-            onTap: () => Navigator.of(context).push(
-              MaterialPageRoute(
-                builder: (_) => PrayerCalculationSettingsPage(
-                  controller: controller,
+              ListTile(
+                leading: const LeadingIcon(
+                  icon: Icons.pin_drop_outlined,
+                  color: Color(0xFF5CA9FF),
+                ),
+                title: Text(tr('Zon', 'Zone')),
+                subtitle: Text(
+                  controller.autoLocation &&
+                          !controller.locationPermissionDenied
+                      ? tr('Auto ($locationLabel)', 'Auto ($locationLabel)')
+                      : zoneSummary,
                 ),
               ),
-            ),
+              if (controller.requiresManualZonePicker)
+                ListTile(
+                  leading: const LeadingIcon(
+                    icon: Icons.search,
+                    color: Color(0xFF5CA9FF),
+                  ),
+                  title: Text(tr('Tukar zon', 'Change zone')),
+                  subtitle: Text(
+                    tr('Cari dan pilih zon manual',
+                        'Search and choose manual zone'),
+                  ),
+                  onTap: () => _openZonePicker(context),
+                ),
+              if (controller.requiresManualZonePicker)
+                ZoneQuickChips(controller: controller),
+              HijriOffsetSetting(controller: controller),
+              SettingsNavTile(
+                icon: Icons.calculate_outlined,
+                iconColor: const Color(0xFF5CA9FF),
+                title: tr('Kiraan Solat', 'Prayer calculation'),
+                subtitle:
+                    '${controller.prayerCalculationMethod} | ${controller.asarMethod}',
+                onTap: () => Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (_) => PrayerCalculationSettingsPage(
+                      controller: controller,
+                    ),
+                  ),
+                ),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
@@ -270,123 +277,129 @@ class PrayerCalculationSettingsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tr = controller.tr;
-    const calcMethods = <String>[
-      'JAKIM',
-      'MWL',
-      'ISNA',
-      'Umm al-Qura',
-      'Egyptian',
-      'Karachi',
-    ];
-    const asarMethods = <String>["Shafi'i", 'Hanafi'];
-    const highLatRules = <String>[
-      'Middle of the Night',
-      'One Seventh',
-      'Twilight Angle',
-    ];
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, _) {
+        final tr = controller.tr;
+        const calcMethods = <String>[
+          'JAKIM',
+          'MWL',
+          'ISNA',
+          'Umm al-Qura',
+          'Egyptian',
+          'Karachi',
+        ];
+        const asarMethods = <String>["Shafi'i", 'Hanafi'];
+        const highLatRules = <String>[
+          'Middle of the Night',
+          'One Seventh',
+          'Twilight Angle',
+        ];
 
-    return SettingsSubpageScaffold(
-      title: tr('Kiraan Solat', 'Prayer calculation'),
-      child: Column(
-        children: [
-          SettingsSection(
+        return SettingsSubpageScaffold(
+          title: tr('Kiraan Solat', 'Prayer calculation'),
+          child: Column(
             children: [
-              DropdownTile(
-                icon: Icons.functions_outlined,
-                iconColor: const Color(0xFF5CA9FF),
-                title: tr('Kaedah kiraan', 'Calculation method'),
-                value: controller.prayerCalculationMethod,
-                options: calcMethods,
-                onChanged: controller.setPrayerCalculationMethod,
-              ),
-              DropdownTile(
-                icon: Icons.schedule_outlined,
-                iconColor: const Color(0xFF5CA9FF),
-                title: tr('Kaedah Asar', 'Asar method'),
-                value: controller.asarMethod,
-                options: asarMethods,
-                onChanged: controller.setAsarMethod,
-              ),
-              DropdownTile(
-                icon: Icons.nightlight_outlined,
-                iconColor: const Color(0xFF5CA9FF),
-                title: tr('Peraturan latitud tinggi', 'High latitude rule'),
-                value: controller.highLatitudeRule,
-                options: highLatRules,
-                onChanged: controller.setHighLatitudeRule,
-              ),
-            ],
-          ),
-          const SizedBox(height: 10),
-          SettingsSection(
-            title: tr('Pelarasan Minit Manual', 'Manual minute adjustments'),
-            children: controller.prayerNamesOrdered
-                .map(
-                  (name) => PrayerAdjustTile(
-                    prayerName: controller.displayPrayerName(name),
-                    value: controller.manualPrayerAdjustments[name] ?? 0,
-                    onChanged: (value) =>
-                        controller.setManualPrayerAdjustment(name, value),
+              SettingsSection(
+                children: [
+                  DropdownTile(
+                    icon: Icons.functions_outlined,
+                    iconColor: const Color(0xFF5CA9FF),
+                    title: tr('Kaedah kiraan', 'Calculation method'),
+                    value: controller.prayerCalculationMethod,
+                    options: calcMethods,
+                    onChanged: controller.setPrayerCalculationMethod,
                   ),
-                )
-                .toList(),
-          ),
-          const SizedBox(height: 8),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 6),
-            child: Text(
-              tr(
-                'Pelarasan minit mempengaruhi paparan waktu dan notifikasi. Jika method bukan JAKIM dipilih, waktu akan ikut kiraan tempatan.',
-                'Minute adjustments affect displayed times and notifications. When method is not JAKIM, local calculation is used.',
-              ),
-              style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: settingsTextMuted,
+                  DropdownTile(
+                    icon: Icons.schedule_outlined,
+                    iconColor: const Color(0xFF5CA9FF),
+                    title: tr('Kaedah Asar', 'Asar method'),
+                    value: controller.asarMethod,
+                    options: asarMethods,
+                    onChanged: controller.setAsarMethod,
                   ),
-            ),
-          ),
-          const SizedBox(height: 8),
-          SettingsSection(
-            children: [
-              ListTile(
-                leading: const LeadingIcon(
-                  icon: Icons.restart_alt_rounded,
-                  color: Color(0xFFE08EA6),
+                  DropdownTile(
+                    icon: Icons.nightlight_outlined,
+                    iconColor: const Color(0xFF5CA9FF),
+                    title: tr('Peraturan latitud tinggi', 'High latitude rule'),
+                    value: controller.highLatitudeRule,
+                    options: highLatRules,
+                    onChanged: controller.setHighLatitudeRule,
+                  ),
+                ],
+              ),
+              const SizedBox(height: 10),
+              SettingsSection(
+                title:
+                    tr('Pelarasan Minit Manual', 'Manual minute adjustments'),
+                children: controller.prayerNamesOrdered
+                    .map(
+                      (name) => PrayerAdjustTile(
+                        prayerName: controller.displayPrayerName(name),
+                        value: controller.manualPrayerAdjustments[name] ?? 0,
+                        onChanged: (value) =>
+                            controller.setManualPrayerAdjustment(name, value),
+                      ),
+                    )
+                    .toList(),
+              ),
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 6),
+                child: Text(
+                  tr(
+                    'Pelarasan minit mempengaruhi paparan waktu dan notifikasi. Jika method bukan JAKIM dipilih, waktu akan ikut kiraan tempatan.',
+                    'Minute adjustments affect displayed times and notifications. When method is not JAKIM, local calculation is used.',
+                  ),
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                        color: settingsTextMuted,
+                      ),
                 ),
-                title: Text(controller.t('prayer_calc_reset_all')),
-                subtitle: Text(tr(
-                  'Pulihkan semua waktu ke 0 minit',
-                  'Restore all prayers to 0 minutes',
-                )),
-                onTap: () async {
-                  final ok = await showDialog<bool>(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title:
-                          Text(controller.t('prayer_calc_reset_confirm_title')),
-                      content:
-                          Text(controller.t('prayer_calc_reset_confirm_body')),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context, false),
-                          child: Text(tr('Batal', 'Cancel')),
-                        ),
-                        FilledButton(
-                          onPressed: () => Navigator.pop(context, true),
-                          child: Text(tr('Reset', 'Reset')),
-                        ),
-                      ],
+              ),
+              const SizedBox(height: 8),
+              SettingsSection(
+                children: [
+                  ListTile(
+                    leading: const LeadingIcon(
+                      icon: Icons.restart_alt_rounded,
+                      color: Color(0xFFE08EA6),
                     ),
-                  );
-                  if (ok == true) {
-                    await controller.resetAllManualPrayerAdjustments();
-                  }
-                },
+                    title: Text(controller.t('prayer_calc_reset_all')),
+                    subtitle: Text(tr(
+                      'Pulihkan semua waktu ke 0 minit',
+                      'Restore all prayers to 0 minutes',
+                    )),
+                    onTap: () async {
+                      final ok = await showDialog<bool>(
+                        context: context,
+                        builder: (context) => AlertDialog(
+                          title: Text(
+                              controller.t('prayer_calc_reset_confirm_title')),
+                          content: Text(
+                              controller.t('prayer_calc_reset_confirm_body')),
+                          actions: [
+                            TextButton(
+                              onPressed: () => Navigator.pop(context, false),
+                              child: Text(tr('Batal', 'Cancel')),
+                            ),
+                            FilledButton(
+                              onPressed: () => Navigator.pop(context, true),
+                              child: Text(tr('Reset', 'Reset')),
+                            ),
+                          ],
+                        ),
+                      );
+                      if (ok == true) {
+                        await controller.resetAllManualPrayerAdjustments();
+                      }
+                    },
+                  ),
+                ],
               ),
             ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 }

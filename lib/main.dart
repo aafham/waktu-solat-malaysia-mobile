@@ -60,11 +60,17 @@ class _WaktuSolatAppView extends StatefulWidget {
 
 class _WaktuSolatAppViewState extends State<_WaktuSolatAppView>
     with WidgetsBindingObserver {
+  static const _minSplashDuration = Duration(milliseconds: 900);
+  static const _maxSplashDuration = Duration(milliseconds: 2500);
+
   int tabIndex = 0;
   bool showSplash = true;
   bool dismissedOnboarding = false;
+  bool _minSplashElapsed = false;
   AppLinks? _appLinks;
   StreamSubscription<Uri>? _deepLinkSub;
+  Timer? _minSplashTimer;
+  Timer? _maxSplashTimer;
 
   @override
   void initState() {
@@ -74,12 +80,25 @@ class _WaktuSolatAppViewState extends State<_WaktuSolatAppView>
       if (!mounted) {
         return;
       }
-      context.read<AppController>().initialize();
+      final controller = context.read<AppController>();
+      unawaited(() async {
+        await controller.initialize();
+        if (!mounted) {
+          return;
+        }
+        _tryDismissSplash(controller);
+      }());
       unawaited(_setupDeepLinks());
     });
 
-    Future.delayed(const Duration(milliseconds: 3200), () {
+    _minSplashTimer = Timer(_minSplashDuration, () {
       if (!mounted) return;
+      _minSplashElapsed = true;
+      _tryDismissSplash(context.read<AppController>());
+    });
+
+    _maxSplashTimer = Timer(_maxSplashDuration, () {
+      if (!mounted || !showSplash) return;
       setState(() {
         showSplash = false;
       });
@@ -89,6 +108,8 @@ class _WaktuSolatAppViewState extends State<_WaktuSolatAppView>
   @override
   void dispose() {
     _deepLinkSub?.cancel();
+    _minSplashTimer?.cancel();
+    _maxSplashTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     super.dispose();
   }
@@ -122,89 +143,100 @@ class _WaktuSolatAppViewState extends State<_WaktuSolatAppView>
     });
   }
 
+  void _tryDismissSplash(AppController controller) {
+    if (!mounted || !showSplash || !_minSplashElapsed) {
+      return;
+    }
+    if (controller.isLoading) {
+      return;
+    }
+    setState(() {
+      showSplash = false;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Consumer<AppController>(
-      builder: (context, controller, _) {
-        Intl.defaultLocale = controller.isEnglish ? 'en_US' : 'ms_MY';
-        return MaterialApp(
-          debugShowCheckedModeBanner: false,
-          title: 'JagaSolat',
-          theme: controller.highContrast ? highContrastTheme : baseTheme,
-          locale: Locale(controller.languageCode),
-          supportedLocales: AppLocalizations.supportedLocales,
-          localizationsDelegates: const [
-            GlobalMaterialLocalizations.delegate,
-            GlobalWidgetsLocalizations.delegate,
-            GlobalCupertinoLocalizations.delegate,
-          ],
-          builder: (context, child) {
-            if (child == null) {
-              return const SizedBox.shrink();
-            }
-            return AnimatedOpacity(
-              opacity: controller.isLoading ? 0.98 : 1,
-              duration: const Duration(milliseconds: 180),
-              child: child,
-            );
-          },
-          home: showSplash
-              ? const SplashScreen()
-              : Scaffold(
-                  body: !controller.onboardingSeen && !dismissedOnboarding
-                      ? OnboardingPage(
-                          controller: controller,
-                          onSelesai: () async {
-                            await controller.completeOnboarding();
-                            setState(() {
-                              dismissedOnboarding = true;
-                            });
-                          },
-                        )
-                      : MediaQuery(
-                          data: MediaQuery.of(context).copyWith(
-                            textScaler: TextScaler.linear(controller.textScale),
+    final controller = context.read<AppController>();
+    final languageCode = context.select<AppController, String>(
+      (c) => c.languageCode,
+    );
+    final isEnglish = context.select<AppController, bool>((c) => c.isEnglish);
+    final highContrast = context.select<AppController, bool>(
+      (c) => c.highContrast,
+    );
+
+    Intl.defaultLocale = isEnglish ? 'en_US' : 'ms_MY';
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      title: 'JagaSolat',
+      theme: highContrast ? highContrastTheme : baseTheme,
+      locale: Locale(languageCode),
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      builder: (context, child) => child ?? const SizedBox.shrink(),
+      home: AnimatedBuilder(
+        animation: controller,
+        builder: (context, _) {
+          return Stack(
+            children: [
+              Scaffold(
+                body: !controller.onboardingSeen && !dismissedOnboarding
+                    ? OnboardingPage(
+                        controller: controller,
+                        onSelesai: () async {
+                          await controller.completeOnboarding();
+                          setState(() {
+                            dismissedOnboarding = true;
+                          });
+                        },
+                      )
+                    : <Widget>[
+                        HomePage(controller: controller),
+                        QiblaPage(controller: controller),
+                        TasbihPage(controller: controller),
+                        SettingsPage(controller: controller),
+                      ][tabIndex],
+                bottomNavigationBar:
+                    (!controller.onboardingSeen && !dismissedOnboarding)
+                        ? null
+                        : NavigationBar(
+                            height: 72,
+                            selectedIndex: tabIndex,
+                            onDestinationSelected: (idx) {
+                              setState(() {
+                                tabIndex = idx;
+                              });
+                            },
+                            destinations: [
+                              NavigationDestination(
+                                icon: const Icon(Icons.home_outlined),
+                                label: controller.t('nav_times'),
+                              ),
+                              NavigationDestination(
+                                icon: const Icon(Icons.explore),
+                                label: controller.t('nav_qibla'),
+                              ),
+                              NavigationDestination(
+                                icon: const Icon(Icons.touch_app),
+                                label: controller.t('nav_tasbih'),
+                              ),
+                              NavigationDestination(
+                                icon: const Icon(Icons.settings),
+                                label: controller.t('nav_settings'),
+                              ),
+                            ],
                           ),
-                          child: <Widget>[
-                            HomePage(controller: controller),
-                            QiblaPage(controller: controller),
-                            TasbihPage(controller: controller),
-                            SettingsPage(controller: controller),
-                          ][tabIndex],
-                        ),
-                  bottomNavigationBar:
-                      (!controller.onboardingSeen && !dismissedOnboarding)
-                          ? null
-                          : NavigationBar(
-                              height: 72,
-                              selectedIndex: tabIndex,
-                              onDestinationSelected: (idx) {
-                                setState(() {
-                                  tabIndex = idx;
-                                });
-                              },
-                              destinations: [
-                                NavigationDestination(
-                                  icon: const Icon(Icons.home_outlined),
-                                  label: controller.t('nav_times'),
-                                ),
-                                NavigationDestination(
-                                  icon: const Icon(Icons.explore),
-                                  label: controller.t('nav_qibla'),
-                                ),
-                                NavigationDestination(
-                                  icon: const Icon(Icons.touch_app),
-                                  label: controller.t('nav_tasbih'),
-                                ),
-                                NavigationDestination(
-                                  icon: const Icon(Icons.settings),
-                                  label: controller.t('nav_settings'),
-                                ),
-                              ],
-                            ),
-                ),
-        );
-      },
+              ),
+              if (showSplash) const Positioned.fill(child: SplashScreen()),
+            ],
+          );
+        },
+      ),
     );
   }
 }

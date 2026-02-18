@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../../models/prayer_models.dart';
 import '../../state/app_controller.dart';
 import '../../theme/app_tokens.dart';
+import '../../theme/page_header_style.dart';
 import 'history_page.dart';
 
 const _msLocale = 'ms_MY';
@@ -33,6 +34,12 @@ class _HomePageState extends State<HomePage> {
     final allPrayers =
         controller.dailyPrayerTimes?.entries ?? <PrayerTimeEntry>[];
     final prayers = _orderedMainPrayers(allPrayers);
+    final imsak = _findPrayer(allPrayers, 'Imsak');
+    final subuh = _findPrayer(allPrayers, 'Subuh');
+    final maghrib = _findPrayer(allPrayers, 'Maghrib');
+    final showRamadanTimes = controller.isRamadanModeActive &&
+        (subuh != null || imsak != null) &&
+        maghrib != null;
     final now = DateTime.now();
     final currentPrayer = _currentPrayer(prayers, now);
     final nextPrayer = controller.nextPrayer;
@@ -68,13 +75,7 @@ class _HomePageState extends State<HomePage> {
                             children: [
                               Text(
                                 controller.t('page_title_times'),
-                                style: Theme.of(context)
-                                    .textTheme
-                                    .headlineSmall
-                                    ?.copyWith(
-                                      fontWeight: FontWeight.w700,
-                                      fontSize: 36,
-                                    ),
+                                style: pageTitleStyle(context),
                               ),
                               SizedBox(height: tokens.grid),
                               Text(
@@ -113,6 +114,16 @@ class _HomePageState extends State<HomePage> {
                                   await HapticFeedback.lightImpact();
                                 },
                               ),
+                              if (showRamadanTimes) ...[
+                                SizedBox(height: tokens.sectionGap),
+                                RamadanTimesCard(
+                                  controller: controller,
+                                  sahurTime: subuh?.time.subtract(
+                                          const Duration(minutes: 10)) ??
+                                      imsak!.time,
+                                  maghrib: maghrib,
+                                ),
+                              ],
                               SizedBox(height: tokens.sectionGap),
                               TodayScheduleList(
                                 controller: controller,
@@ -130,6 +141,15 @@ class _HomePageState extends State<HomePage> {
         ),
       ),
     );
+  }
+
+  PrayerTimeEntry? _findPrayer(List<PrayerTimeEntry> entries, String name) {
+    for (final entry in entries) {
+      if (entry.name == name) {
+        return entry;
+      }
+    }
+    return null;
   }
 
   List<PrayerTimeEntry> _orderedMainPrayers(List<PrayerTimeEntry> entries) {
@@ -228,6 +248,100 @@ class _HomePageState extends State<HomePage> {
 
   Future<void> _refreshHomeData() async {
     await widget.controller.refreshPrayerData();
+  }
+}
+
+class RamadanTimesCard extends StatelessWidget {
+  const RamadanTimesCard({
+    super.key,
+    required this.controller,
+    required this.sahurTime,
+    required this.maghrib,
+  });
+
+  final AppController controller;
+  final DateTime sahurTime;
+  final PrayerTimeEntry maghrib;
+
+  @override
+  Widget build(BuildContext context) {
+    final tr = controller.tr;
+    final locale = controller.isEnglish ? 'en_US' : _msLocale;
+    final format = DateFormat('HH:mm', locale);
+    return _HomeCard(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            tr('Ramadan hari ini', 'Ramadan today'),
+            style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                  fontWeight: FontWeight.w700,
+                ),
+          ),
+          const SizedBox(height: 10),
+          Row(
+            children: [
+              Expanded(
+                child: _RamadanTimeTile(
+                  label: tr('Waktu Sahur', 'Sahur time'),
+                  timeText: format.format(sahurTime),
+                ),
+              ),
+              const SizedBox(width: 8),
+              Expanded(
+                child: _RamadanTimeTile(
+                  label: tr('Waktu Berbuka', 'Iftar time'),
+                  timeText: format.format(maghrib.time),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _RamadanTimeTile extends StatelessWidget {
+  const _RamadanTimeTile({required this.label, required this.timeText});
+
+  final String label;
+  final String timeText;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 12),
+      decoration: BoxDecoration(
+        color: const Color(0x1F3D5474),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: const Color(0x34577095), width: 1),
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            label,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                  color: const Color(0xFFBFD0E8),
+                  fontWeight: FontWeight.w700,
+                ),
+          ),
+          const SizedBox(height: 6),
+          Text(
+            timeText,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                  color: const Color(0xFFF4C542),
+                  fontWeight: FontWeight.w800,
+                ),
+          ),
+        ],
+      ),
+    );
   }
 }
 
@@ -691,7 +805,10 @@ class _TodayScheduleListState extends State<TodayScheduleList> {
           ),
           const SizedBox(height: 8),
           Text(
-            controller.t('times_tap_to_mark'),
+            tr(
+              'Tekan untuk tandakan bila waktu telah masuk, tekan lama untuk undo.',
+              'Tap to mark done only after prayer time starts, long press to undo.',
+            ),
             style: Theme.of(context).textTheme.labelSmall?.copyWith(
                   color: const Color(0xFFBECDE2),
                   fontWeight: FontWeight.w600,
@@ -745,6 +862,8 @@ class _TodayScheduleListState extends State<TodayScheduleList> {
     AppController controller,
     String Function(String, String) tr,
   ) {
+    final now = DateTime.now();
+    final hasStarted = !entry.time.isAfter(now);
     final done = controller.isPrayerCompletedToday(entry.name);
     final isCurrent = widget.currentPrayer?.name == entry.name;
     final isNext = widget.nextPrayer != null &&
@@ -758,13 +877,15 @@ class _TodayScheduleListState extends State<TodayScheduleList> {
         isDone: done,
         isCurrent: isCurrent,
         isNext: isNext,
+        isEnabled: hasStarted,
         statusLabel: isCurrent
             ? tr('SEMASA', 'NOW')
             : done
                 ? tr('Selesai', 'Done')
                 : null,
-        onTap: () => widget.onTapRow(entry, done),
-        onLongPress: () => widget.onLongPressRow(entry, done),
+        onTap: hasStarted ? () => widget.onTapRow(entry, done) : null,
+        onLongPress:
+            hasStarted ? () => widget.onLongPressRow(entry, done) : null,
       ),
     );
   }
@@ -882,6 +1003,7 @@ class _ScheduleRow extends StatelessWidget {
     required this.isDone,
     required this.isCurrent,
     required this.isNext,
+    required this.isEnabled,
     required this.statusLabel,
     required this.onTap,
     required this.onLongPress,
@@ -892,9 +1014,10 @@ class _ScheduleRow extends StatelessWidget {
   final bool isDone;
   final bool isCurrent;
   final bool isNext;
+  final bool isEnabled;
   final String? statusLabel;
-  final VoidCallback onTap;
-  final VoidCallback onLongPress;
+  final VoidCallback? onTap;
+  final VoidCallback? onLongPress;
 
   @override
   Widget build(BuildContext context) {
@@ -953,7 +1076,11 @@ class _ScheduleRow extends StatelessWidget {
                 const SizedBox(width: 10),
                 Expanded(
                   child: Opacity(
-                    opacity: visualDone ? 0.66 : 1,
+                    opacity: !isEnabled
+                        ? 0.56
+                        : visualDone
+                            ? 0.66
+                            : 1,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
@@ -1020,22 +1147,30 @@ class _ScheduleRow extends StatelessWidget {
                 AnimatedSwitcher(
                   duration: tokens.fastAnim,
                   child: Icon(
-                    isCurrent
-                        ? Icons.access_time_filled_rounded
-                        : visualDone
-                            ? Icons.check_circle_rounded
-                            : isNext
-                                ? Icons.schedule_rounded
-                                : Icons.circle_outlined,
+                    !isEnabled
+                        ? Icons.lock_clock_outlined
+                        : isCurrent
+                            ? Icons.access_time_filled_rounded
+                            : visualDone
+                                ? Icons.check_circle_rounded
+                                : isNext
+                                    ? Icons.schedule_rounded
+                                    : Icons.circle_outlined,
                     key: ValueKey<String>(
                       '${isCurrent}_${visualDone}_$isNext',
                     ),
-                    size: visualDone ? 22 : 20,
-                    color: isCurrent
-                        ? const Color(0xFFF4C542)
+                    size: !isEnabled
+                        ? 18
                         : visualDone
-                            ? tokens.accent
-                            : const Color(0xFF7D93B7),
+                            ? 22
+                            : 20,
+                    color: !isEnabled
+                        ? const Color(0xFF6F84A8)
+                        : isCurrent
+                            ? const Color(0xFFF4C542)
+                            : visualDone
+                                ? tokens.accent
+                                : const Color(0xFF7D93B7),
                   ),
                 ),
               ],
@@ -1076,21 +1211,75 @@ class _HomeSkeleton extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return const Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _SkeletonCard(height: 180),
+        _SkeletonLine(width: 168, height: 32, radius: 8),
+        SizedBox(height: 10),
+        _SkeletonLine(width: 190, height: 12, radius: 6),
+        SizedBox(height: 4),
+        _SkeletonLine(width: 120, height: 11, radius: 6),
+        SizedBox(height: 14),
+        _SkeletonCard(
+          height: 186,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              _SkeletonLine(width: 112, height: 11, radius: 6),
+              SizedBox(height: 12),
+              _SkeletonLine(width: 172, height: 26, radius: 8),
+              SizedBox(height: 10),
+              _SkeletonLine(width: 144, height: 30, radius: 10),
+              SizedBox(height: 12),
+              _SkeletonLine(width: 196, height: 11, radius: 6),
+              SizedBox(height: 12),
+              _SkeletonLine(width: 128, height: 34, radius: 999),
+            ],
+          ),
+        ),
         SizedBox(height: 16),
-        _SkeletonCard(height: 320),
+        _SkeletonCard(
+          height: 300,
+          child: Column(
+            children: [
+              Row(
+                children: [
+                  _SkeletonLine(width: 134, height: 20, radius: 8),
+                  Spacer(),
+                  _SkeletonLine(width: 42, height: 20, radius: 8),
+                ],
+              ),
+              SizedBox(height: 12),
+              _SkeletonLine(width: double.infinity, height: 6, radius: 999),
+              SizedBox(height: 12),
+              _SkeletonScheduleRow(),
+              SizedBox(height: 8),
+              _SkeletonScheduleRow(),
+              SizedBox(height: 8),
+              _SkeletonScheduleRow(),
+              SizedBox(height: 8),
+              _SkeletonScheduleRow(),
+            ],
+          ),
+        ),
         SizedBox(height: 16),
-        _SkeletonCard(height: 48),
+        _SkeletonCard(
+          height: 52,
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: _SkeletonLine(width: 152, height: 14, radius: 7),
+          ),
+        ),
+        SizedBox(height: 8),
       ],
     );
   }
 }
 
 class _SkeletonCard extends StatelessWidget {
-  const _SkeletonCard({required this.height});
+  const _SkeletonCard({required this.height, required this.child});
 
   final double height;
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
@@ -1100,13 +1289,69 @@ class _SkeletonCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: tokens.surface,
         borderRadius: BorderRadius.circular(tokens.radius),
+        border: Border.all(color: const Color(0x2A49648A), width: 1),
       ),
-      child: const Padding(
-        padding: EdgeInsets.all(12),
-        child: Align(
-          alignment: Alignment.topLeft,
-          child: LinearProgressIndicator(minHeight: 4),
-        ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: child,
+      ),
+    );
+  }
+}
+
+class _SkeletonLine extends StatelessWidget {
+  const _SkeletonLine({
+    required this.width,
+    required this.height,
+    required this.radius,
+  });
+
+  final double width;
+  final double height;
+  final double radius;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: width == double.infinity ? null : width,
+      constraints: width == double.infinity
+          ? const BoxConstraints(minWidth: double.infinity)
+          : null,
+      height: height,
+      decoration: BoxDecoration(
+        color: const Color(0x2A4D658A),
+        borderRadius: BorderRadius.circular(radius),
+      ),
+    );
+  }
+}
+
+class _SkeletonScheduleRow extends StatelessWidget {
+  const _SkeletonScheduleRow();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      height: 48,
+      decoration: BoxDecoration(
+        color: const Color(0x1F425B7D),
+        borderRadius: BorderRadius.circular(12),
+      ),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 9),
+      child: const Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _SkeletonLine(width: 92, height: 12, radius: 6),
+                SizedBox(height: 6),
+                _SkeletonLine(width: 64, height: 10, radius: 5),
+              ],
+            ),
+          ),
+          _SkeletonLine(width: 14, height: 14, radius: 7),
+        ],
       ),
     );
   }

@@ -11,112 +11,117 @@ class TasbihSettingsPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final tr = controller.tr;
-    final selectedTarget = _selectedTarget(controller.tasbihCycleTarget);
+    return AnimatedBuilder(
+      animation: controller,
+      builder: (context, _) {
+        final tr = controller.tr;
+        final selectedTarget = _selectedTarget(controller.tasbihCycleTarget);
 
-    return SettingsSubpageScaffold(
-      title: tr('Tetapan Tasbih', 'Tasbih settings'),
-      child: SettingsSection(
-        children: [
-          SettingsToggleTile(
-            icon: Icons.refresh_outlined,
-            iconColor: const Color(0xFFA98EFF),
-            title: tr('Auto reset harian', 'Auto reset daily'),
-            subtitle: tr(
-              'Reset kiraan ke 0 setiap hari baharu',
-              'Reset count to 0 every new day',
-            ),
-            value: controller.tasbihAutoResetDaily,
-            onChanged: controller.setTasbihAutoResetDaily,
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
-            child: Text(
-              tr('Sasaran pusingan', 'Cycle target'),
-              style: Theme.of(context).textTheme.titleSmall?.copyWith(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                  ),
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-            child: SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: SegmentedButton<int>(
-                segments: [
-                  const ButtonSegment<int>(value: 33, label: Text('33')),
-                  const ButtonSegment<int>(value: 99, label: Text('99')),
-                  const ButtonSegment<int>(value: 100, label: Text('100')),
-                  ButtonSegment<int>(
-                    value: -1,
-                    label: Text(tr('Custom', 'Custom')),
-                  ),
-                ],
-                selected: <int>{selectedTarget},
-                onSelectionChanged: (selection) async {
-                  final value = selection.first;
-                  if (value == -1) {
-                    final custom = await _pickCustomTarget(context);
-                    if (custom != null) {
-                      await controller.setTasbihCycleTarget(custom);
-                    }
-                    return;
-                  }
-                  controller.setTasbihCycleTarget(value);
-                },
+        return SettingsSubpageScaffold(
+          title: tr('Tetapan Tasbih', 'Tasbih settings'),
+          child: SettingsSection(
+            children: [
+              SettingsToggleTile(
+                icon: Icons.refresh_outlined,
+                iconColor: const Color(0xFFA98EFF),
+                title: tr('Auto reset harian', 'Auto reset daily'),
+                subtitle: tr(
+                  'Reset kiraan ke 0 setiap hari baharu',
+                  'Reset count to 0 every new day',
+                ),
+                value: controller.tasbihAutoResetDaily,
+                onChanged: controller.setTasbihAutoResetDaily,
               ),
-            ),
-          ),
-          if (selectedTarget == -1)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
-              child: Align(
-                alignment: Alignment.centerLeft,
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 6),
                 child: Text(
-                  tr(
-                    'Custom semasa: ${controller.tasbihCycleTarget}',
-                    'Current custom: ${controller.tasbihCycleTarget}',
-                  ),
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                        color: settingsTextMuted,
-                        fontWeight: FontWeight.w600,
+                  tr('Sasaran pusingan', 'Cycle target'),
+                  style: Theme.of(context).textTheme.titleSmall?.copyWith(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
                       ),
                 ),
               ),
-            ),
-          ListTile(
-            leading: const LeadingIcon(
-              icon: Icons.analytics_outlined,
-              color: Color(0xFFA98EFF),
-            ),
-            title: Text(tr('Statistik ringkas', 'Quick stats')),
-            subtitle: Text(
-              tr(
-                'Hari ini ${controller.tasbihTodayCount} | 7 hari ${controller.tasbihWeekCount} | streak ${controller.tasbihStreakDays} | terbaik ${controller.tasbihBestDay}',
-                'Today ${controller.tasbihTodayCount} | 7 days ${controller.tasbihWeekCount} | streak ${controller.tasbihStreakDays} | best ${controller.tasbihBestDay}',
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: SegmentedButton<int>(
+                    segments: [
+                      const ButtonSegment<int>(value: 33, label: Text('33')),
+                      const ButtonSegment<int>(value: 99, label: Text('99')),
+                      const ButtonSegment<int>(value: 100, label: Text('100')),
+                      ButtonSegment<int>(
+                        value: -1,
+                        label: Text(tr('Custom', 'Custom')),
+                      ),
+                    ],
+                    selected: <int>{selectedTarget},
+                    onSelectionChanged: (selection) async {
+                      final value = selection.first;
+                      if (value == -1) {
+                        final custom = await _pickCustomTarget(context);
+                        if (custom != null) {
+                          await controller.setTasbihCycleTarget(custom);
+                        }
+                        return;
+                      }
+                      controller.setTasbihCycleTarget(value);
+                    },
+                  ),
+                ),
               ),
-            ),
-          ),
-          ListTile(
-            leading: const LeadingIcon(
-              icon: Icons.restart_alt,
-              color: Color(0xFFE08EA6),
-            ),
-            title: Text(tr('Reset kiraan', 'Reset count')),
-            subtitle: Text(
-              tr(
-                'Kiraan semasa akan dikosongkan',
-                'Current count will be cleared',
+              if (selectedTarget == -1)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                  child: Align(
+                    alignment: Alignment.centerLeft,
+                    child: Text(
+                      tr(
+                        'Custom semasa: ${controller.tasbihCycleTarget}',
+                        'Current custom: ${controller.tasbihCycleTarget}',
+                      ),
+                      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                            color: settingsTextMuted,
+                            fontWeight: FontWeight.w600,
+                          ),
+                    ),
+                  ),
+                ),
+              ListTile(
+                leading: const LeadingIcon(
+                  icon: Icons.analytics_outlined,
+                  color: Color(0xFFA98EFF),
+                ),
+                title: Text(tr('Statistik ringkas', 'Quick stats')),
+                subtitle: Text(
+                  tr(
+                    'Hari ini ${controller.tasbihTodayCount} | 7 hari ${controller.tasbihWeekCount} | streak ${controller.tasbihStreakDays} | terbaik ${controller.tasbihBestDay}',
+                    'Today ${controller.tasbihTodayCount} | 7 days ${controller.tasbihWeekCount} | streak ${controller.tasbihStreakDays} | best ${controller.tasbihBestDay}',
+                  ),
+                ),
               ),
-            ),
-            enabled: controller.tasbihCount > 0,
-            onTap: controller.tasbihCount == 0
-                ? null
-                : () => _confirmReset(context),
+              ListTile(
+                leading: const LeadingIcon(
+                  icon: Icons.restart_alt,
+                  color: Color(0xFFE08EA6),
+                ),
+                title: Text(tr('Reset kiraan', 'Reset count')),
+                subtitle: Text(
+                  tr(
+                    'Kiraan semasa akan dikosongkan',
+                    'Current count will be cleared',
+                  ),
+                ),
+                enabled: controller.tasbihCount > 0,
+                onTap: controller.tasbihCount == 0
+                    ? null
+                    : () => _confirmReset(context),
+              ),
+            ],
           ),
-        ],
-      ),
+        );
+      },
     );
   }
 
